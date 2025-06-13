@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
 
 // Aplicación principal que maneja autenticación
 export default function App() {
@@ -95,7 +96,8 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/auth/login', {
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +233,8 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/auth/register', {
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -481,7 +484,8 @@ function Store({ user, token, onLogout }) {
   // Cargar productos desde la base de datos
   useEffect(() => {
     setIsLoading(true);
-    fetch(`${API_URL}/productos')
+    // ✅ CORREGIDO: URL dinámica con template literals correctos
+    fetch(`${API_URL}/productos`)
       .then((res) => res.json())
       .then((data) => {
         console.log("Productos cargados desde la base de datos:", data);
@@ -569,7 +573,8 @@ function Store({ user, token, onLogout }) {
     }
 
     try {
-      const res = await fetch(`${API_URL}/orders', {
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const res = await fetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

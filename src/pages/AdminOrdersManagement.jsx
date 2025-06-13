@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
 
 export default function AdminOrdersManagement() {
   const [pedidos, setPedidos] = useState([]);
@@ -13,7 +14,7 @@ export default function AdminOrdersManagement() {
     setIsLoading(true);
     const token = localStorage.getItem('token');
     
-    fetch(`${API_URL}/api/admin/pedidos', {
+    fetch(`${API_URL}/api/admin/pedidos`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -44,7 +45,7 @@ export default function AdminOrdersManagement() {
       const token = localStorage.getItem('token');
       console.log('🔄 Cambiando estado del pedido:', pedidoId, 'a:', nuevoEstado);
       
-      const response = await fetch(`http://localhost:3000/api/admin/pedidos/${pedidoId}/estado`, {
+      const response = await fetch(`${API_URL}/api/admin/pedidos/${pedidoId}/estado`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -88,14 +89,6 @@ export default function AdminOrdersManagement() {
       console.error('❌ Error de red:', error);
       alert('❌ Error de red al actualizar el pedido: ' + error.message);
     }
-  };
-
-  const finalizarCompra = async () => {
-    if (carrito.length === 0) {
-      alert('El carrito está vacío');
-      return;
-    }
-    setShowCheckout(true);
   };
 
   const formatearFecha = (fecha) => {
@@ -181,7 +174,7 @@ export default function AdminOrdersManagement() {
               </div>
               <div className="ml-4">
                 <p className="text-2xl font-bold text-gray-800">
-                  {pedidos.filter(p => p.estado?.toLowerCase().trim() === 'pendiente').length}
+                  {pedidos.filter(p => p.estado === 'pendiente').length}
                 </p>
                 <p className="text-gray-600">Pendientes</p>
               </div>
@@ -197,7 +190,7 @@ export default function AdminOrdersManagement() {
               </div>
               <div className="ml-4">
                 <p className="text-2xl font-bold text-gray-800">
-                  {pedidos.filter(p => p.estado?.toLowerCase().trim() === 'entregado').length}
+                  {pedidos.filter(p => p.estado === 'entregado').length}
                 </p>
                 <p className="text-gray-600">Entregados</p>
               </div>
@@ -275,12 +268,12 @@ export default function AdminOrdersManagement() {
                         {pedido.numero_pedido}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {pedido.productos.length} productos
+                        {pedido.productos?.length || 0} productos
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {pedido.usuario.nombre}
+                        {pedido.usuario?.nombre}
                       </div>
                       <div className="text-sm text-gray-500">
                         {pedido.telefono_contacto}
@@ -293,20 +286,19 @@ export default function AdminOrdersManagement() {
                       <div className="text-sm text-gray-500">
                         Apt {pedido.apartamento_entrega}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {pedido.horario_preferido && `Prefiere: ${pedido.horario_preferido}`}
-                      </div>
+                      {pedido.horario_preferido && (
+                        <div className="text-sm text-gray-500">
+                          Prefiere: {pedido.horario_preferido}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${pedido.total.toLocaleString()}
+                      ${pedido.total?.toLocaleString() || '0'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getEstadoColor(pedido.estado)}`}>
                         {pedido.estado}
                       </span>
-                      <div className="text-xs text-gray-400 mt-1">
-                        Debug: "{pedido.estado}" (length: {pedido.estado?.length})
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {formatearFecha(pedido.fecha_pedido)}
@@ -321,21 +313,14 @@ export default function AdminOrdersManagement() {
                       >
                         Ver Detalles
                       </button>
-                      {/* Mostrar botón siempre para debug, luego ajustaremos */}
-                      <button
-                        onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
-                        className={`px-3 py-1 rounded-lg transition-colors ${
-                          pedido.estado?.toLowerCase().trim() === 'pendiente' 
-                            ? 'text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100' 
-                            : 'text-gray-400 bg-gray-100 cursor-not-allowed'
-                        }`}
-                        disabled={pedido.estado?.toLowerCase().trim() !== 'pendiente'}
-                      >
-                        ✓ Entregado
-                      </button>
-                      <div className="text-xs text-gray-400 mt-1">
-                        Estado actual: "{pedido.estado}" | ¿Es pendiente? {pedido.estado?.toLowerCase().trim() === 'pendiente' ? 'SÍ' : 'NO'}
-                      </div>
+                      {pedido.estado === 'pendiente' && (
+                        <button
+                          onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
+                          className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
+                        >
+                          ✓ Entregado
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -385,8 +370,8 @@ export default function AdminOrdersManagement() {
                       Información del Cliente
                     </h3>
                     <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                      <p><span className="font-medium">Nombre:</span> {pedidoSeleccionado.usuario.nombre}</p>
-                      <p><span className="font-medium">Email:</span> {pedidoSeleccionado.usuario.email}</p>
+                      <p><span className="font-medium">Nombre:</span> {pedidoSeleccionado.usuario?.nombre}</p>
+                      <p><span className="font-medium">Email:</span> {pedidoSeleccionado.usuario?.email}</p>
                       <p><span className="font-medium">Teléfono:</span> {pedidoSeleccionado.telefono_contacto}</p>
                     </div>
                   </div>
@@ -444,19 +429,19 @@ export default function AdminOrdersManagement() {
                     <svg className="w-5 h-5 mr-2 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 2L3 7v11a2 2 0 002 2h10a2 2 0 002-2V7l-7-5zM8 15v-3a1 1 0 011-1h2a1 1 0 011 1v3h-4z" clipRule="evenodd"/>
                     </svg>
-                    Productos ({pedidoSeleccionado.productos.length})
+                    Productos ({pedidoSeleccionado.productos?.length || 0})
                   </h3>
                   <div className="space-y-3">
-                    {pedidoSeleccionado.productos.map((producto, index) => (
+                    {pedidoSeleccionado.productos?.map((producto, index) => (
                       <div key={index} className="bg-gray-50 rounded-xl p-4 flex justify-between items-center">
                         <div>
                           <p className="font-medium text-gray-800">{producto.nombre}</p>
                           <p className="text-sm text-gray-600">Cantidad: {producto.cantidad}</p>
-                          <p className="text-sm text-gray-600">Precio unitario: ${producto.precio.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600">Precio unitario: ${producto.precio?.toLocaleString()}</p>
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-blue-600">
-                            ${(producto.precio * producto.cantidad).toLocaleString()}
+                            ${((producto.precio || 0) * (producto.cantidad || 0)).toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -467,7 +452,7 @@ export default function AdminOrdersManagement() {
                     <div className="flex justify-between items-center">
                       <span className="text-xl font-bold text-gray-800">Total del Pedido:</span>
                       <span className="text-2xl font-bold text-blue-600">
-                        ${pedidoSeleccionado.total.toLocaleString()}
+                        ${pedidoSeleccionado.total?.toLocaleString() || '0'}
                       </span>
                     </div>
                   </div>

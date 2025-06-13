@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminOrdersManagement from './AdminOrdersManagement';
+import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('productos');
@@ -126,7 +127,8 @@ function EstadisticasSection() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/admin/stats', {
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const response = await fetch(`${API_URL}/admin/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -236,7 +238,8 @@ function ProductosSection() {
 
   const fetchProductos = async () => {
     try {
-      const response = await fetch(`${API_URL}/productos');
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const response = await fetch(`${API_URL}/productos`);
       const data = await response.json();
       setProductos(data);
     } catch (error) {
@@ -289,7 +292,8 @@ function UsuariosSection() {
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/admin/users', {
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const response = await fetch(`${API_URL}/admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -357,11 +361,12 @@ function UsuariosSection() {
 
 function ProductCard({ producto, onUpdate }) {
   const handleDelete = async () => {
-    if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+    if (window.confirm('¿Estás seguro de eliminar este producto?')) return;
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/productos/${producto.id}`, {
+      // ✅ CORREGIDO: URL dinámica en lugar de localhost hardcodeado
+      const response = await fetch(`${API_URL}/productos/${producto.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -421,7 +426,8 @@ function ProductForm({ onSuccess }) {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/productos', {
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const response = await fetch(`${API_URL}/productos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
