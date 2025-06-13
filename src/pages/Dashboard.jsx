@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom'; // 👈 Agrega esta línea arriba si no la tienes
+import { Link } from 'react-router-dom';
+import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
 
 export default function Dashboard() {
   const [productos, setProductos] = useState([]);
@@ -8,7 +9,8 @@ export default function Dashboard() {
   const [cargando, setCargando] = useState(true);
 
   const cargarProductos = () => {
-    fetch(`${API_URL}/productos')
+    // ✅ CORREGIDO: URL dinámica con template literals correctos
+    fetch(`${API_URL}/productos`)
       .then(res => res.json())
       .then(data => {
         setProductos(data);
@@ -28,7 +30,8 @@ export default function Dashboard() {
     if (!window.confirm('¿Eliminar este producto?')) return;
 
     try {
-      await fetch(`http://localhost:3000/productos/${id}`, { method: 'DELETE' });
+      // ✅ CORREGIDO: URL dinámica en lugar de localhost hardcodeado
+      await fetch(`${API_URL}/productos/${id}`, { method: 'DELETE' });
       setProductos(productos.filter(p => p.id !== id));
     } catch (err) {
       console.error('Error eliminando:', err);
@@ -37,7 +40,8 @@ export default function Dashboard() {
 
   const guardarCambios = async (id) => {
     try {
-      await fetch(`http://localhost:3000/productos/${id}`, {
+      // ✅ CORREGIDO: URL dinámica en lugar de localhost hardcodeado
+      await fetch(`${API_URL}/productos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
@@ -63,16 +67,13 @@ export default function Dashboard() {
     <div className="max-w-5xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-4">📦 Productos disponibles</h2>
       <div className="mb-6 flex justify-end">
-  <Link
-    to="/dashboard/orders"
-    className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-  >
-    📋 Ver pedidos
-  </Link>
-</div>
-
-
-
+        <Link
+          to="/dashboard/orders"
+          className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+        >
+          📋 Ver pedidos
+        </Link>
+      </div>
 
       {cargando ? (
         <p>Cargando productos...</p>

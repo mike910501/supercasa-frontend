@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
 
 export default function ProductForm() {
   const [producto, setProducto] = useState({
@@ -19,7 +20,8 @@ export default function ProductForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_URL}/productos', {
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const res = await fetch(`${API_URL}/productos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
