@@ -8,7 +8,7 @@ export default function Dashboard() {
   const [cargando, setCargando] = useState(true);
 
   const cargarProductos = () => {
-    fetch('http://localhost:3000/productos')
+    fetch(`${API_URL}/productos')
       .then(res => res.json())
       .then(data => {
         setProductos(data);
@@ -64,7 +64,7 @@ export default function Dashboard() {
       <h2 className="text-2xl font-bold mb-4">📦 Productos disponibles</h2>
       <div className="mb-6 flex justify-end">
   <Link
-    to="/dashboard/Orders"
+    to="/dashboard/orders"
     className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
   >
     📋 Ver pedidos

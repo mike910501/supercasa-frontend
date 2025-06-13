@@ -1,25 +1,23 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import ProductForm from './pages/ProductForm';
-import Orders from './pages/Orders';  // Asegúrate de que esta importación esté
-import Store from './pages/Store';
-import AdminLayout from './components/AdminLayout';
+import StoreApp from './pages/Store'; // Tu Store.jsx actual (con autenticación)
+import AdminDashboard from './pages/AdminDashboard'; // Nuevo dashboard integrado
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/store" element={<Store />} />
+        {/* Ruta principal - Tienda con autenticación */}
+        <Route path="/" element={<StoreApp />} />
+        <Route path="/store" element={<StoreApp />} />
 
-        {/* Ruta protegida de administrador con subrutas */}
-        <Route path="/dashboard" element={<AdminLayout />}>
-          <Route path="productos" element={<Dashboard />} />
-          <Route path="add-product" element={<ProductForm />} />
-          <Route path="orders" element={<Orders />} /> {/* Ruta para los pedidos */}
-        </Route>
+        {/* Rutas protegidas de admin */}
+        <Route path="/admin" element={
+          <ProtectedRoute requireAdmin={true}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Router>
   );

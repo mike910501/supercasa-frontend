@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
 
 export default function ChatWidget({ productos = [], agregarAlCarrito }) {
   const [visible, setVisible] = useState(false);
@@ -95,7 +96,8 @@ export default function ChatWidget({ productos = [], agregarAlCarrito }) {
 
     // 🌐 Llamada a la IA si no se cumple lo anterior
     try {
-      const res = await fetch('http://localhost:3000/chat', {
+      // ✅ CORREGIDO: URL dinámica con template literals correctos
+      const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mensaje: textoUsuario }),

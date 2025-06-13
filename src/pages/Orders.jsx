@@ -6,7 +6,7 @@ export default function Orders() {
   const [error, setError] = useState(null);      // Estado de error
 
   useEffect(() => {
-    fetch('http://localhost:3000/orders')
+    fetch(`${API_URL}/orders')
       .then(res => res.json())
       .then(data => {
         setPedidos(data);
