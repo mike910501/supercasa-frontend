@@ -1,6 +1,3 @@
-// src/config/api.js
-// Configuración centralizada de la API
-
 const API_URL = 'https://supercasa-backend-vvu1.onrender.com';
 
 export default API_URL;
