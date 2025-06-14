@@ -102,13 +102,16 @@ export default function AdminOrdersManagement() {
   };
 
   const getEstadoColor = (estado) => {
-    switch (estado) {
-      case 'pendiente': return 'bg-yellow-100 text-yellow-800';
-      case 'entregado': return 'bg-green-100 text-green-800';
-      case 'cancelado': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  switch (estado) {
+    case 'pendiente': 
+    case 'Pendiente': return 'bg-yellow-100 text-yellow-800'; // ⚡ AGREGADO
+    case 'entregado': 
+    case 'Entregado': return 'bg-green-100 text-green-800';   // ⚡ AGREGADO
+    case 'cancelado': 
+    case 'Cancelado': return 'bg-red-100 text-red-800';       // ⚡ AGREGADO
+    default: return 'bg-gray-100 text-gray-800';
+  }
+};
 
   if (isLoading) {
     return (
@@ -174,7 +177,7 @@ export default function AdminOrdersManagement() {
               </div>
               <div className="ml-4">
                 <p className="text-2xl font-bold text-gray-800">
-                  {pedidos.filter(p => p.estado === 'pendiente').length}
+                  {pedidos.filter(p => p.estado === 'Pendiente').length}
                 </p>
                 <p className="text-gray-600">Pendientes</p>
               </div>
@@ -313,7 +316,7 @@ export default function AdminOrdersManagement() {
                       >
                         Ver Detalles
                       </button>
-                      {pedido.estado === 'pendiente' && (
+                      {pedido.estado === 'Pendiente' && (
                         <button
                           onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
                           className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
@@ -406,7 +409,7 @@ export default function AdminOrdersManagement() {
                         <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getEstadoColor(pedidoSeleccionado.estado)}`}>
                           {pedidoSeleccionado.estado}
                         </span>
-                        {pedidoSeleccionado.estado === 'pendiente' && (
+                        {pedidoSeleccionado.estado === 'Pendiente' && (
                           <button
                             onClick={() => cambiarEstadoPedido(pedidoSeleccionado.id, 'entregado')}
                             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
