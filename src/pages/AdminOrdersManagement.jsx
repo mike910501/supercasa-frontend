@@ -161,6 +161,7 @@ export default function AdminOrdersManagement() {
                 <option value="2">Torre 2</option>
                 <option value="3">Torre 3</option>
                 <option value="4">Torre 4</option>
+                <option value="5">Torre 5</option>
               </select>
             </div>
           </div>
@@ -289,11 +290,7 @@ export default function AdminOrdersManagement() {
                       <div className="text-sm text-gray-500">
                         Apt {pedido.apartamento_entrega}
                       </div>
-                      {pedido.horario_preferido && (
-                        <div className="text-sm text-gray-500">
-                          Prefiere: {pedido.horario_preferido}
-                        </div>
-                      )}
+                      {/* ⚡ ELIMINADO: horario_preferido ya no se muestra */}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       ${pedido.total?.toLocaleString() || '0'}
@@ -390,7 +387,15 @@ export default function AdminOrdersManagement() {
                       <p><span className="font-medium">Torre:</span> {pedidoSeleccionado.torre_entrega}</p>
                       <p><span className="font-medium">Piso:</span> {pedidoSeleccionado.piso_entrega}</p>
                       <p><span className="font-medium">Apartamento:</span> {pedidoSeleccionado.apartamento_entrega}</p>
-                      <p><span className="font-medium">Horario preferido:</span> {pedidoSeleccionado.horario_preferido || 'Sin preferencia'}</p>
+                      {/* ⚡ AGREGADO: Mensaje de entrega rápida */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+                        <div className="flex items-center">
+                          <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+                          </svg>
+                          <span className="text-blue-800 font-medium">⚡ Entrega rápida: máximo 20 minutos</span>
+                        </div>
+                      </div>
                       {pedidoSeleccionado.instrucciones_entrega && (
                         <p><span className="font-medium">Instrucciones:</span> {pedidoSeleccionado.instrucciones_entrega}</p>
                       )}

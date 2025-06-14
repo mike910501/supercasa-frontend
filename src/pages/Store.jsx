@@ -220,7 +220,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
       return;
     }
 
-    if (!['1', '2', '3', '4'].includes(formData.torre)) {
+    if (!['1', '2', '3', '4', '5'].includes(formData.torre)) {
       setError('Selecciona una torre válida');
       return;
     }
@@ -370,6 +370,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               <option value="2">Torre 2</option>
               <option value="3">Torre 3</option>
               <option value="4">Torre 4</option>
+              <option value="5">Torre 5</option>
             </select>
           </div>
 
@@ -464,7 +465,6 @@ function Store({ user, token, onLogout }) {
     piso_entrega: user?.piso || '',
     apartamento_entrega: user?.apartamento || '',
     instrucciones_entrega: user?.notas_entrega || '',
-    horario_preferido: '',
     telefono_contacto: user?.telefono || ''
   });
 
@@ -476,7 +476,6 @@ function Store({ user, token, onLogout }) {
         piso_entrega: user.piso || '',
         apartamento_entrega: user.apartamento || '',
         instrucciones_entrega: user.notas_entrega || '',
-        horario_preferido: '',
         telefono_contacto: user.telefono || ''
       });
     }
@@ -582,7 +581,7 @@ function Store({ user, token, onLogout }) {
 
       if (res.ok) {
         const data = await res.json();
-        alert(`✅ Pedido realizado correctamente\n📍 Entrega: Torre ${deliveryData.torre_entrega}, Piso ${deliveryData.piso_entrega}, Apt ${deliveryData.apartamento_entrega}\n📱 Te contactaremos para coordinar la entrega`);
+        alert(`✅ Pedido realizado correctamente\n📍 Entrega: Torre ${deliveryData.torre_entrega}, Piso ${deliveryData.piso_entrega}, Apt ${deliveryData.apartamento_entrega}\n⚡ Tu pedido llegará en máximo 20 minutos\n📱 Te contactaremos para coordinar la entrega`);
         setCarrito([]);
         setShowCart(false);
         setShowCheckout(false);
@@ -637,6 +636,14 @@ function Store({ user, token, onLogout }) {
                 <span className="text-gray-600">Hola, {user.nombre}</span>
               </div>
               
+              {/* ⚡ AGREGADO: Mensaje de entrega rápida prominente */}
+              <div className="hidden lg:flex items-center bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <svg className="w-4 h-4 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+                </svg>
+                <span className="text-green-800 text-sm font-medium">⚡ Entrega en máximo 20 min</span>
+              </div>
+              
               {/* ⚡ AGREGADO: Botón Panel Admin solo para usuarios admin */}
               {user.rol === 'admin' && (
                 <Link
@@ -673,6 +680,16 @@ function Store({ user, token, onLogout }) {
           </div>
         </div>
       </header>
+
+      {/* ⚡ AGREGADO: Banner de entrega rápida móvil */}
+      <div className="lg:hidden bg-gradient-to-r from-green-500 to-blue-500 text-white p-3 text-center">
+        <div className="flex items-center justify-center">
+          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+          </svg>
+          <span className="font-medium">⚡ Entrega súper rápida en máximo 20 minutos</span>
+        </div>
+      </div>
 
       {/* Filtros y búsqueda */}
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -837,6 +854,19 @@ function Store({ user, token, onLogout }) {
             </div>
 
             <div className="p-6">
+              {/* ⚡ AGREGADO: Banner de entrega rápida prominente */}
+              <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+                  </svg>
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-green-800">⚡ Entrega súper rápida</p>
+                    <p className="text-green-700">Tu pedido llegará en máximo 20 minutos</p>
+                  </div>
+                </div>
+              </div>
+
               <h3 className="text-lg font-semibold mb-4">📍 Datos de Entrega</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -851,6 +881,7 @@ function Store({ user, token, onLogout }) {
                     <option value="2">Torre 2</option>
                     <option value="3">Torre 3</option>
                     <option value="4">Torre 4</option>
+                    <option value="5">Torre 5</option>
                   </select>
                 </div>
 
@@ -886,19 +917,7 @@ function Store({ user, token, onLogout }) {
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Horario Preferido</label>
-                  <select
-                    value={deliveryData.horario_preferido}
-                    onChange={(e) => setDeliveryData({...deliveryData, horario_preferido: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Selecciona horario</option>
-                    <option value="mañana">Mañana (8:00 AM - 12:00 PM)</option>
-                    <option value="tarde">Tarde (12:00 PM - 6:00 PM)</option>
-                    <option value="noche">Noche (6:00 PM - 9:00 PM)</option>
-                  </select>
-                </div>
+                {/* ⚡ ELIMINADO: Campo horario_preferido ya no existe */}
 
                 <div className="md:col-span-2">
                   <label className="block text-gray-700 text-sm font-medium mb-2">Instrucciones de Entrega</label>
@@ -931,7 +950,7 @@ function Store({ user, token, onLogout }) {
                   onClick={confirmarPedido}
                   className="w-full mt-6 bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-blue-700 transition-all"
                 >
-                  Confirmar Pedido
+                  Confirmar Pedido - Entrega en 20 min ⚡
                 </button>
                 
                 {/* Botón temporal de debug */}
