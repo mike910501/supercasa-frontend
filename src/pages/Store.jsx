@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom'; // ⚡ AGREGADO: Import para navegación
 import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
 
 // Aplicación principal que maneja autenticación
@@ -494,15 +495,7 @@ function Store({ user, token, onLogout }) {
       })
       .catch((error) => {
         console.error('Error al cargar los productos:', error);
-        // Fallback con productos de ejemplo si la API no está disponible
-        const productosEjemplo = [
-          { id: 1, nombre: 'Arroz Diana 500g', precio: 3500, categoria: 'Despensa', imagen: 'https://via.placeholder.com/200x200?text=Arroz', stock: 50 },
-          { id: 2, nombre: 'Leche Alquería 1L', precio: 4200, categoria: 'Lacteos', imagen: 'https://via.placeholder.com/200x200?text=Leche', stock: 30 },
-          { id: 3, nombre: 'Pan Tajado', precio: 2800, categoria: 'Panadería', imagen: 'https://via.placeholder.com/200x200?text=Pan', stock: 25 },
-          { id: 4, nombre: 'Huevos AA x30', precio: 8500, categoria: 'Proteínas', imagen: 'https://via.placeholder.com/200x200?text=Huevos', stock: 40 },
-          { id: 5, nombre: 'Aceite de Cocina 500ml', precio: 6500, categoria: 'Despensa', imagen: 'https://via.placeholder.com/200x200?text=Aceite', stock: 35 }
-        ];
-        setProductos(productosEjemplo);
+        setProductos([]);
         setIsLoading(false);
       });
   }, []);
@@ -643,6 +636,16 @@ function Store({ user, token, onLogout }) {
               <div className="hidden md:flex items-center space-x-2">
                 <span className="text-gray-600">Hola, {user.nombre}</span>
               </div>
+              
+              {/* ⚡ AGREGADO: Botón Panel Admin solo para usuarios admin */}
+              {user.rol === 'admin' && (
+                <Link
+                  to="/admin"
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
+                >
+                  🔧 Panel Admin
+                </Link>
+              )}
               
               <button
                 onClick={() => setShowCart(true)}
