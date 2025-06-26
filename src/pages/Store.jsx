@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom'; // ⚡ AGREGADO: Import para navegación
-import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
+import { Link, useNavigate } from 'react-router-dom';
+import API_URL, { api } from '../config/api';
+import { toast } from 'react-hot-toast';
+import { restoreCartAfterLogin, hasTemporaryCart } from '../utils/authHandler';
 
 // Aplicación principal que maneja autenticación
 export default function App() {
@@ -78,43 +80,79 @@ function AuthContainer({ onAuth }) {
   );
 }
 
-// Componente de Login
+// Componente de Login MIGRADO
 function LoginForm({ onLogin, onSwitchToRegister }) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [showCartInfo, setShowCartInfo] = useState(false);
+
+  // Verificar si hay carrito temporal al cargar
+  useEffect(() => {
+    if (hasTemporaryCart()) {
+      setShowCartInfo(true);
+      toast('💡 Tiene productos guardados. Inicie sesión para recuperar su carrito.', {
+        duration: 6000,
+        style: {
+          background: '#fbbf24',
+          color: '#92400e'
+        }
+      });
+    }
+  }, []);
 
   const handleSubmit = async () => {
     if (!formData.email || !formData.password) {
-      setError('Por favor completa todos los campos');
+      toast.error('Por favor completa todos los campos');
       return;
     }
 
     setIsLoading(true);
-    setError('');
 
     try {
-      // ✅ CORREGIDO: URL dinámica con template literals correctos
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const loadingToast = toast.loading('Iniciando sesión...');
 
-      const data = await response.json();
+      const response = await api.post('/auth/login', {
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password
+      }, navigate);
 
-      if (response.ok) {
-        onLogin(data.user, data.token);
+      toast.dismiss(loadingToast);
+
+      if (response.token && response.user) {
+        // Restaurar carrito si existe
+        const carritoRestaurado = restoreCartAfterLogin();
+        
+        // Mensaje de bienvenida diferenciado
+        if (carritoRestaurado) {
+          // Ya se muestra el mensaje en restoreCartAfterLogin()
+        } else {
+          toast.success(`¡Bienvenido, ${response.user.nombre}!`, {
+            duration: 3000,
+            icon: '👋'
+          });
+        }
+
+        onLogin(response.user, response.token);
       } else {
-        setError(data.error || 'Error al iniciar sesión');
+        throw new Error('Respuesta del servidor incompleta');
       }
+
     } catch (error) {
-      setError('Error de conexión. Asegúrate de que el servidor esté corriendo.');
+      console.error('Error en login:', error);
+      
+      if (error.message.includes('servidor')) {
+        toast.error('Conectando con el servidor... Intente nuevamente en unos segundos.');
+      } else if (error.message.includes('credenciales') || error.message.includes('password')) {
+        toast.error('Email o contraseña incorrectos');
+      } else if (error.message.includes('usuario no encontrado')) {
+        toast.error('Este email no está registrado');
+      } else {
+        toast.error(error.message || 'Error al iniciar sesión');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -133,9 +171,15 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
           <p className="text-gray-600">Conjunto Residencial</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
-            {error}
+        {/* Alerta de carrito temporal */}
+        {showCartInfo && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center">
+              <span className="text-amber-600 mr-2">🛒</span>
+              <p className="text-sm text-amber-800">
+                <strong>Carrito recuperable:</strong> Sus productos se restaurarán después del login.
+              </p>
+            </div>
           </div>
         )}
 
@@ -148,6 +192,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
               onChange={(e) => setFormData({...formData, email: e.target.value})}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="tu@email.com"
+              disabled={isLoading}
             />
           </div>
 
@@ -159,15 +204,27 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
               onChange={(e) => setFormData({...formData, password: e.target.value})}
               className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
+              disabled={isLoading}
             />
           </div>
 
           <button
             onClick={handleSubmit}
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50"
+            className={`w-full py-3 rounded-xl font-medium text-white transition-all ${
+              isLoading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+            }`}
           >
-            {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Iniciando sesión...
+              </div>
+            ) : (
+              'Iniciar Sesión'
+            )}
           </button>
         </div>
 
@@ -177,6 +234,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
             <button
               onClick={onSwitchToRegister}
               className="text-blue-600 hover:text-blue-700 font-medium"
+              disabled={isLoading}
             >
               Regístrate aquí
             </button>
@@ -187,8 +245,9 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
   );
 }
 
-// Componente de Registro para Conjunto Residencial
+// Componente de Registro MIGRADO
 function RegisterForm({ onRegister, onSwitchToLogin }) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -202,56 +261,62 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
     notas_entrega: ''
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const handleSubmit = async () => {
     if (!formData.nombre || !formData.email || !formData.password || !formData.torre || !formData.piso || !formData.apartamento) {
-      setError('Por favor completa todos los campos obligatorios');
+      toast.error('Por favor completa todos los campos obligatorios');
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      toast.error('Las contraseñas no coinciden');
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+      toast.error('La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
     if (!['1', '2', '3', '4', '5'].includes(formData.torre)) {
-      setError('Selecciona una torre válida');
+      toast.error('Selecciona una torre válida');
       return;
     }
 
     if (formData.piso < 1 || formData.piso > 30) {
-      setError('El piso debe estar entre 1 y 30');
+      toast.error('El piso debe estar entre 1 y 30');
       return;
     }
 
     setIsLoading(true);
-    setError('');
 
     try {
-      // ✅ CORREGIDO: URL dinámica con template literals correctos
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const loadingToast = toast.loading('Registrando usuario...');
 
-      const data = await response.json();
+      const response = await api.post('/auth/register', formData, navigate);
 
-      if (response.ok) {
-        onRegister(data.user, data.token);
+      toast.dismiss(loadingToast);
+
+      if (response.token && response.user) {
+        toast.success(`¡Bienvenido a Supercasa, ${response.user.nombre}!`, {
+          duration: 4000,
+          icon: '🎉'
+        });
+        onRegister(response.user, response.token);
       } else {
-        setError(data.error || 'Error al registrarse');
+        throw new Error('Respuesta del servidor incompleta');
       }
+
     } catch (error) {
-      setError('Error de conexión. Asegúrate de que el servidor esté corriendo.');
+      console.error('Error en registro:', error);
+      
+      if (error.message.includes('email ya existe')) {
+        toast.error('Este email ya está registrado. Intenta con otro o inicia sesión.');
+      } else if (error.message.includes('servidor')) {
+        toast.error('Conectando con el servidor... Intente nuevamente en unos segundos.');
+      } else {
+        toast.error(error.message || 'Error al registrarse');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -270,12 +335,6 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
           <p className="text-gray-600">Únete a Supercasa - Solo para residentes</p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4">
-            {error}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Información personal */}
           <div className="md:col-span-2">
@@ -290,6 +349,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               onChange={(e) => setFormData({...formData, nombre: e.target.value})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Tu nombre completo"
+              disabled={isLoading}
             />
           </div>
 
@@ -301,6 +361,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               onChange={(e) => setFormData({...formData, email: e.target.value})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="tu@email.com"
+              disabled={isLoading}
             />
           </div>
 
@@ -312,6 +373,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               onChange={(e) => setFormData({...formData, password: e.target.value})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
+              disabled={isLoading}
             />
           </div>
 
@@ -323,6 +385,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="••••••••"
+              disabled={isLoading}
             />
           </div>
 
@@ -339,6 +402,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               onChange={(e) => setFormData({...formData, telefono: e.target.value})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="300-123-4567"
+              disabled={isLoading}
             />
           </div>
 
@@ -350,6 +414,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               onChange={(e) => setFormData({...formData, telefono_alternativo: e.target.value})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="310-123-4567"
+              disabled={isLoading}
             />
           </div>
 
@@ -364,6 +429,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               value={formData.torre}
               onChange={(e) => setFormData({...formData, torre: e.target.value})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
             >
               <option value="">Selecciona tu torre</option>
               <option value="1">Torre 1</option>
@@ -380,6 +446,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               value={formData.piso}
               onChange={(e) => setFormData({...formData, piso: e.target.value})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
             >
               <option value="">Selecciona el piso</option>
               {Array.from({length: 30}, (_, i) => i + 1).map(piso => (
@@ -396,6 +463,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               onChange={(e) => setFormData({...formData, apartamento: e.target.value.toUpperCase()})}
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Ej: 101, 102A, 103B"
+              disabled={isLoading}
             />
           </div>
 
@@ -407,6 +475,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Ej: Timbre roto, llamar al celular. Portería principal."
               rows="2"
+              disabled={isLoading}
             />
           </div>
 
@@ -426,9 +495,20 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50"
+              className={`w-full py-3 rounded-xl font-medium text-white transition-all ${
+                isLoading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+              }`}
             >
-              {isLoading ? 'Registrando...' : 'Registrarse en Supercasa'}
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Registrando...
+                </div>
+              ) : (
+                'Registrarse en Supercasa'
+              )}
             </button>
           </div>
         </div>
@@ -439,6 +519,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
             <button
               onClick={onSwitchToLogin}
               className="text-blue-600 hover:text-blue-700 font-medium"
+              disabled={isLoading}
             >
               Inicia sesión
             </button>
@@ -449,8 +530,9 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
   );
 }
 
-// Componente principal de la tienda
+// Componente principal de la tienda MIGRADO
 function Store({ user, token, onLogout }) {
+  const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
   const [carrito, setCarrito] = useState([]);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
@@ -481,23 +563,48 @@ function Store({ user, token, onLogout }) {
     }
   }, [user]);
 
-  // Cargar productos desde la base de datos
+  // Cargar productos MIGRADO
   useEffect(() => {
-    setIsLoading(true);
-    // ✅ CORREGIDO: URL dinámica con template literals correctos
-    fetch(`${API_URL}/productos`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Productos cargados desde la base de datos:", data);
-        setProductos(data);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error al cargar los productos:', error);
-        setProductos([]);
-        setIsLoading(false);
-      });
+    obtenerProductos();
   }, []);
+
+  // Restaurar carrito desde localStorage al cargar
+  useEffect(() => {
+    const carritoGuardado = localStorage.getItem('carrito');
+    if (carritoGuardado) {
+      try {
+        setCarrito(JSON.parse(carritoGuardado));
+      } catch (error) {
+        console.error('Error parsing carrito:', error);
+        localStorage.removeItem('carrito');
+      }
+    }
+
+    // Restaurar carrito después de login si existe
+    const carritoRestaurado = restoreCartAfterLogin();
+    if (carritoRestaurado) {
+      setCarrito(carritoRestaurado);
+    }
+  }, []);
+
+  // Guardar carrito en localStorage cuando cambie
+  useEffect(() => {
+    localStorage.setItem('carrito', JSON.stringify(carrito));
+  }, [carrito]);
+
+  const obtenerProductos = async () => {
+    setIsLoading(true);
+    try {
+      const productos = await api.get('/productos', navigate);
+      console.log("Productos cargados desde la base de datos:", productos);
+      setProductos(productos);
+    } catch (error) {
+      toast.error('Error al cargar productos: ' + error.message);
+      setProductos([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filtrar productos
   const productosFiltrados = productos.filter(producto => {
@@ -520,6 +627,11 @@ function Store({ user, token, onLogout }) {
     } else {
       setCarrito([...carrito, { ...producto, cantidad: 1 }]);
     }
+    
+    toast.success(`${producto.nombre} agregado al carrito`, {
+      duration: 2000,
+      icon: '🛒'
+    });
   };
 
   const eliminarDelCarrito = (productoId) => {
@@ -538,7 +650,7 @@ function Store({ user, token, onLogout }) {
 
   const finalizarCompra = async () => {
     if (carrito.length === 0) {
-      alert('El carrito está vacío');
+      toast.error('El carrito está vacío');
       return;
     }
     setShowCheckout(true);
@@ -547,52 +659,79 @@ function Store({ user, token, onLogout }) {
   const confirmarPedido = async () => {
     const totalPedido = carrito.reduce((acc, item) => acc + Number(item.precio) * item.cantidad, 0);
 
-    // Debug: Mostrar datos de entrega
-    console.log('Datos de entrega:', deliveryData);
-
     // Validación mejorada
     if (!deliveryData.torre_entrega) {
-      alert('Por favor selecciona la torre de entrega');
+      toast.error('Por favor selecciona la torre de entrega');
       return;
     }
     if (!deliveryData.piso_entrega) {
-      alert('Por favor ingresa el piso de entrega');
+      toast.error('Por favor ingresa el piso de entrega');
       return;
     }
     if (!deliveryData.apartamento_entrega) {
-      alert('Por favor ingresa el apartamento de entrega');
+      toast.error('Por favor ingresa el apartamento de entrega');
       return;
     }
 
     try {
-      // ✅ CORREGIDO: URL dinámica con template literals correctos
-      const res = await fetch(`${API_URL}/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          productos: carrito,
-          total: totalPedido,
-          ...deliveryData
-        }),
+      const nuevoPedido = await api.post('/orders', {
+        productos: carrito,
+        total: totalPedido,
+        ...deliveryData
+      }, navigate);
+
+      toast.success('¡Pedido creado exitosamente! Entrega en máximo 20 minutos.', {
+        duration: 5000,
+        icon: '🎉'
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        alert(`✅ Pedido realizado correctamente\n📍 Entrega: Torre ${deliveryData.torre_entrega}, Piso ${deliveryData.piso_entrega}, Apt ${deliveryData.apartamento_entrega}\n⚡ Tu pedido llegará en máximo 20 minutos\n📱 Te contactaremos para coordinar la entrega`);
-        setCarrito([]);
-        setShowCart(false);
-        setShowCheckout(false);
-      } else {
-        const err = await res.json();
-        alert('❌ Error al realizar el pedido: ' + err.error);
-      }
+      setCarrito([]);
+      localStorage.removeItem('carrito');
+      setShowCart(false);
+      setShowCheckout(false);
+
     } catch (error) {
-      alert('❌ Error de red al realizar el pedido');
-      console.error(error);
+  console.error('Error al crear pedido:', error);
+  
+  // DEBUG: Verificar si es error de auth
+  console.log('🔍 Verificando tipo de error...');
+  console.log('🔍 Error message:', error.message);
+  console.log('🔍 Includes "401":', error.message.includes('401'));
+  console.log('🔍 Includes "Unauthorized":', error.message.includes('Unauthorized'));
+  console.log('🔍 Includes "Sesión expirada":', error.message.includes('Sesión expirada'));
+  
+  // BYPASS: Forzar logout si parece error de auth
+  if (error.message.includes('401') || 
+      error.message.includes('Unauthorized') || 
+      error.message.includes('Sesión expirada')) {
+    
+    console.log('🚨 DETECTADO ERROR DE AUTH - FORZANDO LOGOUT');
+    
+    // Preservar carrito
+    const carritoActual = localStorage.getItem('carrito');
+    if (carritoActual && carritoActual !== '[]') {
+      localStorage.setItem('carrito-temp', carritoActual);
+      console.log('🛒 Carrito preservado manualmente');
     }
+    
+    // Mostrar toast
+    toast.error('Su sesión ha expirado por seguridad. Redirigiendo...', {
+      duration: 3000,
+      icon: '🔒'
+    });
+    
+    // Limpiar auth y redireccionar
+    setTimeout(() => {
+      console.log('🚀 EJECUTANDO LOGOUT FORZADO');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/';
+    }, 2000);
+    
+  } else {
+    toast.error(`Error al realizar el pedido: ${error.message}`);
+  }
+}
   };
 
   const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
@@ -636,7 +775,6 @@ function Store({ user, token, onLogout }) {
                 <span className="text-gray-600">Hola, {user.nombre}</span>
               </div>
               
-              {/* ⚡ AGREGADO: Mensaje de entrega rápida prominente */}
               <div className="hidden lg:flex items-center bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                 <svg className="w-4 h-4 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
@@ -644,7 +782,6 @@ function Store({ user, token, onLogout }) {
                 <span className="text-green-800 text-sm font-medium">⚡ Entrega en máximo 20 min</span>
               </div>
               
-              {/* ⚡ AGREGADO: Botón Panel Admin solo para usuarios admin */}
               {user.rol === 'admin' && (
                 <Link
                   to="/admin"
@@ -681,7 +818,7 @@ function Store({ user, token, onLogout }) {
         </div>
       </header>
 
-      {/* ⚡ AGREGADO: Banner de entrega rápida móvil */}
+      {/* Banner de entrega rápida móvil */}
       <div className="lg:hidden bg-gradient-to-r from-green-500 to-blue-500 text-white p-3 text-center">
         <div className="flex items-center justify-center">
           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -854,7 +991,7 @@ function Store({ user, token, onLogout }) {
             </div>
 
             <div className="p-6">
-              {/* ⚡ AGREGADO: Banner de entrega rápida prominente */}
+              {/* Banner de entrega rápida prominente */}
               <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-4 mb-6">
                 <div className="flex items-center justify-center">
                   <svg className="w-6 h-6 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -917,8 +1054,6 @@ function Store({ user, token, onLogout }) {
                   />
                 </div>
 
-                {/* ⚡ ELIMINADO: Campo horario_preferido ya no existe */}
-
                 <div className="md:col-span-2">
                   <label className="block text-gray-700 text-sm font-medium mb-2">Instrucciones de Entrega</label>
                   <textarea
@@ -948,21 +1083,9 @@ function Store({ user, token, onLogout }) {
 
                 <button
                   onClick={confirmarPedido}
-                  className="w-full mt-6 bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-blue-700 transition-all"
+                  className="w-full mt-6 bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-blue-700 transition-all font-medium"
                 >
                   Confirmar Pedido - Entrega en 20 min ⚡
-                </button>
-                
-                {/* Botón temporal de debug */}
-                <button
-                  onClick={() => {
-                    console.log('DEBUG - Datos de entrega:', deliveryData);
-                    console.log('DEBUG - Usuario:', user);
-                    alert(`DEBUG:\nTorre: "${deliveryData.torre_entrega}"\nPiso: "${deliveryData.piso_entrega}"\nApt: "${deliveryData.apartamento_entrega}"\nTeléfono: "${deliveryData.telefono_contacto}"`);
-                  }}
-                  className="w-full mt-2 bg-gray-500 text-white py-2 rounded-xl hover:bg-gray-600 transition-all text-sm"
-                >
-                  🔍 Debug - Ver Datos
                 </button>
               </div>
             </div>

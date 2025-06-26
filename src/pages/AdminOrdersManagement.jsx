@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
+import API_URL, { api } from '../config/api';
+import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 export default function AdminOrdersManagement() {
+  const navigate = useNavigate();
   const [pedidos, setPedidos] = useState([]);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
   const [filtroEstado, setFiltroEstado] = useState('todos');
@@ -9,28 +12,24 @@ export default function AdminOrdersManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  // Cargar pedidos reales desde tu API
+  // Cargar pedidos al montar el componente
   useEffect(() => {
-    setIsLoading(true);
-    const token = localStorage.getItem('token');
-    
-    fetch(`${API_URL}/api/admin/pedidos`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Pedidos cargados desde la base de datos:", data);
-        setPedidos(data);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error al cargar los pedidos:', error);
-        setIsLoading(false);
-      });
+    obtenerPedidos();
   }, []);
+
+  // Nueva función para obtener pedidos con manejo elegante de errores
+  const obtenerPedidos = async () => {
+    setIsLoading(true);
+    try {
+      const pedidos = await api.get('/api/admin/pedidos', navigate);
+      console.log("Pedidos cargados desde la base de datos:", pedidos);
+      setPedidos(pedidos);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filtrar pedidos
   const pedidosFiltrados = pedidos.filter(pedido => {
@@ -39,55 +38,39 @@ export default function AdminOrdersManagement() {
     return matchesEstado && matchesTorre;
   });
 
-  // Cambiar estado del pedido usando tu API real
+  // Nueva función para cambiar estado usando la API inteligente
   const cambiarEstadoPedido = async (pedidoId, nuevoEstado) => {
     try {
-      const token = localStorage.getItem('token');
       console.log('🔄 Cambiando estado del pedido:', pedidoId, 'a:', nuevoEstado);
       
-      const response = await fetch(`${API_URL}/api/admin/pedidos/${pedidoId}/estado`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ estado: nuevoEstado })
-      });
-
-      console.log('📡 Respuesta de la API:', response.status);
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Pedido actualizado:', result);
-        
-        // Actualizar el estado local
-        setPedidos(pedidos.map(pedido => 
-          pedido.id === pedidoId 
-            ? { 
-                ...pedido, 
-                estado: nuevoEstado,
-                fecha_entrega: nuevoEstado === 'entregado' ? new Date().toISOString() : null
-              }
-            : pedido
-        ));
-        
-        if (pedidoSeleccionado && pedidoSeleccionado.id === pedidoId) {
-          setPedidoSeleccionado({
-            ...pedidoSeleccionado,
-            estado: nuevoEstado,
-            fecha_entrega: nuevoEstado === 'entregado' ? new Date().toISOString() : null
-          });
-        }
-
-        alert(`✅ Pedido ${nuevoEstado === 'entregado' ? 'marcado como entregado' : 'actualizado'} correctamente`);
-      } else {
-        const error = await response.json();
-        console.error('❌ Error de la API:', error);
-        alert('❌ Error al actualizar el pedido: ' + error.error);
+      await api.put(`/api/admin/pedidos/${pedidoId}/estado`, { estado: nuevoEstado }, navigate);
+      
+      console.log('✅ Pedido actualizado correctamente');
+      toast.success(`Pedido ${nuevoEstado === 'entregado' ? 'marcado como entregado' : 'actualizado'} correctamente`);
+      
+      // Actualizar el estado local
+      setPedidos(pedidos.map(pedido => 
+        pedido.id === pedidoId 
+          ? { 
+              ...pedido, 
+              estado: nuevoEstado,
+              fecha_entrega: nuevoEstado === 'entregado' ? new Date().toISOString() : null
+            }
+          : pedido
+      ));
+      
+      // Actualizar pedido seleccionado si es el mismo
+      if (pedidoSeleccionado && pedidoSeleccionado.id === pedidoId) {
+        setPedidoSeleccionado({
+          ...pedidoSeleccionado,
+          estado: nuevoEstado,
+          fecha_entrega: nuevoEstado === 'entregado' ? new Date().toISOString() : null
+        });
       }
+
     } catch (error) {
-      console.error('❌ Error de red:', error);
-      alert('❌ Error de red al actualizar el pedido: ' + error.message);
+      console.error('❌ Error al actualizar pedido:', error);
+      toast.error(`Error al actualizar el pedido: ${error.message}`);
     }
   };
 
@@ -102,16 +85,16 @@ export default function AdminOrdersManagement() {
   };
 
   const getEstadoColor = (estado) => {
-  switch (estado) {
-    case 'pendiente': 
-    case 'Pendiente': return 'bg-yellow-100 text-yellow-800'; // ⚡ AGREGADO
-    case 'entregado': 
-    case 'Entregado': return 'bg-green-100 text-green-800';   // ⚡ AGREGADO
-    case 'cancelado': 
-    case 'Cancelado': return 'bg-red-100 text-red-800';       // ⚡ AGREGADO
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
+    switch (estado) {
+      case 'pendiente': 
+      case 'Pendiente': return 'bg-yellow-100 text-yellow-800';
+      case 'entregado': 
+      case 'Entregado': return 'bg-green-100 text-green-800';
+      case 'cancelado': 
+      case 'Cancelado': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -290,7 +273,6 @@ export default function AdminOrdersManagement() {
                       <div className="text-sm text-gray-500">
                         Apt {pedido.apartamento_entrega}
                       </div>
-                      {/* ⚡ ELIMINADO: horario_preferido ya no se muestra */}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       ${pedido.total?.toLocaleString() || '0'}
@@ -387,7 +369,6 @@ export default function AdminOrdersManagement() {
                       <p><span className="font-medium">Torre:</span> {pedidoSeleccionado.torre_entrega}</p>
                       <p><span className="font-medium">Piso:</span> {pedidoSeleccionado.piso_entrega}</p>
                       <p><span className="font-medium">Apartamento:</span> {pedidoSeleccionado.apartamento_entrega}</p>
-                      {/* ⚡ AGREGADO: Mensaje de entrega rápida */}
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
                         <div className="flex items-center">
                           <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
