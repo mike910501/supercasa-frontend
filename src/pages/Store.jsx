@@ -247,6 +247,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
 }
 
 // Componente de Registro - mantengo igual que antes para no hacer el mensaje muy largo
+// Componente de Registro COMPLETO
 function RegisterForm({ onRegister, onSwitchToLogin }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -327,10 +328,214 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="text-center mb-6">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-xl inline-block mb-4">
+            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+            </svg>
+          </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Registro Supercasa</h2>
-          <p className="text-gray-600">Únete a nuestro conjunto</p>
+          <p className="text-gray-600">Únete a nuestro conjunto residencial</p>
         </div>
-        {/* Resto del formulario mantener igual que tienes */}
+
+        <div className="space-y-4">
+          {/* Información Personal */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Nombre Completo *
+              </label>
+              <input
+                type="text"
+                value={formData.nombre}
+                onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Tu nombre completo"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="tu@email.com"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Contraseñas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Contraseña *
+              </label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Mínimo 6 caracteres"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Confirmar Contraseña *
+              </label>
+              <input
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData({...formData, confirmPassword: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Repite tu contraseña"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Teléfonos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Teléfono Principal
+              </label>
+              <input
+                type="tel"
+                value={formData.telefono}
+                onChange={(e) => setFormData({...formData, telefono: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="3001234567"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 text-sm font-medium mb-2">
+                Teléfono Alternativo
+              </label>
+              <input
+                type="tel"
+                value={formData.telefono_alternativo}
+                onChange={(e) => setFormData({...formData, telefono_alternativo: e.target.value})}
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Opcional"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Información de Ubicación */}
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+            <h3 className="text-lg font-semibold text-blue-800 mb-3">📍 Ubicación en el Conjunto</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Torre *
+                </label>
+                <select
+                  value={formData.torre}
+                  onChange={(e) => setFormData({...formData, torre: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  disabled={isLoading}
+                >
+                  <option value="">Selecciona torre</option>
+                  <option value="1">Torre 1</option>
+                  <option value="2">Torre 2</option>
+                  <option value="3">Torre 3</option>
+                  <option value="4">Torre 4</option>
+                  <option value="5">Torre 5</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Piso * (1-30)
+                </label>
+                <input
+                  type="number"
+                  value={formData.piso}
+                  onChange={(e) => setFormData({...formData, piso: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ej: 5"
+                  min="1"
+                  max="30"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-2">
+                  Apartamento *
+                </label>
+                <input
+                  type="text"
+                  value={formData.apartamento}
+                  onChange={(e) => setFormData({...formData, apartamento: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Ej: 501, A, B"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Notas de entrega */}
+          <div>
+            <label className="block text-gray-700 text-sm font-medium mb-2">
+              Instrucciones de Entrega (Opcional)
+            </label>
+            <textarea
+              value={formData.notas_entrega}
+              onChange={(e) => setFormData({...formData, notas_entrega: e.target.value})}
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows="3"
+              placeholder="Ej: Llamar al celular antes de subir, timbre no funciona, etc."
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Botón de registro */}
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className={`w-full py-3 rounded-xl font-medium text-white transition-all ${
+              isLoading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+            }`}
+          >
+            {isLoading ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                Registrando...
+              </div>
+            ) : (
+              '🏠 Registrarse en Supercasa'
+            )}
+          </button>
+        </div>
+
+        {/* Link para cambiar a login */}
+        <div className="mt-6 text-center">
+          <p className="text-gray-600">
+            ¿Ya tienes cuenta?{' '}
+            <button
+              onClick={onSwitchToLogin}
+              className="text-blue-600 hover:text-blue-700 font-medium"
+              disabled={isLoading}
+            >
+              Inicia sesión aquí
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
