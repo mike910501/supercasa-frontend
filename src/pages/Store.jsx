@@ -554,6 +554,24 @@ function Store({ user, token, onLogout }) {
   const [cashPaymentModal, setCashPaymentModal] = useState(false);
   const [isProcessingCash, setIsProcessingCash] = useState(false);
   
+  // 🌙 MODO OSCURO
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  // Guardar preferencia de modo oscuro
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  const toggleDarkMode = () => setDarkMode(!darkMode);
+  
   // Datos de entrega específicos para conjunto residencial
   const [deliveryData, setDeliveryData] = useState({
     torre_entrega: user?.torre || '1',
@@ -885,19 +903,31 @@ function Store({ user, token, onLogout }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        darkMode 
+          ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+          : 'bg-gradient-to-br from-blue-50 to-indigo-100'
+      }`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-lg">Cargando productos...</p>
+          <p className={`mt-4 text-lg transition-colors duration-300 ${
+            darkMode ? 'text-gray-300' : 'text-gray-600'
+          }`}>Cargando productos...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      darkMode 
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
+        : 'bg-gradient-to-br from-blue-50 to-indigo-100'
+    }`}>
       {/* Header */}
-      <header className="bg-white shadow-lg sticky top-0 z-40">
+      <header className={`shadow-lg sticky top-0 z-40 transition-colors duration-300 ${
+        darkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -910,23 +940,52 @@ function Store({ user, token, onLogout }) {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Supercasa
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className={`text-sm transition-colors duration-300 ${
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>
                   Torre {user.torre}, Piso {user.piso}, Apt {user.apartamento}
                 </p>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-center space-x-2">
-                <span className="text-gray-600">Hola, {user.nombre}</span>
+              <div className={`hidden md:flex items-center space-x-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                <span>Hola, {user.nombre}</span>
               </div>
               
-              <div className="hidden lg:flex items-center bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                <svg className="w-4 h-4 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <div className={`hidden lg:flex items-center rounded-lg px-3 py-2 border transition-colors duration-300 ${
+                darkMode 
+                  ? 'bg-green-900 border-green-700 text-green-300' 
+                  : 'bg-green-50 border-green-200 text-green-800'
+              }`}>
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
                 </svg>
-                <span className="text-green-800 text-sm font-medium">💳 Pago seguro + entrega 20 min</span>
+                <span className="text-sm font-medium">💳 Pago seguro + entrega 20 min</span>
               </div>
+              
+              {/* 🌙 TOGGLE MODO OSCURO */}
+              <button
+                onClick={toggleDarkMode}
+                className={`p-3 rounded-xl transition-all duration-300 ${
+                  darkMode 
+                    ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                    : 'bg-gray-700 hover:bg-gray-800 text-yellow-400'
+                }`}
+                title={darkMode ? 'Modo claro' : 'Modo oscuro'}
+              >
+                {darkMode ? (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"/>
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                  </svg>
+                )}
+              </button>
               
               {user.rol === 'admin' && (
                 <Link
@@ -953,7 +1012,11 @@ function Store({ user, token, onLogout }) {
               
               <button
                 onClick={onLogout}
-                className="text-gray-600 hover:text-gray-800 p-2 rounded-xl hover:bg-gray-100 transition-all"
+                className={`p-2 rounded-xl transition-all duration-300 ${
+                  darkMode 
+                    ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
               >
                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 01-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd"/>
@@ -965,7 +1028,11 @@ function Store({ user, token, onLogout }) {
       </header>
 
       {/* Banner de entrega rápida móvil */}
-      <div className="lg:hidden bg-gradient-to-r from-green-500 to-blue-500 text-white p-3 text-center">
+      <div className={`lg:hidden p-3 text-center transition-colors duration-300 ${
+        darkMode 
+          ? 'bg-gradient-to-r from-green-700 to-blue-700 text-white' 
+          : 'bg-gradient-to-r from-green-500 to-blue-500 text-white'
+      }`}>
         <div className="flex items-center justify-center">
           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
@@ -976,7 +1043,9 @@ function Store({ user, token, onLogout }) {
 
       {/* Filtros y búsqueda */}
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <div className={`rounded-2xl shadow-lg p-6 mb-6 transition-colors duration-300 ${
+          darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+        }`}>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <input
@@ -984,14 +1053,22 @@ function Store({ user, token, onLogout }) {
                 placeholder="Buscar productos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={`w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-transparent' 
+                    : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
+                } border`}
               />
             </div>
             
             <select
               value={categoriaSeleccionada}
               onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-              className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                darkMode 
+                  ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
+                  : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
+              } border`}
             >
               <option value="">Todas las categorías</option>
               {categorias.map(categoria => (
@@ -1004,20 +1081,28 @@ function Store({ user, token, onLogout }) {
         {/* Grid de productos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {productosFiltrados.map(producto => (
-            <div key={producto.id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105">
+            <div key={producto.id} className={`rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105 duration-300 ${
+              darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+            }`}>
               <img
                 src={producto.imagen}
                 alt={producto.nombre}
                 className="w-full h-48 object-cover"
               />
               <div className="p-4">
-                <h3 className="font-semibold text-gray-800 mb-2">{producto.nombre}</h3>
-                <p className="text-gray-600 text-sm mb-2">{producto.categoria}</p>
+                <h3 className={`font-semibold mb-2 transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-800'
+                }`}>{producto.nombre}</h3>
+                <p className={`text-sm mb-2 transition-colors duration-300 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>{producto.categoria}</p>
                 <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-blue-600">
+                  <span className="text-xl font-bold text-blue-500">
                     ${producto.precio.toLocaleString()}
                   </span>
-                  <span className="text-sm text-gray-500">
+                  <span className={`text-sm transition-colors duration-300 ${
+                    darkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
                     Stock: {producto.stock}
                   </span>
                 </div>
@@ -1035,9 +1120,15 @@ function Store({ user, token, onLogout }) {
 
         {productosFiltrados.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-400 text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No se encontraron productos</h3>
-            <p className="text-gray-500">Intenta con otros términos de búsqueda o categorías</p>
+            <div className={`text-6xl mb-4 transition-colors duration-300 ${
+              darkMode ? 'text-gray-600' : 'text-gray-400'
+            }`}>🔍</div>
+            <h3 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>No se encontraron productos</h3>
+            <p className={`transition-colors duration-300 ${
+              darkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>Intenta con otros términos de búsqueda o categorías</p>
           </div>
         )}
       </div>
@@ -1045,13 +1136,21 @@ function Store({ user, token, onLogout }) {
       {/* Modal del carrito */}
       {showCart && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 ${
+            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+          }`}>
+            <div className={`p-6 border-b transition-colors duration-300 ${
+              darkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">Tu Carrito</h2>
+                <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-800'
+                }`}>Tu Carrito</h2>
                 <button
                   onClick={() => setShowCart(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className={`transition-colors duration-300 ${
+                    darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                  }`}
                 >
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
@@ -1063,33 +1162,53 @@ function Store({ user, token, onLogout }) {
             <div className="p-6">
               {carrito.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="text-gray-400 text-6xl mb-4">🛒</div>
-                  <p className="text-gray-600">Tu carrito está vacío</p>
+                  <div className={`text-6xl mb-4 transition-colors duration-300 ${
+                    darkMode ? 'text-gray-600' : 'text-gray-400'
+                  }`}>🛒</div>
+                  <p className={`transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>Tu carrito está vacío</p>
                 </div>
               ) : (
                 <>
                   {carrito.map(item => (
-                    <div key={item.id} className="flex items-center justify-between py-4 border-b border-gray-100">
+                    <div key={item.id} className={`flex items-center justify-between py-4 border-b transition-colors duration-300 ${
+                      darkMode ? 'border-gray-700' : 'border-gray-100'
+                    }`}>
                       <div className="flex items-center space-x-4">
                         <img src={item.imagen} alt={item.nombre} className="w-16 h-16 object-cover rounded-lg" />
                         <div>
-                          <h3 className="font-semibold text-gray-800">{item.nombre}</h3>
-                          <p className="text-gray-600">${item.precio.toLocaleString()}</p>
+                          <h3 className={`font-semibold transition-colors duration-300 ${
+                            darkMode ? 'text-white' : 'text-gray-800'
+                          }`}>{item.nombre}</h3>
+                          <p className={`transition-colors duration-300 ${
+                            darkMode ? 'text-gray-400' : 'text-gray-600'
+                          }`}>${item.precio.toLocaleString()}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => eliminarDelCarrito(item.id)}
-                          className="bg-red-100 text-red-600 p-1 rounded-lg hover:bg-red-200"
+                          className={`p-1 rounded-lg transition-colors duration-300 ${
+                            darkMode 
+                              ? 'bg-red-900 text-red-300 hover:bg-red-800' 
+                              : 'bg-red-100 text-red-600 hover:bg-red-200'
+                          }`}
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
                           </svg>
                         </button>
-                        <span className="px-3 py-1 bg-gray-100 rounded-lg">{item.cantidad}</span>
+                        <span className={`px-3 py-1 rounded-lg transition-colors duration-300 ${
+                          darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-800'
+                        }`}>{item.cantidad}</span>
                         <button
                           onClick={() => agregarAlCarrito(item)}
-                          className="bg-blue-100 text-blue-600 p-1 rounded-lg hover:bg-blue-200"
+                          className={`p-1 rounded-lg transition-colors duration-300 ${
+                            darkMode 
+                              ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' 
+                              : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                          }`}
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
@@ -1099,16 +1218,24 @@ function Store({ user, token, onLogout }) {
                     </div>
                   ))}
 
-                  <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className={`mt-6 pt-6 border-t transition-colors duration-300 ${
+                    darkMode ? 'border-gray-700' : 'border-gray-200'
+                  }`}>
                     <div className="flex justify-between items-center mb-4">
-                      <span className="text-xl font-bold text-gray-800">Total:</span>
-                      <span className="text-2xl font-bold text-blue-600">${total.toLocaleString()}</span>
+                      <span className={`text-xl font-bold transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-800'
+                      }`}>Total:</span>
+                      <span className="text-2xl font-bold text-blue-500">${total.toLocaleString()}</span>
                     </div>
                     
                     <div className="space-y-3">
                       <div className="text-center mb-4">
-                        <p className="text-lg font-semibold text-gray-800">Total: ${total.toLocaleString('es-CO')} COP</p>
-                        <p className="text-sm text-gray-600">Elige tu método de pago:</p>
+                        <p className={`text-lg font-semibold transition-colors duration-300 ${
+                          darkMode ? 'text-white' : 'text-gray-800'
+                        }`}>Total: ${total.toLocaleString('es-CO')} COP</p>
+                        <p className={`text-sm transition-colors duration-300 ${
+                          darkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>Elige tu método de pago:</p>
                       </div>
 
                       {/* BOTÓN WOMPI */}
@@ -1148,13 +1275,21 @@ function Store({ user, token, onLogout }) {
       {/* Modal de checkout - datos de entrega */}
       {showCheckout && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 ${
+            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+          }`}>
+            <div className={`p-6 border-b transition-colors duration-300 ${
+              darkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">Confirmar Datos de Entrega</h2>
+                <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-800'
+                }`}>Confirmar Datos de Entrega</h2>
                 <button
                   onClick={() => setShowCheckout(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className={`transition-colors duration-300 ${
+                    darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                  }`}
                 >
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
@@ -1164,15 +1299,23 @@ function Store({ user, token, onLogout }) {
             </div>
 
             <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">📍 Datos de Entrega</h3>
+              <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+                darkMode ? 'text-white' : 'text-gray-800'
+              }`}>📍 Datos de Entrega</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Torre</label>
+                  <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Torre</label>
                   <select
                     value={deliveryData.torre_entrega}
                     onChange={(e) => setDeliveryData({...deliveryData, torre_entrega: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
+                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
+                    } border`}
                   >
                     <option value="1">Torre 1</option>
                     <option value="2">Torre 2</option>
@@ -1183,53 +1326,81 @@ function Store({ user, token, onLogout }) {
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Piso</label>
+                  <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Piso</label>
                   <input
                     type="number"
                     value={deliveryData.piso_entrega}
                     onChange={(e) => setDeliveryData({...deliveryData, piso_entrega: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
+                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
+                    } border`}
                     min="1"
                     max="30"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Apartamento</label>
+                  <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Apartamento</label>
                   <input
                     type="text"
                     value={deliveryData.apartamento_entrega}
                     onChange={(e) => setDeliveryData({...deliveryData, apartamento_entrega: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
+                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
+                    } border`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Teléfono</label>
+                  <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Teléfono</label>
                   <input
                     type="tel"
                     value={deliveryData.telefono_contacto}
                     onChange={(e) => setDeliveryData({...deliveryData, telefono_contacto: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
+                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
+                    } border`}
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-gray-700 text-sm font-medium mb-2">Instrucciones de Entrega</label>
+                  <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Instrucciones de Entrega</label>
                   <textarea
                     value={deliveryData.instrucciones_entrega}
                     onChange={(e) => setDeliveryData({...deliveryData, instrucciones_entrega: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                      darkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent placeholder-gray-400' 
+                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
+                    } border`}
                     rows="3"
                     placeholder="Ej: Llamar al celular, timbre no funciona"
                   />
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-6">
+              <div className={`border-t pt-6 transition-colors duration-300 ${
+                darkMode ? 'border-gray-700' : 'border-gray-200'
+              }`}>
                 <div className="flex justify-between items-center text-xl font-bold mb-4">
-                  <span>Total a pagar:</span>
-                  <span className="text-blue-600">${total.toLocaleString()}</span>
+                  <span className={`transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-800'
+                  }`}>Total a pagar:</span>
+                  <span className="text-blue-500">${total.toLocaleString()}</span>
                 </div>
 
                 <button
@@ -1247,13 +1418,21 @@ function Store({ user, token, onLogout }) {
       {/* Modal de pago WOMPI */}
       {showWompiPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 ${
+            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+          }`}>
+            <div className={`p-6 border-b transition-colors duration-300 ${
+              darkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">💳 Pago Seguro con WOMPI</h2>
+                <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-800'
+                }`}>💳 Pago Seguro con WOMPI</h2>
                 <button
                   onClick={cancelarPago}
-                  className="text-gray-500 hover:text-gray-700"
+                  className={`transition-colors duration-300 ${
+                    darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'
+                  }`}
                 >
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
@@ -1279,42 +1458,70 @@ function Store({ user, token, onLogout }) {
       {/* MODAL DE PAGO EN EFECTIVO */}
       {cashPaymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <div className={`rounded-lg p-6 max-w-md w-full transition-colors duration-300 ${
+            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+          }`}>
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${
+                darkMode ? 'bg-green-900' : 'bg-green-100'
+              }`}>
                 <span className="text-3xl">💵</span>
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-2">Pago en Efectivo</h3>
-              <p className="text-gray-600">Confirma tu pedido para pago al recibir</p>
+              <h3 className={`text-xl font-bold mb-2 transition-colors duration-300 ${
+                darkMode ? 'text-white' : 'text-gray-800'
+              }`}>Pago en Efectivo</h3>
+              <p className={`transition-colors duration-300 ${
+                darkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>Confirma tu pedido para pago al recibir</p>
             </div>
 
             {/* RESUMEN */}
-            <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-2">
+            <div className={`p-4 rounded-lg mb-6 space-y-2 transition-colors duration-300 ${
+              darkMode ? 'bg-gray-700' : 'bg-gray-50'
+            }`}>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Productos:</span>
-                <span className="font-medium">{carrito.length} item(s)</span>
+                <span className={`transition-colors duration-300 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Productos:</span>
+                <span className={`font-medium transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-800'
+                }`}>{carrito.length} item(s)</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Total:</span>
-                <span className="font-bold text-green-600">${total.toLocaleString('es-CO')} COP</span>
+                <span className={`transition-colors duration-300 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Total:</span>
+                <span className="font-bold text-green-500">${total.toLocaleString('es-CO')} COP</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Entrega:</span>
-                <span className="font-medium">
+                <span className={`transition-colors duration-300 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Entrega:</span>
+                <span className={`font-medium transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-800'
+                }`}>
                   Torre {deliveryData.torre_entrega || user.torre || '1'}, 
                   Piso {deliveryData.piso_entrega || user.piso || '1'}, 
                   Apt {deliveryData.apartamento_entrega || user.apartamento || '101'}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tiempo:</span>
-                <span className="font-medium text-blue-600">Máximo 20 minutos</span>
+                <span className={`transition-colors duration-300 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                }`}>Tiempo:</span>
+                <span className="font-medium text-blue-500">Máximo 20 minutos</span>
               </div>
             </div>
 
             {/* INSTRUCCIONES */}
-            <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg mb-6">
-              <p className="text-sm text-orange-800">
+            <div className={`border p-3 rounded-lg mb-6 transition-colors duration-300 ${
+              darkMode 
+                ? 'bg-orange-900 border-orange-700' 
+                : 'bg-orange-50 border-orange-200'
+            }`}>
+              <p className={`text-sm transition-colors duration-300 ${
+                darkMode ? 'text-orange-300' : 'text-orange-800'
+              }`}>
                 <strong>📋 Instrucciones:</strong><br/>
                 • Ten el dinero exacto preparado<br/>
                 • El repartidor confirmará el pago al entregar<br/>
@@ -1326,7 +1533,11 @@ function Store({ user, token, onLogout }) {
             <div className="flex space-x-3">
               <button
                 onClick={() => setCashPaymentModal(false)}
-                className="flex-1 py-3 text-gray-600 hover:text-gray-800 transition-colors border border-gray-300 rounded-lg"
+                className={`flex-1 py-3 transition-colors border rounded-lg duration-300 ${
+                  darkMode 
+                    ? 'text-gray-300 hover:text-white border-gray-600 hover:bg-gray-700' 
+                    : 'text-gray-600 hover:text-gray-800 border-gray-300 hover:bg-gray-50'
+                }`}
               >
                 Cancelar
               </button>
