@@ -486,78 +486,15 @@ function Store({ user, token, onLogout }) {
     setShowWompiPayment(true);
   };
 
-// ✅ CALLBACK PRODUCCIÓN - FUNCIONAMIENTO AUTOMÁTICO
+  // ✅ CALLBACK CORREGIDO - VALIDACIÓN COMPATIBLE CON BACKEND
   const handlePaymentSuccess = async (paymentData) => {
     console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
 
-    // ✅ VALIDACIÓN PARA VERIFICACIÓN AUTOMÁTICA Y CALLBACKS
-    const isPollingVerification = paymentData.method === 'polling_verification';
-    const isDirectCallback = paymentData.method === 'direct_callback';
-    
-    // Para verificación automática, es más permisivo
-    const isValidPayment = paymentData.verified === true && 
-      (paymentData.status === 'APPROVED' || paymentData.state === 'APPROVED');
-
-    if (!isValidPayment) {
-      console.error('❌ Pago no válido:', paymentData);
-      toast.error('Error: El pago no fue confirmado correctamente.', {
-        duration: 8000
-      });
-      return;
-    }
-
-    console.log('✅ Creando pedido automáticamente...');
-
-    // ✅ MOSTRAR MÉTODO DE VERIFICACIÓN
-    if (isPollingVerification) {
-      toast.success('¡Pago confirmado por verificación automática! Creando pedido...', {
-        duration: 4000,
-        icon: '🔍'
-      });
-    } else if (isDirectCallback) {
-      toast.success('¡Pago confirmado directamente! Creando pedido...', {
-        duration: 4000,
-        icon: '⚡'
-      });
-    }
-
-    try {
-      const totalPedido = carrito.reduce((acc, item) => acc + Number(item.precio) * item.cantidad, 0);
-
-      // ✅ DATOS COMPATIBLES CON TU ESTRUCTURA DE DB
-      const pedidoData = {
-        productos: carrito,
-        total: totalPedido,
-        usuario_id: user.id,
-        torre_entrega: deliveryData.torre_entrega,
-        piso_entrega: parseInt(deliveryData.piso_entrega),
-        apartamento_entrega: deliveryData.apartamento_entrega,
-        instrucciones_entrega: deliveryData.instrucciones_entrega || '',
-        telefono_contacto: deliveryData.telefono_contacto,
-        estado: 'Pendiente'
-      };
-
-      console.log('📦 Creando pedido:', pedidoData);
+    // ✅ VALIDACIÓN CORREGIDA - Compatible con respuesta del backend
+    if (paymentData.success && paymentData.pedidoId) {
+      console.log('✅ ¡Pago y pedido exitosos!');
       
-      // ✅ CREAR PEDIDO
-      const nuevoPedido = await api.post('/orders', pedidoData, navigate);
-
-      console.log('🎉 ¡PEDIDO CREADO EXITOSAMENTE!:', nuevoPedido);
-
-      // ✅ GUARDAR INFO DE PAGO PARA TRACKING
-      const paymentRecord = {
-        pedido_id: nuevoPedido.id,
-        payment_reference: paymentData.reference,
-        payment_status: paymentData.status,
-        payment_method: paymentData.method || 'wompi',
-        verification_method: isPollingVerification ? 'automatic_polling' : 'direct_callback',
-        timestamp: new Date().toISOString()
-      };
-      
-      localStorage.setItem(`payment_record_${nuevoPedido.id}`, JSON.stringify(paymentRecord));
-
-      // ✅ ÉXITO TOTAL
-      toast.success('✅ ¡Pedido creado y confirmado! Entrega en máximo 20 minutos.', {
+      toast.success('¡Pago aprobado y pedido creado exitosamente!', {
         duration: 6000,
         icon: '🎉'
       });
@@ -570,43 +507,11 @@ function Store({ user, token, onLogout }) {
 
       console.log('🏆 PROCESO COMPLETADO - Pago exitoso procesado completamente');
 
-    } catch (error) {
-      console.error('❌ Error crítico creando pedido:', error);
-      
-      // ✅ MANEJO DE ERRORES MEJORADO
-      if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-        toast.error(`Su sesión expiró pero su pago fue procesado exitosamente. Ref: ${paymentData.reference}. Contacte soporte para confirmar su pedido.`, {
-          duration: 12000
-        });
-        
-        // Guardar para recuperación
-        localStorage.setItem('pending_order_session_expired', JSON.stringify({
-          payment_reference: paymentData.reference,
-          total: carrito.reduce((acc, item) => acc + Number(item.precio) * item.cantidad, 0),
-          delivery_data: deliveryData,
-          productos: carrito,
-          timestamp: new Date().toISOString()
-        }));
-        
-        // Limpiar carrito pero no logout inmediato
-        setCarrito([]);
-        localStorage.removeItem('carrito');
-        setShowWompiPayment(false);
-        setShowCart(false);
-        
-      } else {
-        toast.error(`ERROR CRÍTICO: Su pago fue procesado exitosamente (Ref: ${paymentData.reference}). Error técnico: ${error.message}. Contacte soporte INMEDIATAMENTE.`, {
-          duration: 15000
-        });
-        
-        // Documentar error para soporte
-        localStorage.setItem('critical_order_error', JSON.stringify({
-          payment_reference: paymentData.reference,
-          error: error.message,
-          paymentData,
-          timestamp: new Date().toISOString()
-        }));
-      }
+    } else {
+      console.log('❌ Respuesta inesperada del backend:', paymentData);
+      toast.error('Error: El pago no fue confirmado correctamente.', {
+        duration: 8000
+      });
     }
   };
 

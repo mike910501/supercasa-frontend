@@ -1,29 +1,33 @@
-# netlify.toml - Configuración para resolver problemas de CSP/CORS con WOMPI
+# netlify.toml - CONFIGURACIÓN CORREGIDA SIN ERRORES CSP
 
 [build]
   publish = "build"
   command = "npm run build"
 
-# Headers optimizados para WOMPI
+# Headers optimizados para WOMPI - SIN ERRORES DE SINTAXIS
 [[headers]]
   for = "/*"
   [headers.values]
-    # Content Security Policy optimizada para WOMPI
+    # Content Security Policy CORREGIDA
     Content-Security-Policy = """
       default-src 'self'; 
       script-src 'self' 'unsafe-inline' 'unsafe-eval' 
                  https://checkout.wompi.co 
                  https://api.wompi.co
-                 https://*.wompi.co; 
+                 https://*.wompi.co
+                 https://connect.facebook.net; 
       connect-src 'self' 
                   https://api.wompi.co 
                   https://production.wompi.co
                   https://checkout.wompi.co
                   https://*.wompi.co 
-                  https://supercasa-backend-vvu1.onrender.com; 
+                  https://supercasa-backend-vvu1.onrender.com
+                  https://www.facebook.com; 
       img-src 'self' data: 
               https://*.wompi.co 
-              https://wompi.com; 
+              https://wompi.com
+              https://*.facebook.com
+              https://*.fbcdn.net; 
       style-src 'self' 'unsafe-inline' 
                 https://*.wompi.co; 
       font-src 'self' data: 
@@ -36,18 +40,18 @@
       form-action 'self' https://*.wompi.co;
     """
     
-    # CORS Headers para API calls
+    # CORS Headers
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
     
-    # Security Headers adicionales
+    # Security Headers
     X-Frame-Options = "SAMEORIGIN"
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-# Redirects para SPA routing
+# Redirects para SPA
 [[redirects]]
   from = "/*"
   to = "/index.html"

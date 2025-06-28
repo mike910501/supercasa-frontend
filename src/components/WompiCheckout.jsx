@@ -1,5 +1,5 @@
 // src/components/WompiCheckout.jsx
-// VERSIÓN COMPLETA CON POLLING AUTOMÁTICO + CONFIRMACIÓN MANUAL COMO BACKUP
+// VERSIÓN DEFINITIVA CON INICIALIZACIÓN ROBUSTA
 
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -9,573 +9,543 @@ const WompiCheckout = ({
   carrito, 
   deliveryData, 
   onPaymentSuccess, 
-  onPaymentError,
+  onPaymentError, 
   onCancel 
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [reference, setReference] = useState('');
-  const [showManualConfirm, setShowManualConfirm] = useState(false);
-  const [manualTimer, setManualTimer] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [pollingActive, setPollingActive] = useState(false);
   const [pollingAttempts, setPollingAttempts] = useState(0);
-  const [paymentStatus, setPaymentStatus] = useState('');
+  const [transactionReference, setTransactionReference] = useState('');
 
   // ✅ CONFIGURACIÓN WOMPI PRODUCCIÓN
   const WOMPI_PUBLIC_KEY = process.env.REACT_APP_WOMPI_PUBLIC_KEY || 'pub_prod_GkQ7DyAjNXb63f1Imr9OQ1YNHLXd89FT';
   const WOMPI_INTEGRITY_KEY = process.env.REACT_APP_WOMPI_INTEGRITY_KEY || 'prod_integrity_70Ss0SPlsMMTT4uSx4zz85lOCTVtLKDa';
   const WOMPI_PRIVATE_KEY = process.env.REACT_APP_WOMPI_PRIVATE_KEY || 'prv_prod_bR8TUl71quylBwNiQcNn8OIFD1i9IdsR';
-  const WOMPI_WIDGET_URL = 'https://checkout.wompi.co/widget.js';
+  const API_URL = process.env.REACT_APP_API_URL || 'https://supercasa-backend-vvu1.onrender.com';
 
-  // ✅ CALCULAR SIGNATURE CON WEB CRYPTO API
-  const calculateSignature = async (reference, amountInCents, currency = 'COP') => {
-    const dataToSign = `${reference}${amountInCents}${currency}${WOMPI_INTEGRITY_KEY}`;
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(dataToSign);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-
-  // ✅ GENERAR REFERENCIA INICIAL
+  // 🔍 DEBUG: Verificar variables al montar
   useEffect(() => {
-    const generateInitialReference = () => {
-      const timestamp = Date.now().toString();
-      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const userId = deliveryData?.usuario_id || '000';
-      const randomSuffix = Math.floor(Math.random() * 9999);
-      return `SC-${userId}-${timestamp}-${random}-${randomSuffix}`;
-    };
-    
-    const newRef = generateInitialReference();
-    setReference(newRef);
-    console.log('🔗 Referencia generada:', newRef);
+    console.log('🔑 Variables WOMPI:', {
+      public_key: WOMPI_PUBLIC_KEY.substring(0, 15) + '...',
+      integrity_key: WOMPI_INTEGRITY_KEY.substring(0, 15) + '...',
+      private_key: WOMPI_PRIVATE_KEY.substring(0, 15) + '...',
+      env_public: process.env.REACT_APP_WOMPI_PUBLIC_KEY ? 'OK' : 'MISSING',
+      env_integrity: process.env.REACT_APP_WOMPI_INTEGRITY_KEY ? 'OK' : 'MISSING',
+      env_private: process.env.REACT_APP_WOMPI_PRIVATE_KEY ? 'OK' : 'MISSING'
+    });
   }, []);
 
-  // 🔄 POLLING AUTOMÁTICO - LA CLAVE DEL ÉXITO (USANDO FETCH)
+  // 🔍 VERIFICAR CLAVES WOMPI ANTES DE PROCEDER
+  const verifyWompiKeys = async () => {
+    try {
+      console.log('🔍 Verificando claves WOMPI con la API...');
+      
+      // Verificar clave pública con endpoint público
+      const response = await fetch(`https://api.wompi.co/v1/merchants/${WOMPI_PUBLIC_KEY}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Claves WOMPI verificadas exitosamente:', data.data?.name || 'Merchant válido');
+        return true;
+      } else {
+        console.log(`⚠️ Verificación de claves falló: ${response.status} - ${response.statusText}`);
+        return false;
+      }
+    } catch (error) {
+      console.log('⚠️ Error verificando claves WOMPI:', error);
+      return false; // Continuar anyway
+    }
+  };
+
+  // 🔄 POLLING AUTOMÁTICO - VERIFICACIÓN DE TRANSACCIÓN
   const checkTransactionStatus = async (reference) => {
     try {
       console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
       
-      const response = await fetch(
-        `https://api.wompi.co/v1/transactions?reference=${reference}`,
-        {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${WOMPI_PRIVATE_KEY}`,
-            'Content-Type': 'application/json'
+      const response = await fetch(`https://api.wompi.co/v1/transactions/${reference}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${WOMPI_PRIVATE_KEY}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📊 Respuesta WOMPI:', data);
+        
+        if (data.data && data.data.status) {
+          const status = data.data.status;
+          
+          if (status === 'APPROVED') {
+            console.log('✅ ¡PAGO APROBADO DETECTADO AUTOMÁTICAMENTE!');
+            setPollingActive(false);
+            await createOrder(data.data);
+            return true;
+          } else if (status === 'DECLINED' || status === 'ERROR') {
+            console.log('❌ Pago rechazado:', status);
+            setPollingActive(false);
+            toast.error('Pago rechazado');
+            if (onPaymentError) onPaymentError(data.data);
+            return true;
+          } else {
+            console.log(`⏳ Estado actual: ${status} - Continuando polling...`);
+            return false;
           }
         }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      } else if (response.status === 404) {
+        console.log('⏳ Transacción aún no encontrada, continuando...');
+        return false;
+      } else {
+        console.log('⚠️ Error en verificación:', response.status);
+        return false;
       }
-
-      const data = await response.json();
-
-      if (data && data.data && data.data.length > 0) {
-        const transaction = data.data[0];
-        console.log('📊 Transacción encontrada:', transaction);
-        return {
-          found: true,
-          status: transaction.status,
-          id: transaction.id,
-          transaction: transaction
-        };
-      }
-      
-      console.log('⏳ Transacción aún no encontrada en WOMPI');
-      return { found: false, status: 'NOT_FOUND' };
     } catch (error) {
-      console.error('❌ Error verificando transacción:', error);
-      return { found: false, status: 'ERROR', error: error.message };
+      console.log('⚠️ Error en polling:', error);
+      return false;
     }
   };
 
+  // 🎯 INICIAR POLLING MÁS AGRESIVO
   const startPolling = (reference) => {
+    console.log('🔄 Iniciando polling AGRESIVO automático para:', reference);
     setPollingActive(true);
     setPollingAttempts(0);
-    setPaymentStatus('polling');
-    
-    console.log('🔄 INICIANDO POLLING AUTOMÁTICO para:', reference);
-    
+    setTransactionReference(reference);
+
+    // Primer intento inmediato
+    setTimeout(() => checkTransactionStatus(reference), 1000);
+
     const pollInterval = setInterval(async () => {
-      const currentAttempt = pollingAttempts + 1;
-      setPollingAttempts(currentAttempt);
-      
-      const result = await checkTransactionStatus(reference);
-      
-      if (result.found && result.status === 'APPROVED') {
-        console.log('✅ ¡PAGO APROBADO DETECTADO AUTOMÁTICAMENTE!');
+      if (!pollingActive) {
         clearInterval(pollInterval);
-        setPollingActive(false);
-        setIsLoading(false);
-        setPaymentStatus('approved');
-        
-        toast.success('¡Pago aprobado automáticamente! Creando pedido...', {
-          duration: 4000,
-          icon: '✅'
-        });
-
-        const successData = {
-          id: result.id,
-          status: 'APPROVED',
-          state: 'APPROVED',
-          reference: reference,
-          total: total,
-          verified: true,
-          method: 'automatic_polling',
-          transaction_id: result.id,
-          payment_method: result.transaction.payment_method?.type || 'WOMPI'
-        };
-
-        onPaymentSuccess(successData);
-        
-      } else if (result.found && result.status === 'DECLINED') {
-        console.log('❌ Pago RECHAZADO detectado automáticamente');
-        clearInterval(pollInterval);
-        setPollingActive(false);
-        setIsLoading(false);
-        setPaymentStatus('declined');
-        
-        toast.error('Pago rechazado por la entidad financiera', {
-          duration: 4000
-        });
-        
-        onPaymentError({
-          status: 'DECLINED',
-          reference: reference,
-          method: 'automatic_polling'
-        });
-        
-      } else if (currentAttempt >= 36) { // 3 minutos máximo (5 seg * 36)
-        console.log('⏰ Timeout de polling - Activando confirmación manual');
-        clearInterval(pollInterval);
-        setPollingActive(false);
-        setPaymentStatus('timeout');
-        
-        // Activar confirmación manual después del timeout
-        setShowManualConfirm(true);
-        setManualTimer(60);
-        
-        toast('⏰ Verificación automática terminó. ¿Su pago fue exitoso?', {
-          duration: 5000,
-          icon: '❓'
-        });
-      } else {
-        console.log(`⏳ Polling ${currentAttempt}/36 - Estado: ${result.status}`);
+        return;
       }
-    }, 5000); // Cada 5 segundos
 
-    // Cleanup en caso de que el componente se desmonte
+      const completed = await checkTransactionStatus(reference);
+      setPollingAttempts(prev => prev + 1);
+
+      if (completed || pollingAttempts >= 60) { // 60 intentos = 5 minutos
+        clearInterval(pollInterval);
+        setPollingActive(false);
+        
+        if (pollingAttempts >= 60) {
+          console.log('⏰ Timeout de polling extendido - Activando confirmación manual');
+          toast('⏰ Verificación automática agotada. ¿Tu pago fue exitoso?', {
+            duration: 15000,
+            icon: '⚡'
+          });
+          showManualConfirmation(reference);
+        }
+      }
+    }, 3000); // Cada 3 segundos en lugar de 5
+
+    // Cleanup al desmontar componente
     return () => {
       clearInterval(pollInterval);
       setPollingActive(false);
     };
   };
 
-  // ✅ TIMER PARA CONFIRMACIÓN MANUAL
-  useEffect(() => {
-    let interval;
-    if (showManualConfirm && manualTimer > 0) {
-      interval = setInterval(() => {
-        setManualTimer(prev => prev - 1);
-      }, 1000);
-    } else if (showManualConfirm && manualTimer === 0) {
-      setShowManualConfirm(false);
-      setIsLoading(false);
-      setPaymentStatus('');
-    }
+  // 📦 CREAR PEDIDO
+  const createOrder = async (paymentData) => {
+    try {
+      console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
+      console.log('✅ Creando pedido automáticamente...');
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [showManualConfirm, manualTimer]);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Error: Token de autenticación no encontrado');
+        return;
+      }
 
-  // ✅ CONFIRMAR PAGO MANUAL
-  const confirmManualPayment = (wasSuccessful) => {
-    setShowManualConfirm(false);
-    setIsLoading(false);
-    setPaymentStatus('');
-
-    if (wasSuccessful) {
-      const successData = {
-        id: 'manual-' + Date.now(),
-        status: 'APPROVED',
-        state: 'APPROVED',
-        reference: reference,
+      const pedidoData = {
+        productos: carrito,
         total: total,
-        verified: true,
-        method: 'manual_confirmation',
-        manual_creation: true
+        ...deliveryData,
+        // 💳 DATOS DE TRACKING WOMPI
+        payment_reference: paymentData.reference,
+        payment_status: paymentData.status,
+        payment_method: paymentData.payment_method?.type || 'WOMPI',
+        payment_transaction_id: paymentData.id,
+        payment_amount_cents: paymentData.amount_in_cents
       };
 
-      toast.success('¡Pago confirmado manualmente! Creando pedido...', {
-        duration: 4000,
-        icon: '✅'
+      console.log('📦 Creando pedido:', pedidoData);
+
+      const response = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(pedidoData)
       });
 
-      onPaymentSuccess(successData);
-    } else {
-      toast.error('Pago cancelado. Puede intentar nuevamente.', {
-        duration: 3000
-      });
-      setPaymentStatus('');
+      if (response.ok) {
+        const result = await response.json();
+        console.log('🎉 ¡PEDIDO CREADO EXITOSAMENTE!', result);
+        
+        toast.success('¡Pago aprobado automáticamente! Pedido creado con éxito', {
+          duration: 5000
+        });
+        
+        if (onPaymentSuccess) {
+          onPaymentSuccess({
+            ...result,
+            paymentData: paymentData
+          });
+        }
+      } else {
+        console.error('❌ Error al crear pedido:', response.status);
+        const errorData = await response.json();
+        console.error('Error details:', errorData);
+        toast.error('Error al crear el pedido. Contacta soporte.');
+      }
+    } catch (error) {
+      console.error('❌ Error en createOrder:', error);
+      toast.error('Error al procesar el pedido');
     }
   };
 
-  // ✅ INICIALIZAR PAGO CON POLLING
-  const initializePayment = async () => {
-    console.log('🚀 INICIANDO PAGO CON POLLING AUTOMÁTICO');
-    
-    const amountInCents = Math.round(total * 100);
-    setIsLoading(true);
-    setPaymentStatus('initializing');
+  // 📱 CONFIRMACIÓN MANUAL (BACKUP)
+  const showManualConfirmation = (reference) => {
+    const confirmed = window.confirm(
+      '¿Tu pago fue procesado exitosamente?\n\n' +
+      'Si pagaste con Nequi/PSE y recibiste confirmación, haz clic en "Aceptar".\n' +
+      'Si hubo algún problema, haz clic en "Cancelar".'
+    );
 
+    if (confirmed) {
+      console.log('✅ Confirmación manual: Pago exitoso');
+      // Simular datos de pago para crear el pedido
+      createOrder({
+        reference: reference,
+        status: 'APPROVED',
+        payment_method: { type: 'MANUAL_CONFIRMATION' },
+        id: reference,
+        amount_in_cents: total * 100
+      });
+    } else {
+      console.log('❌ Confirmación manual: Pago cancelado');
+      toast.error('Pago cancelado por el usuario');
+      if (onPaymentError) onPaymentError({ status: 'DECLINED' });
+    }
+  };
+
+  // 🔐 CALCULAR SIGNATURE
+  const calculateSignature = async (reference, amountInCents) => {
     try {
-      // Preparar teléfono
-      const telefono = deliveryData.telefono_contacto || '3001234567';
-      const telefonoLimpio = telefono.replace(/\D/g, '');
+      const message = `${reference}${amountInCents}COP${WOMPI_INTEGRITY_KEY}`;
+      const encoder = new TextEncoder();
+      const data = encoder.encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
       
-      let phoneNumber, phoneNumberPrefix;
-      if (telefonoLimpio.startsWith('57') && telefonoLimpio.length === 12) {
-        phoneNumberPrefix = '+57';
-        phoneNumber = telefonoLimpio.substring(2);
-      } else if (telefonoLimpio.length === 10) {
-        phoneNumberPrefix = '+57';
-        phoneNumber = telefonoLimpio;
-      } else {
-        phoneNumberPrefix = '+57';
-        phoneNumber = '3001234567';
+      console.log('🔐 Signature calculada:', hashHex.substring(0, 10) + '...');
+      return hashHex;
+    } catch (error) {
+      console.error('❌ Error calculando signature:', error);
+      throw error;
+    }
+  };
+
+  // 🔄 ESPERAR CARGA COMPLETA DE WOMPI - VERSIÓN CON TIMEOUT EXTENDIDO
+  const waitForWompi = () => {
+    return new Promise((resolve) => {
+      const checkWompi = () => {
+        console.log('🔍 Verificando WOMPI:', {
+          WidgetCheckout: typeof window.WidgetCheckout,
+          $wompi: typeof window.$wompi,
+          scripts: document.querySelectorAll('script[src*="wompi"]').length
+        });
+        
+        if (window.WidgetCheckout) {
+          console.log('✅ WOMPI Widget disponible');
+          resolve(true);
+        } else {
+          console.log('⏳ Esperando WidgetCheckout...');
+          setTimeout(checkWompi, 200);
+        }
+      };
+      
+      // Timeout de seguridad extendido: 20 segundos
+      setTimeout(() => {
+        console.log('⚠️ Timeout extendido de WOMPI - Intentando cargar dinámicamente');
+        if (!window.WidgetCheckout) {
+          loadWompiDynamically().then(() => resolve(true));
+        } else {
+          resolve(true);
+        }
+      }, 20000);
+      
+      checkWompi();
+    });
+  };
+
+  // 📥 CARGAR WOMPI DINÁMICAMENTE SI NO ESTÁ
+  const loadWompiDynamically = () => {
+    return new Promise((resolve) => {
+      if (window.WidgetCheckout) {
+        resolve();
+        return;
       }
-      
-      // Calcular signature
-      const signature = await calculateSignature(reference, amountInCents, 'COP');
-      console.log('🔐 Signature calculada:', signature.substring(0, 10) + '...');
-      
-      // Limpiar scripts previos
-      const existingContainers = document.querySelectorAll('[data-wompi-container="true"]');
-      existingContainers.forEach(container => container.remove());
-      
-      // Crear script WOMPI
+
+      console.log('📥 Cargando script WOMPI dinámicamente...');
       const script = document.createElement('script');
-      script.src = WOMPI_WIDGET_URL;
-      script.setAttribute('data-wompi', 'true');
-      
-      // Configurar atributos
-      script.setAttribute('data-render', 'button');
-      script.setAttribute('data-public-key', WOMPI_PUBLIC_KEY);
-      script.setAttribute('data-currency', 'COP');
-      script.setAttribute('data-amount-in-cents', amountInCents.toString());
-      script.setAttribute('data-reference', reference);
-      script.setAttribute('data-signature:integrity', signature);
-      
-      // Datos del cliente
-      script.setAttribute('data-customer-data:email', deliveryData.email || 'cliente@supercasa.com');
-      script.setAttribute('data-customer-data:full-name', deliveryData.nombre || 'Cliente Supercasa');
-      script.setAttribute('data-customer-data:phone-number', phoneNumber);
-      script.setAttribute('data-customer-data:phone-number-prefix', phoneNumberPrefix);
-      
-      // ✅ CALLBACKS MEJORADOS
-      window.wompiCheckoutOpen = () => {
-        console.log('🎯 WOMPI Widget abierto');
-        setPaymentStatus('widget_open');
-        toast('Procesando pago...', { icon: '💳' });
-      };
-
-      window.wompiCheckoutClose = () => {
-        console.log('📱 WOMPI Widget cerrado');
-        setPaymentStatus('widget_closed');
-        
-        // 🔄 INICIAR POLLING AUTOMÁTICO después de 3 segundos
-        setTimeout(() => {
-          if (!pollingActive) {
-            console.log('🔄 Iniciando polling automático...');
-            startPolling(reference);
-          }
-        }, 3000);
-      };
-
-      // ✅ CALLBACKS DIRECTOS (backup por si funcionan)
-      window.wompiCheckoutApproved = (transaction) => {
-        console.log('✅ Callback directo APROBADO:', transaction);
-        setIsLoading(false);
-        setPollingActive(false);
-        setPaymentStatus('approved');
-        
-        toast.success('¡Pago aprobado via callback directo!', {
-          duration: 4000,
-          icon: '⚡'
-        });
-        
-        onPaymentSuccess({
-          ...transaction,
-          reference: reference,
-          total: total,
-          status: 'APPROVED',
-          verified: true,
-          method: 'direct_callback'
-        });
-      };
-
-      window.wompiCheckoutDeclined = (transaction) => {
-        console.log('❌ Callback directo RECHAZADO:', transaction);
-        setIsLoading(false);
-        setPollingActive(false);
-        setPaymentStatus('declined');
-        
-        onPaymentError({
-          ...transaction,
-          status: 'DECLINED',
-          method: 'direct_callback'
-        });
-      };
+      script.src = 'https://checkout.wompi.co/widget.js';
+      script.type = 'text/javascript';
       
       script.onload = () => {
-        console.log('✅ Script WOMPI cargado exitosamente');
-        setPaymentStatus('script_loaded');
-        
+        console.log('✅ Script WOMPI cargado dinámicamente');
+        // Esperar un poco más para que se inicialice
         setTimeout(() => {
-          const wompiButton = document.querySelector('button[data-wompi-payment-button]') || 
-                             document.querySelector('.wompi-widget-button') ||
-                             script.nextElementSibling;
-          
-          if (wompiButton && typeof wompiButton.click === 'function') {
-            console.log('🎯 ACTIVANDO WIDGET WOMPI VIA BOTÓN');
-            wompiButton.click();
+          if (window.WidgetCheckout) {
+            console.log('✅ WidgetCheckout disponible después de carga dinámica');
           } else {
-            console.log('⚠️ Botón WOMPI no encontrado, intentando método alternativo');
-            // Método alternativo si no encuentra el botón
-            if (window.WidgetCheckout) {
-              const checkout = new window.WidgetCheckout({
-                currency: 'COP',
-                amountInCents: amountInCents,
-                reference: reference,
-                publicKey: WOMPI_PUBLIC_KEY,
-                signature: {
-                  integrity: signature
-                },
-                redirectUrl: window.location.origin,
-                customerData: {
-                  email: deliveryData.email || 'cliente@supercasa.com',
-                  fullName: deliveryData.nombre || 'Cliente Supercasa',
-                  phoneNumber: phoneNumber,
-                  phoneNumberPrefix: phoneNumberPrefix
-                }
-              });
-              
-              checkout.open((result) => {
-                console.log('📱 Widget programático cerrado:', result);
-                setTimeout(() => startPolling(reference), 3000);
-              });
-            }
+            console.log('⚠️ WidgetCheckout aún no disponible - continuando anyway');
           }
-        }, 1500);
+          resolve();
+        }, 1000);
       };
       
-      script.onerror = (error) => {
-        console.error('❌ Error cargando script WOMPI:', error);
-        toast.error('Error cargando sistema de pagos');
-        setIsLoading(false);
-        setPaymentStatus('script_error');
+      script.onerror = () => {
+        console.log('❌ Error cargando script WOMPI dinámicamente');
+        resolve(); // Continuar anyway
       };
       
-      // Agregar al DOM
-      const container = document.createElement('div');
-      container.setAttribute('data-wompi-container', 'true');
-      container.style.display = 'none';
-      container.appendChild(script);
-      document.body.appendChild(container);
+      document.head.appendChild(script);
+    });
+  };
+
+  // ✅ INICIALIZAR PAGO CON WOMPI - VERSIÓN ULTRA ROBUSTA
+  const initializePayment = async () => {
+    try {
+      console.log('🚀 INICIANDO PAGO CON POLLING AUTOMÁTICO');
+      setLoading(true);
+
+      // 🔑 VALIDAR CLAVES MÁS ESTRICTO
+      if (!WOMPI_PUBLIC_KEY || WOMPI_PUBLIC_KEY.includes('undefined') || !WOMPI_PUBLIC_KEY.startsWith('pub_prod_')) {
+        throw new Error(`Clave pública de WOMPI inválida: ${WOMPI_PUBLIC_KEY}`);
+      }
+
+      if (!WOMPI_INTEGRITY_KEY || !WOMPI_INTEGRITY_KEY.startsWith('prod_integrity_')) {
+        throw new Error(`Clave de integridad WOMPI inválida: ${WOMPI_INTEGRITY_KEY}`);
+      }
+
+      console.log('✅ Claves WOMPI validadas correctamente');
+
+      // 🔍 VERIFICAR CLAVES CON LA API
+      const keysValid = await verifyWompiKeys();
+      if (!keysValid) {
+        console.log('⚠️ Claves no verificadas, continuando con precaución...');
+      }
+
+      // ⏳ ESPERAR CARGA COMPLETA CON TIMEOUT EXTENDIDO
+      await waitForWompi();
+
+      // 🔗 GENERAR REFERENCIA ÚNICA
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const randomNumber = Math.floor(Math.random() * 9000) + 1000;
+      const reference = `SC-000-${timestamp}-${randomString}-${randomNumber}`;
+      
+      console.log('🔗 Referencia generada:', reference);
+
+      const amountInCents = total * 100;
+      const signature = await calculateSignature(reference, amountInCents);
+
+      // 📱 PREPARAR DATOS DEL CLIENTE
+      const phoneNumber = deliveryData.telefono_contacto || '3001234567';
+      const phoneNumberPrefix = phoneNumber.startsWith('+57') ? '+57' : '+57';
+      const cleanPhoneNumber = phoneNumber.replace(/^\+57/, '');
+
+      // 🎯 CONFIGURACIÓN SIMPLIFICADA PARA EVITAR ERRORES
+      const widgetConfig = {
+        currency: 'COP',
+        amountInCents: amountInCents,
+        reference: reference,
+        publicKey: WOMPI_PUBLIC_KEY,
+        signature: {
+          integrity: signature
+        },
+        redirectUrl: window.location.origin,
+        customerData: {
+          email: deliveryData.email || 'cliente@supercasa.com',
+          fullName: deliveryData.nombre || 'Cliente Supercasa',
+          phoneNumber: cleanPhoneNumber,
+          phoneNumberPrefix: phoneNumberPrefix
+        }
+        // Removidas opciones que pueden causar conflictos
+      };
+
+      console.log('🔧 Configuración del widget:', {
+        ...widgetConfig,
+        signature: { integrity: signature.substring(0, 10) + '...' },
+        publicKey: WOMPI_PUBLIC_KEY.substring(0, 15) + '...'
+      });
+
+      // 🎯 INICIALIZAR CON MANEJO DE ERRORES ROBUSTO
+      console.log('🎯 Inicializando WOMPI Widget...');
+      
+      let checkout;
+      try {
+        checkout = new window.WidgetCheckout(widgetConfig);
+      } catch (initError) {
+        console.error('❌ Error al crear WidgetCheckout:', initError);
+        // Reintentar con configuración mínima
+        console.log('🔄 Reintentando con configuración mínima...');
+        checkout = new window.WidgetCheckout({
+          currency: 'COP',
+          amountInCents: amountInCents,
+          reference: reference,
+          publicKey: WOMPI_PUBLIC_KEY,
+          signature: {
+            integrity: signature
+          }
+        });
+      }
+      
+      // 🚀 ABRIR WIDGET CON TIMEOUT EXTENDIDO Y MEJOR MANEJO
+      console.log('🎯 Abriendo WOMPI Widget...');
+      
+      const widgetPromise = new Promise((resolve, reject) => {
+        try {
+          checkout.open(function(result) {
+            console.log('📱 Widget cerrado con resultado COMPLETO:', JSON.stringify(result, null, 2));
+            
+            // Guardar resultado globalmente para debug
+            window.lastWompiResult = result;
+            
+            resolve(result);
+          });
+        } catch (openError) {
+          console.error('❌ Error al abrir widget:', openError);
+          reject(openError);
+        }
+      });
+
+      // Timeout extendido de 5 minutos (300 segundos)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout abriendo widget - 5 minutos')), 300000);
+      });
+
+      const result = await Promise.race([widgetPromise, timeoutPromise]);
+      
+      setLoading(false);
+      
+      console.log('🔍 Procesando resultado del widget:', result);
+      
+      if (result && result.transaction) {
+        console.log('✅ Transacción detectada en callback:', result.transaction);
+        
+        // 🎯 USAR ID REAL DE WOMPI, NO NUESTRA REFERENCIA
+        const transactionId = result.transaction.id; // ID real de WOMPI
+        const transactionRef = result.transaction.reference; // Nuestra referencia
+        
+        console.log('🆔 ID real de WOMPI:', transactionId);
+        console.log('🔗 Nuestra referencia:', transactionRef);
+        
+        // Si ya está aprobado, crear pedido inmediatamente
+        if (result.transaction.status === 'APPROVED') {
+          console.log('🎉 ¡PAGO YA APROBADO! Creando pedido inmediatamente...');
+          await createOrder(result.transaction);
+        } else {
+          console.log('⏳ Estado:', result.transaction.status, '- Iniciando polling con ID real');
+          startPolling(transactionId); // Usar ID real, no referencia
+        }
+      } else if (result && result.error) {
+        console.error('❌ Error en widget:', result.error);
+        toast.error('Error en el procesamiento del pago');
+        if (onPaymentError) onPaymentError(result.error);
+      } else {
+        // Widget cerrado sin información clara - iniciar polling preventivo
+        console.log('⚠️ Widget cerrado, iniciando polling preventivo con referencia original');
+        startPolling(reference);
+      }
 
     } catch (error) {
-      console.error('❌ Error general inicializando pago:', error);
-      toast.error('Error al inicializar el pago');
-      setIsLoading(false);
-      setPaymentStatus('init_error');
+      console.error('❌ Error inicializando pago:', error);
+      setLoading(false);
+      
+      // Mensajes más específicos según el tipo de error
+      if (error.message.includes('Clave')) {
+        toast.error('Error de configuración: Claves WOMPI inválidas');
+      } else if (error.message.includes('Timeout')) {
+        toast.error('El widget tardó mucho en cargar. Intenta de nuevo.');
+      } else {
+        toast.error('Error al inicializar el pago: ' + error.message);
+      }
+      
+      if (onPaymentError) onPaymentError(error);
     }
   };
 
-  // Cleanup al desmontar componente
+  // 🧹 CLEANUP AL DESMONTAR
   useEffect(() => {
     return () => {
       setPollingActive(false);
-      const containers = document.querySelectorAll('[data-wompi-container="true"]');
-      containers.forEach(container => container.remove());
     };
   }, []);
 
-  // 🎨 RENDER DEL ESTADO ACTUAL
-  const renderCurrentStatus = () => {
-    if (pollingActive) {
-      return (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-3"></div>
-            <h4 className="font-bold text-blue-800 mb-2">🔄 Verificando pago automáticamente</h4>
-            <p className="text-sm text-blue-700 mb-2">
-              Verificación {pollingAttempts}/36 cada 5 segundos
-            </p>
-            <p className="text-xs text-blue-600">
-              Referencia: <strong>{reference}</strong>
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    if (paymentStatus === 'approved') {
-      return (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-          <div className="text-center text-green-800">
-            <h4 className="font-bold mb-2">✅ ¡Pago aprobado!</h4>
-            <p className="text-sm">Creando su pedido...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (paymentStatus === 'declined') {
-      return (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <div className="text-center text-red-800">
-            <h4 className="font-bold mb-2">❌ Pago rechazado</h4>
-            <p className="text-sm">El pago fue rechazado por la entidad financiera</p>
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
   return (
-    <div className="w-full">
-      {/* Estado actual del pago */}
-      {renderCurrentStatus()}
-
-      {/* Confirmación manual */}
-      {showManualConfirm && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
-          <div className="text-center">
-            <h4 className="font-bold text-orange-800 mb-3">❓ ¿Su pago fue exitoso?</h4>
-            <p className="text-sm text-orange-700 mb-4">
-              La verificación automática no pudo confirmar el pago. 
-              ¿Su transacción fue exitosa?
-              <br />Auto-cancela en: <strong>{manualTimer}s</strong>
-            </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => confirmManualPayment(true)}
-                className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700"
-              >
-                ✅ Sí, pago exitoso
-              </button>
-              <button
-                onClick={() => confirmManualPayment(false)}
-                className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-700"
-              >
-                ❌ No, falló el pago
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Resumen del pedido */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 mb-6 border border-blue-200">
-        <h3 className="font-bold text-lg text-gray-800 mb-3">💳 Pago Automático WOMPI</h3>
-        
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span>📦 Productos:</span>
-            <span>{carrito.length} items</span>
-          </div>
-          <div className="flex justify-between">
-            <span>📍 Entrega:</span>
-            <span>Torre {deliveryData.torre_entrega}, Piso {deliveryData.piso_entrega}, Apt {deliveryData.apartamento_entrega}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>⚡ Tiempo estimado:</span>
-            <span>Máximo 20 minutos</span>
-          </div>
-          <div className="border-t border-blue-300 pt-2 mt-3">
-            <div className="flex justify-between font-bold text-lg">
-              <span>💰 Total a pagar:</span>
-              <span className="text-blue-600">${total.toLocaleString()} COP</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Información de referencia */}
-      {reference && (
-        <div className="bg-gray-50 rounded-lg p-3 mb-4 text-sm">
-          <p className="text-gray-600">
-            <strong>Referencia:</strong> {reference}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            🔄 Con verificación automática cada 5 segundos + confirmación manual de backup
-          </p>
-        </div>
-      )}
-
-      {/* Botón de pago principal */}
+    <div className="wompi-checkout">
+      {/* BOTÓN PRINCIPAL */}
       <button
         onClick={initializePayment}
-        disabled={isLoading || showManualConfirm || pollingActive || !reference}
-        className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-          isLoading || showManualConfirm || pollingActive || !reference
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105'
-        } text-white`}
+        disabled={loading || pollingActive}
+        className={`
+          w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-300
+          ${loading || pollingActive 
+            ? 'bg-gray-400 cursor-not-allowed' 
+            : 'bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl'
+          }
+        `}
       >
-        {pollingActive ? (
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-            Verificando pago automáticamente...
-          </div>
-        ) : isLoading ? (
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-            Inicializando pago...
-          </div>
-        ) : showManualConfirm ? (
-          'Confirme el resultado de su pago arriba ⬆️'
-        ) : (
-          `🔄 Pagar $${total.toLocaleString()} - Verificación Automática`
-        )}
+        {loading && '🔄 Inicializando pago...'}
+        {pollingActive && '🔍 Verificando pago automáticamente...'}
+        {!loading && !pollingActive && '💳 Proceder al Pago Seguro con WOMPI'}
       </button>
 
-      {/* Botón cancelar */}
-      <button
-        onClick={onCancel}
-        disabled={isLoading || pollingActive}
-        className="w-full mt-3 py-2 text-gray-600 hover:text-gray-800 transition-colors disabled:opacity-50"
-      >
-        ← Volver al carrito
-      </button>
-
-      {/* Información de seguridad */}
-      <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-        <div className="flex items-start">
-          <svg className="w-5 h-5 text-green-600 mt-1 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd"/>
-          </svg>
-          <div className="text-sm text-green-800">
-            <p className="font-medium">🔄 Verificación automática cada 5 segundos</p>
-            <p>Si el polling falla, confirmación manual disponible como backup</p>
-            <p className="text-xs mt-1 opacity-75">Ref: {reference}</p>
+      {/* ESTADO DE POLLING */}
+      {pollingActive && (
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            <span className="text-blue-700 font-medium">
+              Verificando pago automáticamente... (Intento {pollingAttempts + 1}/36)
+            </span>
           </div>
+          <p className="text-blue-600 text-sm mt-2">
+            Completa tu pago en Nequi/PSE. El sistema detectará automáticamente cuando se apruebe.
+          </p>
+          
+          {/* VERIFICACIÓN MANUAL DE EMERGENCIA */}
+          {pollingAttempts > 10 && (
+            <button
+              onClick={() => showManualConfirmation(transactionReference)}
+              className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+            >
+              ⚡ Confirmar pago manualmente
+            </button>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Debug info (solo en desarrollo) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
-          <p><strong>Debug:</strong> Status: {paymentStatus}</p>
-          <p>Polling: {pollingActive ? 'Activo' : 'Inactivo'}</p>
-          <p>Intentos: {pollingAttempts}</p>
-        </div>
+      {/* BOTÓN CANCELAR */}
+      {!loading && !pollingActive && onCancel && (
+        <button
+          onClick={onCancel}
+          className="mt-3 w-full py-2 px-4 text-gray-600 hover:text-gray-800 transition-colors"
+        >
+          Cancelar
+        </button>
       )}
     </div>
   );
