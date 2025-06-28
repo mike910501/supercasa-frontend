@@ -246,7 +246,6 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
   );
 }
 
-// Componente de Registro - mantengo igual que antes para no hacer el mensaje muy largo
 // Componente de Registro COMPLETO
 function RegisterForm({ onRegister, onSwitchToLogin }) {
   const navigate = useNavigate();
@@ -552,6 +551,8 @@ function Store({ user, token, onLogout }) {
   const [showWompiPayment, setShowWompiPayment] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [cashPaymentModal, setCashPaymentModal] = useState(false);
+  const [isProcessingCash, setIsProcessingCash] = useState(false);
   
   // Datos de entrega específicos para conjunto residencial
   const [deliveryData, setDeliveryData] = useState({
@@ -744,6 +745,144 @@ function Store({ user, token, onLogout }) {
   const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
   const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
 
+  const processCashPayment = async () => {
+    setIsProcessingCash(true);
+    
+    try {
+      console.log('💵 PROCESANDO PAGO EN EFECTIVO');
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Debes iniciar sesión para hacer un pedido');
+        return;
+      }
+
+      // 🔍 DEBUG: Verificar datos antes de procesar
+      console.log('🔍 deliveryData:', deliveryData);
+      console.log('🔍 user completo:', user);
+      
+      // ✅ VALIDAR Y COMPLETAR DATOS DE ENTREGA
+      const finalDeliveryData = {
+        torre_entrega: deliveryData.torre_entrega || user.torre || '1',
+        piso_entrega: deliveryData.piso_entrega || user.piso || '1',
+        apartamento_entrega: deliveryData.apartamento_entrega || user.apartamento || '101',
+        telefono_contacto: deliveryData.telefono_contacto || user.telefono || '3000000000',
+        email: deliveryData.email || user.email,
+        nombre: deliveryData.nombre || user.nombre,
+        instrucciones_entrega: deliveryData.instrucciones_entrega || user.notas_entrega || ''
+      };
+
+      console.log('🏠 Datos de entrega final:', finalDeliveryData);
+      
+      // 🔍 DEBUG: Verificar cada campo individualmente
+      console.log('🔍 Torre final:', finalDeliveryData.torre_entrega, 'Tipo:', typeof finalDeliveryData.torre_entrega);
+      console.log('🔍 Piso final:', finalDeliveryData.piso_entrega, 'Tipo:', typeof finalDeliveryData.piso_entrega);
+      console.log('🔍 Apartamento final:', finalDeliveryData.apartamento_entrega, 'Tipo:', typeof finalDeliveryData.apartamento_entrega);
+
+      // ✅ VALIDACIÓN ESTRICTA ANTES DE ENVIAR
+      if (!finalDeliveryData.torre_entrega || !['1', '2', '3', '4', '5'].includes(String(finalDeliveryData.torre_entrega))) {
+        console.error('❌ Torre inválida:', finalDeliveryData.torre_entrega);
+        toast.error('Torre inválida. Debe ser 1, 2, 3, 4 o 5');
+        return;
+      }
+      
+      const pisoNum = parseInt(finalDeliveryData.piso_entrega);
+      if (!pisoNum || pisoNum < 1 || pisoNum > 30) {
+        console.error('❌ Piso inválido:', finalDeliveryData.piso_entrega, 'Parseado:', pisoNum);
+        toast.error('Piso inválido. Debe estar entre 1 y 30');
+        return;
+      }
+      
+      if (!finalDeliveryData.apartamento_entrega || String(finalDeliveryData.apartamento_entrega).trim() === '') {
+        console.error('❌ Apartamento inválido:', finalDeliveryData.apartamento_entrega);
+        toast.error('El apartamento es obligatorio');
+        return;
+      }
+
+      console.log('✅ Validaciones pasadas - Torre:', finalDeliveryData.torre_entrega, 'Piso:', pisoNum, 'Apt:', finalDeliveryData.apartamento_entrega);
+
+      // Usar los datos validados
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const orderNumber = Math.floor(Math.random() * 9000) + 1000;
+      const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
+      
+      const orderData = {
+        cliente_email: finalDeliveryData.email,
+        // ✅ CAMBIAR NOMBRE DEL CAMPO TELÉFONO
+        telefono_contacto: finalDeliveryData.telefono_contacto,
+        // ✅ USAR LOS MISMOS NOMBRES QUE USA WOMPI
+        torre_entrega: String(finalDeliveryData.torre_entrega),
+        piso_entrega: String(finalDeliveryData.piso_entrega), // Convertir a string como WOMPI
+        apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
+        instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
+        notas_entrega: finalDeliveryData.instrucciones_entrega || '', // Por si usa este campo también
+        productos: carrito.map(item => ({
+          id: item.id,
+          nombre: item.nombre,
+          precio: item.precio,
+          cantidad: item.cantidad
+        })),
+        total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
+        metodo_pago: 'EFECTIVO',
+        estado_pago: 'PENDIENTE_EFECTIVO',
+        transaccion_id: `CASH-${reference}`,
+        referencia_pago: reference
+      };
+
+      // 🔍 LOGGING DETALLADO DE LO QUE SE ENVIARÁ
+      console.log('📦 OrderData FINAL a enviar (formato WOMPI):');
+      console.log('  telefono_contacto:', orderData.telefono_contacto, '(tipo:', typeof orderData.telefono_contacto, ')');
+      console.log('  torre_entrega:', orderData.torre_entrega, '(tipo:', typeof orderData.torre_entrega, ')');
+      console.log('  piso_entrega:', orderData.piso_entrega, '(tipo:', typeof orderData.piso_entrega, ')');
+      console.log('  apartamento_entrega:', orderData.apartamento_entrega, '(tipo:', typeof orderData.apartamento_entrega, ')');
+      console.log('  Completo:', orderData);
+
+      const response = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const result = await response.json();
+      console.log('📥 Respuesta del backend:', result);
+      console.log('📊 Status code:', response.status);
+
+      if (response.ok && result.success) {
+        console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
+        
+        toast.success(`¡Pedido creado exitosamente! 💵 Pago en efectivo al recibir. Entrega en máximo 20 minutos.`, {
+          duration: 8000,
+          icon: '🎉'
+        });
+        
+        // Limpiar y cerrar
+        setCarrito([]);
+        localStorage.removeItem('carrito');
+        setCashPaymentModal(false);
+        setShowCart(false);
+        
+      } else {
+        console.error('❌ Error del backend:', {
+          status: response.status,
+          result: result,
+          message: result.message,
+          error: result.error
+        });
+        throw new Error(result.message || result.error || `Error ${response.status}: ${response.statusText}`);
+      }
+
+    } catch (error) {
+      console.error('❌ Error en efectivo:', error);
+      toast.error(`Error al crear el pedido: ${error.message}`);
+    } finally {
+      setIsProcessingCash(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -835,7 +974,7 @@ function Store({ user, token, onLogout }) {
         </div>
       </div>
 
-      {/* Filtros y búsqueda - mantener igual */}
+      {/* Filtros y búsqueda */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -862,7 +1001,7 @@ function Store({ user, token, onLogout }) {
           </div>
         </div>
 
-        {/* Grid de productos - mantener igual */}
+        {/* Grid de productos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {productosFiltrados.map(producto => (
             <div key={producto.id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105">
@@ -903,7 +1042,7 @@ function Store({ user, token, onLogout }) {
         )}
       </div>
 
-      {/* Modal del carrito - mantener igual */}
+      {/* Modal del carrito */}
       {showCart && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -965,12 +1104,39 @@ function Store({ user, token, onLogout }) {
                       <span className="text-xl font-bold text-gray-800">Total:</span>
                       <span className="text-2xl font-bold text-blue-600">${total.toLocaleString()}</span>
                     </div>
-                    <button
-                      onClick={finalizarCompra}
-                      className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-blue-700 transition-all"
-                    >
-                      💳 Proceder al Pago Seguro
-                    </button>
+                    
+                    <div className="space-y-3">
+                      <div className="text-center mb-4">
+                        <p className="text-lg font-semibold text-gray-800">Total: ${total.toLocaleString('es-CO')} COP</p>
+                        <p className="text-sm text-gray-600">Elige tu método de pago:</p>
+                      </div>
+
+                      {/* BOTÓN WOMPI */}
+                      <button
+                        onClick={finalizarCompra}
+                        className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-xl">💳</span>
+                        <div className="text-left">
+                          <div className="font-semibold">Pago Digital</div>
+                          <div className="text-xs opacity-90">Nequi • PSE • Tarjetas</div>
+                        </div>
+                        <span className="ml-auto">⚡</span>
+                      </button>
+
+                      {/* BOTÓN EFECTIVO */}
+                      <button 
+                        onClick={() => setCashPaymentModal(true)}
+                        className="w-full bg-green-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                      >
+                        <span className="text-xl">💵</span>
+                        <div className="text-left">
+                          <div className="font-semibold">Pago en Efectivo</div>
+                          <div className="text-xs opacity-90">Al recibir el pedido</div>
+                        </div>
+                        <span className="ml-auto">🏠</span>
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -1078,7 +1244,7 @@ function Store({ user, token, onLogout }) {
         </div>
       )}
 
-      {/* Modal de pago WOMPI - NUEVO */}
+      {/* Modal de pago WOMPI */}
       {showWompiPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1105,6 +1271,79 @@ function Store({ user, token, onLogout }) {
                 onPaymentError={handlePaymentError}
                 onCancel={cancelarPago}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE PAGO EN EFECTIVO */}
+      {cashPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">💵</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Pago en Efectivo</h3>
+              <p className="text-gray-600">Confirma tu pedido para pago al recibir</p>
+            </div>
+
+            {/* RESUMEN */}
+            <div className="bg-gray-50 p-4 rounded-lg mb-6 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Productos:</span>
+                <span className="font-medium">{carrito.length} item(s)</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Total:</span>
+                <span className="font-bold text-green-600">${total.toLocaleString('es-CO')} COP</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Entrega:</span>
+                <span className="font-medium">
+                  Torre {deliveryData.torre_entrega || user.torre || '1'}, 
+                  Piso {deliveryData.piso_entrega || user.piso || '1'}, 
+                  Apt {deliveryData.apartamento_entrega || user.apartamento || '101'}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Tiempo:</span>
+                <span className="font-medium text-blue-600">Máximo 20 minutos</span>
+              </div>
+            </div>
+
+            {/* INSTRUCCIONES */}
+            <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg mb-6">
+              <p className="text-sm text-orange-800">
+                <strong>📋 Instrucciones:</strong><br/>
+                • Ten el dinero exacto preparado<br/>
+                • El repartidor confirmará el pago al entregar<br/>
+                • Recibirás confirmación inmediatamente
+              </p>
+            </div>
+
+            {/* BOTONES */}
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setCashPaymentModal(false)}
+                className="flex-1 py-3 text-gray-600 hover:text-gray-800 transition-colors border border-gray-300 rounded-lg"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={processCashPayment}
+                disabled={isProcessingCash}
+                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              >
+                {isProcessingCash ? (
+                  <span className="flex items-center justify-center space-x-2">
+                    <span className="animate-spin">⏳</span>
+                    <span>Creando...</span>
+                  </span>
+                ) : (
+                  '✅ Confirmar Pedido'
+                )}
+              </button>
             </div>
           </div>
         </div>

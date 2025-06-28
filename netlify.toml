@@ -1,14 +1,10 @@
-# netlify.toml - CONFIGURACIÓN CORREGIDA SIN ERRORES CSP
-
 [build]
   publish = "build"
   command = "npm run build"
 
-# Headers optimizados para WOMPI - SIN ERRORES DE SINTAXIS
 [[headers]]
   for = "/*"
   [headers.values]
-    # Content Security Policy CORREGIDA
     Content-Security-Policy = """
       default-src 'self'; 
       script-src 'self' 'unsafe-inline' 'unsafe-eval' 
@@ -18,7 +14,6 @@
                  https://connect.facebook.net; 
       connect-src 'self' 
                   https://api.wompi.co 
-                  https://production.wompi.co
                   https://checkout.wompi.co
                   https://*.wompi.co 
                   https://supercasa-backend-vvu1.onrender.com
@@ -27,7 +22,11 @@
               https://*.wompi.co 
               https://wompi.com
               https://*.facebook.com
-              https://*.fbcdn.net; 
+              https://*.fbcdn.net
+              https://www.infobae.com
+              https://images.unsplash.com
+              https://*.googleusercontent.com
+              https://www.google.com; 
       style-src 'self' 'unsafe-inline' 
                 https://*.wompi.co; 
       font-src 'self' data: 
@@ -39,19 +38,10 @@
       base-uri 'self';
       form-action 'self' https://*.wompi.co;
     """
-    
-    # CORS Headers
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
-    
-    # Security Headers
-    X-Frame-Options = "SAMEORIGIN"
-    X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
-    Referrer-Policy = "strict-origin-when-cross-origin"
 
-# Redirects para SPA
 [[redirects]]
   from = "/*"
   to = "/index.html"
