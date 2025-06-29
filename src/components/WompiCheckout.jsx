@@ -203,14 +203,41 @@ const WompiCheckout = ({
         }
       } else {
         console.error('❌ Error al crear pedido:', response.status);
-        const errorData = await response.json();
-        console.error('Error details:', errorData);
-        toast.error('Error al crear el pedido. Contacta soporte.');
+const errorData = await response.json();
+console.error('Error details:', errorData);
+
+// ✅ NUEVO: Manejo específico de errores de stock
+if (errorData.error && errorData.error.includes('Stock insuficiente')) {
+  toast.error(`❌ ${errorData.error}`, {
+    duration: 6000,
+    style: {
+      background: '#fef2f2',
+      color: '#dc2626',
+      border: '1px solid #fecaca'
+    }
+  });
+} else if (errorData.detalles && Array.isArray(errorData.detalles)) {
+  // Si vienen detalles específicos de stock
+  toast.error(`📦 Problemas de inventario:\n${errorData.detalles.join('\n')}`, {
+    duration: 8000
+  });
+} else {
+  // Error genérico (como antes)
+  toast.error('Error al crear el pedido. Contacta soporte.');
+}
       }
     } catch (error) {
-      console.error('❌ Error en createOrder:', error);
-      toast.error('Error al procesar el pedido');
-    }
+  console.error('❌ Error en createOrder:', error);
+  
+  // ✅ NUEVO: Manejo específico de errores de stock
+  if (error.message && error.message.includes('Stock')) {
+    toast.error(`📦 ${error.message}`, {
+      duration: 6000
+    });
+  } else {
+    toast.error('Error al procesar el pedido');
+  }
+}
   };
 
   // 📱 CONFIRMACIÓN MANUAL (BACKUP)

@@ -859,9 +859,27 @@ function Store({ user, token, onLogout }) {
       }
 
     } catch (error) {
-      console.error('❌ Error en efectivo:', error);
-      toast.error(`Error al crear el pedido: ${error.message}`);
-    } finally {
+  console.error('❌ Error en efectivo:', error);
+  
+  // ✅ NUEVO: Manejo específico de errores de stock
+  if (error.message && error.message.includes('Stock insuficiente')) {
+    toast.error(`❌ ${error.message}`, {
+      duration: 6000,
+      style: {
+        background: '#fef2f2',
+        color: '#dc2626',
+        border: '1px solid #fecaca'
+      }
+    });
+  } else if (error.message && error.message.includes('Stock')) {
+    toast.error(`📦 Problema de inventario: ${error.message}`, {
+      duration: 5000
+    });
+  } else {
+    // Error genérico (como antes)
+    toast.error(`Error al crear el pedido: ${error.message}`);
+  }
+} finally {
       setIsProcessingCash(false);
     }
   };

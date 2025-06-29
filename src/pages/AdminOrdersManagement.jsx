@@ -296,13 +296,25 @@ export default function AdminOrdersManagement() {
                         Ver Detalles
                       </button>
                       {pedido.estado === 'Pendiente' && (
-                        <button
-                          onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
-                          className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
-                        >
-                          ✓ Entregado
-                        </button>
-                      )}
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
+                                      className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
+                                    >
+                                      ✓ Entregado
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm(`¿Cancelar este pedido? El stock se restaurará automáticamente.`)) {
+                                          cambiarEstadoPedido(pedido.id, 'cancelado');
+                                        }
+                                      }}
+                                      className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors"
+                                    >
+                                      ❌ Cancelar
+                                    </button>
+                                  </div>
+                                )}
                     </td>
                   </tr>
                 ))}
@@ -396,13 +408,26 @@ export default function AdminOrdersManagement() {
                           {pedidoSeleccionado.estado}
                         </span>
                         {pedidoSeleccionado.estado === 'Pendiente' && (
-                          <button
-                            onClick={() => cambiarEstadoPedido(pedidoSeleccionado.id, 'entregado')}
-                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                          >
-                            ✓ Marcar como Entregado
-                          </button>
-                        )}
+  <div className="flex gap-3">
+    <button
+      onClick={() => cambiarEstadoPedido(pedidoSeleccionado.id, 'entregado')}
+      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+    >
+      ✓ Marcar como Entregado
+    </button>
+    <button
+      onClick={() => {
+        if (window.confirm(`¿Cancelar este pedido?\n\nEl stock se restaurará automáticamente.`)) {
+          cambiarEstadoPedido(pedidoSeleccionado.id, 'cancelado');
+          setShowModal(false); // Cerrar modal después de cancelar
+        }
+      }}
+      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+    >
+      ❌ Cancelar Pedido
+    </button>
+  </div>
+)}
                       </div>
                       <p><span className="font-medium">Fecha del pedido:</span> {formatearFecha(pedidoSeleccionado.fecha_pedido)}</p>
                       {pedidoSeleccionado.fecha_entrega && (

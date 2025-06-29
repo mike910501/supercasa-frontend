@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminOrdersManagement from './AdminOrdersManagement';
-import API_URL from '../config/api'; // ⚡ AGREGADO: Import de configuración de API
+import API_URL from '../config/api';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('productos');
@@ -34,7 +34,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-gray-600">Bienvenido, {user?.nombre}</p>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => window.location.href = '/'}
@@ -60,41 +60,41 @@ export default function AdminDashboard() {
             <button
               onClick={() => setActiveSection('estadisticas')}
               className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                activeSection === 'estadisticas' 
-                  ? 'bg-blue-100 text-blue-700 font-medium' 
+                activeSection === 'estadisticas'
+                  ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               📊 Dashboard
             </button>
-            
+
             <button
               onClick={() => setActiveSection('productos')}
               className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                activeSection === 'productos' 
-                  ? 'bg-blue-100 text-blue-700 font-medium' 
+                activeSection === 'productos'
+                  ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              📦 Gestionar Productos
+              📦 Control de Inventario
             </button>
-            
+
             <button
               onClick={() => setActiveSection('pedidos')}
               className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                activeSection === 'pedidos' 
-                  ? 'bg-blue-100 text-blue-700 font-medium' 
+                activeSection === 'pedidos'
+                  ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               🚚 Gestión de Entregas
             </button>
-            
+
             <button
               onClick={() => setActiveSection('usuarios')}
               className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
                 activeSection === 'usuarios' 
-                  ? 'bg-blue-100 text-blue-700 font-medium' 
+                  ? 'bg-blue-100 text-blue-700 font-medium'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
@@ -127,7 +127,6 @@ function EstadisticasSection() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      // ✅ CORREGIDO: URL dinámica con template literals correctos
       const response = await fetch(`${API_URL}/admin/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -153,7 +152,7 @@ function EstadisticasSection() {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Dashboard de Estadísticas</h2>
-      
+
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
@@ -219,18 +218,19 @@ function EstadisticasSection() {
         <div className="space-y-2">
           <p className="text-gray-600">• Pedidos pendientes: <span className="font-semibold">{stats?.pedidosPendientes || 0}</span></p>
           <p className="text-gray-600">• Promedio por pedido: <span className="font-semibold">${stats?.totalPedidos > 0 ? Math.round(stats.ingresosTotales / stats.totalPedidos).toLocaleString() : 0}</span></p>
-          <p className="text-gray-600">• Estado: <span className="text-green-600 font-semibold">✅ Sistema funcionando correctamente</span></p>
+          <p className="text-gray-600">• Estado: <span className="text-green-600 font-semibold">✅ Sistema funcionando correctamente</span></p>    
         </div>
       </div>
     </div>
   );
 }
 
-// Componente para gestionar productos
+// ✅ COMPONENTE DE PRODUCTOS MEJORADO CON INVENTARIO COMPLETO
 function ProductosSection() {
   const [productos, setProductos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
 
   useEffect(() => {
     fetchProductos();
@@ -238,7 +238,6 @@ function ProductosSection() {
 
   const fetchProductos = async () => {
     try {
-      // ✅ CORREGIDO: URL dinámica con template literals correctos
       const response = await fetch(`${API_URL}/productos`);
       const data = await response.json();
       setProductos(data);
@@ -249,10 +248,25 @@ function ProductosSection() {
     }
   };
 
+  // ✅ GENERAR CÓDIGO AUTOMÁTICO
+  const generarCodigo = () => {
+    const maxCodigo = productos.reduce((max, p) => {
+      if (p.codigo && p.codigo.startsWith('SC-')) {
+        const num = parseInt(p.codigo.split('-')[1]);
+        return Math.max(max, num);
+      }
+      return max;
+    }, 0);
+    return `SC-${String(maxCodigo + 1).padStart(4, '0')}`;
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
-        <div className="text-center py-8">Cargando productos...</div>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4">Cargando productos...</p>
+        </div>
       </div>
     );
   }
@@ -260,27 +274,372 @@ function ProductosSection() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Gestionar Productos ({productos.length})</h2>
+        <h2 className="text-2xl font-bold text-gray-800">📦 Control de Inventario ({productos.length})</h2>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setShowForm(!showForm);
+            setEditingProduct(null);
+          }}
           className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
         >
-          {showForm ? 'Cancelar' : '+ Agregar Producto'}
+          {showForm ? '❌ Cancelar' : '➕ Agregar Producto'}
         </button>
       </div>
 
-      {showForm && <ProductForm onSuccess={() => { setShowForm(false); fetchProductos(); }} />}
+      {/* ✅ ESTADÍSTICAS DE INVENTARIO */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-blue-100 p-4 rounded-lg">
+          <h3 className="font-semibold text-blue-800">Total Productos</h3>
+          <p className="text-2xl font-bold text-blue-600">{productos.length}</p>
+        </div>
+        <div className="bg-green-100 p-4 rounded-lg">
+          <h3 className="font-semibold text-green-800">En Stock</h3>
+          <p className="text-2xl font-bold text-green-600">
+            {productos.filter(p => (p.stock || 0) > 0).length}
+          </p>
+        </div>
+        <div className="bg-red-100 p-4 rounded-lg">
+          <h3 className="font-semibold text-red-800">Sin Stock</h3>
+          <p className="text-2xl font-bold text-red-600">
+            {productos.filter(p => (p.stock || 0) === 0).length}
+          </p>
+        </div>
+        <div className="bg-yellow-100 p-4 rounded-lg">
+          <h3 className="font-semibold text-yellow-800">Stock Bajo</h3>
+          <p className="text-2xl font-bold text-yellow-600">
+            {productos.filter(p => (p.stock || 0) > 0 && (p.stock || 0) <= 5).length}
+          </p>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {(showForm || editingProduct) && (
+        <ProductForm 
+          product={editingProduct}
+          onSuccess={() => { 
+            setShowForm(false); 
+            setEditingProduct(null);
+            fetchProductos(); 
+          }}
+          generarCodigo={generarCodigo}
+        />
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {productos.map(producto => (
-          <ProductCard key={producto.id} producto={producto} onUpdate={fetchProductos} />
+          <ProductCard 
+            key={producto.id} 
+            producto={producto} 
+            onUpdate={fetchProductos}
+            onEdit={setEditingProduct}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-// Componente para usuarios
+// ✅ COMPONENTE PRODUCT CARD MEJORADO
+function ProductCard({ producto, onUpdate, onEdit }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // ✅ ERROR CORREGIDO: Confirmación invertida
+  const handleDelete = async () => {
+    // ✅ ANTES: if (window.confirm()) return; ❌
+    // ✅ AHORA: if (!window.confirm()) return; ✅
+    if (!window.confirm(`¿Estás seguro de eliminar "${producto.nombre}"?`)) {
+      return; // Si dice NO, cancela
+    }
+
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/productos/${producto.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        alert('✅ Producto eliminado exitosamente');
+        onUpdate();
+      } else {
+        const error = await response.json();
+        alert(`❌ Error: ${error.error || 'Error al eliminar'}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Error de conexión al eliminar producto');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // ✅ ESTADO DEL STOCK
+  const stockStatus = (stock) => {
+    if (stock === 0 || stock === null || stock === undefined) {
+      return { text: 'Sin Stock', color: 'text-red-600 bg-red-100', icon: '❌' };
+    } else if (stock <= 5) {
+      return { text: 'Stock Bajo', color: 'text-yellow-600 bg-yellow-100', icon: '⚠️' };
+    } else {
+      return { text: 'En Stock', color: 'text-green-600 bg-green-100', icon: '✅' };
+    }
+  };
+
+  const status = stockStatus(producto.stock);
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      {/* ✅ IMAGEN Y CÓDIGO */}
+      <div className="relative">
+        {producto.imagen && (
+          <img
+            src={producto.imagen}
+            alt={producto.nombre}
+            className="w-full h-48 object-cover"
+            onError={(e) => {
+              e.target.style.display = 'none';
+            }}
+          />
+        )}
+        <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-mono">
+          {producto.codigo || `ID-${producto.id}`}
+        </div>
+        <div className={`absolute top-2 right-2 px-2 py-1 rounded text-xs font-medium ${status.color}`}>
+          {status.icon} {status.text}
+        </div>
+      </div>
+
+      {/* ✅ INFORMACIÓN COMPLETA */}
+      <div className="p-4">
+        <h3 className="font-bold text-lg mb-2">{producto.nombre}</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Precio:</span>
+            <span className="font-bold text-blue-600">${parseInt(producto.precio).toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Stock:</span>
+            <span className={`font-medium ${status.color.split(' ')[0]}`}>
+              {producto.stock || 0} unidades
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Categoría:</span>
+            <span className="text-gray-800">{producto.categoria}</span>
+          </div>
+        </div>
+
+        {producto.descripcion && (
+          <p className="text-sm text-gray-600 mt-2 line-clamp-2">{producto.descripcion}</p>
+        )}
+
+        {/* ✅ BOTONES DE ACCIÓN */}
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={() => onEdit(producto)}
+            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
+          >
+            ✏️ Editar
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="flex-1 bg-red-600 text-white px-3 py-2 rounded text-sm hover:bg-red-700 transition-colors disabled:bg-gray-400"
+          >
+            {isDeleting ? '⏳' : '🗑️'} Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ✅ FORMULARIO MEJORADO CON STOCK Y CÓDIGO
+function ProductForm({ product, onSuccess, generarCodigo }) {
+  const [formData, setFormData] = useState({
+    nombre: product?.nombre || '',
+    precio: product?.precio || '',
+    descripcion: product?.descripcion || '',
+    categoria: product?.categoria || '',
+    imagen: product?.imagen || '',
+    nutricional: product?.nutricional || '',
+    stock: product?.stock || '',
+    codigo: product?.codigo || (product ? product.codigo : generarCodigo())
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const isEditing = !!product;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const url = isEditing 
+        ? `${API_URL}/productos/${product.id}`
+        : `${API_URL}/productos`;
+      
+      const method = isEditing ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...formData,
+          precio: parseFloat(formData.precio),
+          stock: parseInt(formData.stock) || 0
+        })
+      });
+
+      if (response.ok) {
+        alert(`✅ Producto ${isEditing ? 'actualizado' : 'agregado'} exitosamente`);
+        onSuccess();
+      } else {
+        const error = await response.json();
+        alert(`❌ Error: ${error.error || 'Error al guardar'}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Error de conexión');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <h3 className="text-lg font-bold mb-4">
+        {isEditing ? `✏️ Editar: ${product.nombre}` : '➕ Agregar Nuevo Producto'}
+      </h3>
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Código</label>
+          <input
+            type="text"
+            value={formData.codigo}
+            onChange={(e) => setFormData({...formData, codigo: e.target.value})}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            placeholder="SC-0001"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Nombre *</label>
+          <input
+            type="text"
+            value={formData.nombre}
+            onChange={(e) => setFormData({...formData, nombre: e.target.value})}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            placeholder="Nombre del producto"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Precio *</label>
+          <input
+            type="number"
+            value={formData.precio}
+            onChange={(e) => setFormData({...formData, precio: e.target.value})}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            placeholder="0"
+            required
+            min="0"
+            step="0.01"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Categoría *</label>
+          <input
+            type="text"
+            value={formData.categoria}
+            onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            placeholder="Lácteos, Bebidas, etc."
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Stock</label>
+          <input
+            type="number"
+            value={formData.stock}
+            onChange={(e) => setFormData({...formData, stock: e.target.value})}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            placeholder="0"
+            min="0"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">URL Imagen</label>
+          <input
+            type="url"
+            value={formData.imagen}
+            onChange={(e) => setFormData({...formData, imagen: e.target.value})}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium mb-1">Descripción</label>
+          <textarea
+            value={formData.descripcion}
+            onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            rows="2"
+            placeholder="Descripción del producto"
+          />
+        </div>
+
+        <div className="md:col-span-2 lg:col-span-1">
+          <label className="block text-sm font-medium mb-1">Info Nutricional</label>
+          <textarea
+            value={formData.nutricional}
+            onChange={(e) => setFormData({...formData, nutricional: e.target.value})}
+            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+            rows="2"
+            placeholder="Información nutricional"
+          />
+        </div>
+
+        <div className="md:col-span-2 lg:col-span-3 flex gap-4">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400"
+          >
+            {isLoading ? '⏳ Guardando...' : `💾 ${isEditing ? 'Actualizar' : 'Agregar'} Producto`}
+          </button>
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => setFormData({
+                nombre: '', precio: '', descripcion: '', nutricional: '',
+                categoria: '', imagen: '', stock: '', codigo: generarCodigo()
+              })}
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+            >
+              🔄 Limpiar
+            </button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// Componente para usuarios (sin cambios)
 function UsuariosSection() {
   const [usuarios, setUsuarios] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -292,7 +651,6 @@ function UsuariosSection() {
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token');
-      // ✅ CORREGIDO: URL dinámica con template literals correctos
       const response = await fetch(`${API_URL}/admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -318,7 +676,7 @@ function UsuariosSection() {
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Gestión de Usuarios ({usuarios.length})</h2>
-      
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50">
@@ -355,165 +713,6 @@ function UsuariosSection() {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function ProductCard({ producto, onUpdate }) {
-  const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de eliminar este producto?')) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      // ✅ CORREGIDO: URL dinámica en lugar de localhost hardcodeado
-      const response = await fetch(`${API_URL}/productos/${producto.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        alert('Producto eliminado exitosamente');
-        onUpdate();
-      } else {
-        alert('Error al eliminar producto');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al eliminar producto');
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      {producto.imagen && (
-        <img 
-          src={producto.imagen} 
-          alt={producto.nombre}
-          className="w-full h-32 object-cover rounded-lg mb-4"
-        />
-      )}
-      <h3 className="font-bold text-lg mb-2">{producto.nombre}</h3>
-      <p className="text-gray-600 text-sm mb-2">{producto.descripcion}</p>
-      <p className="text-blue-600 font-bold text-xl mb-2">${producto.precio.toLocaleString()}</p>
-      <p className="text-xs text-gray-500 mb-4">Categoría: {producto.categoria}</p>
-      
-      <button
-        onClick={handleDelete}
-        className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors"
-      >
-        🗑️ Eliminar
-      </button>
-    </div>
-  );
-}
-
-function ProductForm({ onSuccess }) {
-  const [formData, setFormData] = useState({
-    nombre: '',
-    precio: '',
-    descripcion: '',
-    categoria: '',
-    imagen: '',
-    nutricional: ''
-  });
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      // ✅ CORREGIDO: URL dinámica con template literals correctos
-      const response = await fetch(`${API_URL}/productos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        alert('Producto agregado exitosamente');
-        setFormData({
-          nombre: '',
-          precio: '',
-          descripcion: '',
-          categoria: '',
-          imagen: '',
-          nutricional: ''
-        });
-        onSuccess();
-      } else {
-        alert('Error al agregar producto');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Error al agregar producto');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow p-6 mb-6">
-      <h3 className="text-lg font-bold mb-4">Agregar Nuevo Producto</h3>
-      
-      <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-        <input
-          type="text"
-          placeholder="Nombre del producto"
-          value={formData.nombre}
-          onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-          className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-          required
-        />
-        
-        <input
-          type="number"
-          placeholder="Precio"
-          value={formData.precio}
-          onChange={(e) => setFormData({...formData, precio: e.target.value})}
-          className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-          required
-        />
-        
-        <input
-          type="text"
-          placeholder="Categoría"
-          value={formData.categoria}
-          onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-          className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-          required
-        />
-        
-        <input
-          type="url"
-          placeholder="URL de la imagen"
-          value={formData.imagen}
-          onChange={(e) => setFormData({...formData, imagen: e.target.value})}
-          className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-        />
-        
-        <textarea
-          placeholder="Descripción"
-          value={formData.descripcion}
-          onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
-          className="border rounded-lg px-3 py-2 col-span-2 focus:ring-2 focus:ring-blue-500"
-          rows="3"
-        />
-        
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="col-span-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-        >
-          {isLoading ? 'Agregando...' : 'Agregar Producto'}
-        </button>
-      </form>
     </div>
   );
 }
