@@ -889,7 +889,7 @@ function Store({ user, token, onLogout }) {
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
         : 'bg-gradient-to-br from-blue-50 to-indigo-100'
     }`}>
-      {/* ✅ HEADER ÚNICO CORREGIDO PARA MÓVIL */}
+      {/* ✅ HEADER CORREGIDO CON VALIDACIÓN DE DATOS */}
       <header className={`shadow-lg sticky top-0 z-40 transition-colors duration-300 ${
         darkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white'
       }`}>
@@ -906,21 +906,26 @@ function Store({ user, token, onLogout }) {
                 <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Supercasa
                 </h1>
+                {/* ✅ VALIDACIÓN DE DATOS CORREGIDA */}
                 <p className={`text-xs md:text-sm transition-colors duration-300 ${
                   darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
-                  Torre {user.torre}, Piso {user.piso}, Apt {user.apartamento}
+                  {user?.torre && user?.piso && user?.apartamento ? (
+                    `Torre ${user.torre}, Piso ${user.piso}, Apt ${user.apartamento}`
+                  ) : (
+                    `Bienvenido ${user?.nombre || 'Usuario'}`
+                  )}
                 </p>
               </div>
             </div>
             
-            {/* ✅ LADO DERECHO - Reorganizado para móvil */}
+            {/* ✅ LADO DERECHO - Reorganizado con admin estático */}
             <div className="flex items-center space-x-1 md:space-x-3">
               {/* 👤 Saludo usuario - Solo desktop */}
               <div className={`hidden lg:flex items-center space-x-2 mr-2 transition-colors duration-300 ${
                 darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
-                <span className="text-sm">Hola, {user.nombre}</span>
+                <span className="text-sm">Hola, {user?.nombre || 'Usuario'}</span>
               </div>
               
               {/* ⚡ Banner entrega - Solo desktop grande */}
@@ -956,13 +961,20 @@ function Store({ user, token, onLogout }) {
                 )}
               </button>
               
-              {/* 🔧 Panel Admin - Solo desktop */}
-              {user.rol === 'admin' && (
+              {/* ✅ 🔧 PANEL ADMIN ESTÁTICO - Mismo tamaño que otros iconos */}
+              {user?.rol === 'admin' && (
                 <Link
                   to="/admin"
-                  className="hidden md:flex bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg text-sm"
+                  className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
+                    darkMode 
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                      : 'bg-purple-600 hover:bg-purple-700 text-white'
+                  }`}
+                  title="Panel Admin"
                 >
-                  🔧 Admin
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
+                  </svg>
                 </Link>
               )}
               
@@ -1105,21 +1117,6 @@ function Store({ user, token, onLogout }) {
           </div>
         )}
       </div>
-
-      {/* ✅ BOTÓN ADMIN FLOTANTE ÚNICO - Solo móvil */}
-      {user.rol === 'admin' && (
-        <div className="md:hidden fixed bottom-6 right-6 z-50">
-          <Link
-            to="/admin"
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-full shadow-xl hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-110"
-            title="Panel Admin"
-          >
-            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
-            </svg>
-          </Link>
-        </div>
-      )}
 
       {/* Modal del carrito */}
       {showCart && (
@@ -1488,9 +1485,9 @@ function Store({ user, token, onLogout }) {
                 <span className={`font-medium transition-colors duration-300 ${
                   darkMode ? 'text-white' : 'text-gray-800'
                 }`}>
-                  Torre {deliveryData.torre_entrega || user.torre || '1'}, 
-                  Piso {deliveryData.piso_entrega || user.piso || '1'}, 
-                  Apt {deliveryData.apartamento_entrega || user.apartamento || '101'}
+                  Torre {deliveryData.torre_entrega || user?.torre || '1'}, 
+                  Piso {deliveryData.piso_entrega || user?.piso || '1'}, 
+                  Apt {deliveryData.apartamento_entrega || user?.apartamento || '101'}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
