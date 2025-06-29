@@ -165,7 +165,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
         <div className="text-center mb-8">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-xl inline-block mb-4">
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.80a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Supercasa</h2>
@@ -332,7 +332,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
         <div className="text-center mb-6">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-xl inline-block mb-4">
             <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.80a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Registro Supercasa</h2>
@@ -526,6 +526,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
     </div>
   );
 }
+
 // Componente principal de la tienda CON WOMPI
 function Store({ user, token, onLogout }) {
   const navigate = useNavigate();
@@ -910,175 +911,118 @@ function Store({ user, token, onLogout }) {
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
         : 'bg-gradient-to-br from-blue-50 to-indigo-100'
     }`}>
-      {/* Header */}
-// 🔧 HEADER CORREGIDO PARA MÓVIL + DARK MODE
-<header className={`shadow-lg sticky top-0 z-40 transition-colors duration-300 ${
-  darkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white'
-}`}>
-  <div className="max-w-7xl mx-auto px-4 py-4">
-    <div className="flex items-center justify-between">
-      {/* ✅ LADO IZQUIERDO - Logo y info usuario */}
-      <div className="flex items-center space-x-3 flex-shrink-0">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 md:p-3 rounded-xl">
-          <svg className="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.80a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-          </svg>
+      {/* ✅ HEADER ÚNICO Y CORREGIDO */}
+      <header className={`shadow-lg sticky top-0 z-40 transition-colors duration-300 ${
+        darkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white'
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo y info */}
+            <div className="flex items-center space-x-3 flex-shrink-0">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 md:p-3 rounded-xl">
+                <svg className="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.80a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
+                </svg>
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Supercasa
+                </h1>
+                <p className={`text-xs md:text-sm transition-colors duration-300 ${
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  Torre {user.torre}, Piso {user.piso}, Apt {user.apartamento}
+                </p>
+              </div>
+            </div>
+            
+            {/* Controles derecha */}
+            <div className="flex items-center space-x-2 md:space-x-4">
+              {/* Saludo - Solo desktop */}
+              <div className={`hidden lg:flex items-center space-x-2 transition-colors duration-300 ${
+                darkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
+                <span className="text-sm">Hola, {user.nombre}</span>
+              </div>
+              
+              {/* Banner entrega - Solo desktop XL */}
+              <div className={`hidden xl:flex items-center rounded-lg px-3 py-2 border transition-colors duration-300 ${
+                darkMode 
+                  ? 'bg-green-900 border-green-700 text-green-300' 
+                  : 'bg-green-50 border-green-200 text-green-800'
+              }`}>
+                <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+                </svg>
+                <span className="text-sm font-medium">💳 Pago seguro + entrega 20 min</span>
+              </div>
+              
+              {/* Toggle modo oscuro */}
+              <button
+                onClick={toggleDarkMode}
+                className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
+                  darkMode 
+                    ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
+                    : 'bg-gray-700 hover:bg-gray-800 text-yellow-400'
+                }`}
+                title={darkMode ? 'Modo claro' : 'Modo oscuro'}
+              >
+                {darkMode ? (
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"/>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                  </svg>
+                )}
+              </button>
+              
+              {/* Panel Admin - Solo desktop */}
+              {user.rol === 'admin' && (
+                <Link
+                  to="/admin"
+                  className="hidden md:flex bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg text-sm"
+                >
+                  🔧 Admin
+                </Link>
+              )}
+              
+              {/* Carrito */}
+              <button
+                onClick={() => setShowCart(true)}
+                className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 md:p-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all flex-shrink-0"
+              >
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
+                </svg>
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 md:h-6 md:w-6 flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </button>
+              
+              {/* Logout */}
+              <button
+                onClick={onLogout}
+                className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
+                  darkMode 
+                    ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
+                title="Cerrar sesión"
+              >
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 01-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="hidden xs:block">
-          <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Supercasa
-          </h1>
-          <p className={`text-xs md:text-sm transition-colors duration-300 ${
-            darkMode ? 'text-gray-300' : 'text-gray-600'
-          }`}>
-            Torre {user.torre}, Piso {user.piso}, Apt {user.apartamento}
-          </p>
-        </div>
-      </div>
-      
-      {/* ✅ LADO DERECHO - Reorganizado para móvil */}
-      <div className="flex items-center space-x-2 md:space-x-4">
-        {/* 👤 Saludo usuario - Solo desktop */}
-        <div className={`hidden lg:flex items-center space-x-2 transition-colors duration-300 ${
-          darkMode ? 'text-gray-300' : 'text-gray-600'
-        }`}>
-          <span className="text-sm">Hola, {user.nombre}</span>
-        </div>
-        
-        {/* ⚡ Banner entrega - Solo desktop grande */}
-        <div className={`hidden xl:flex items-center rounded-lg px-3 py-2 border transition-colors duration-300 ${
-          darkMode 
-            ? 'bg-green-900 border-green-700 text-green-300' 
-            : 'bg-green-50 border-green-200 text-green-800'
-        }`}>
-          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
-          </svg>
-          <span className="text-sm font-medium">💳 Pago seguro + entrega 20 min</span>
-        </div>
-        
-        {/* 🌙 Toggle modo oscuro - Siempre visible */}
-        <button
-          onClick={toggleDarkMode}
-          className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
-            darkMode 
-              ? 'bg-yellow-600 hover:bg-yellow-700 text-white' 
-              : 'bg-gray-700 hover:bg-gray-800 text-yellow-400'
-          }`}
-          title={darkMode ? 'Modo claro' : 'Modo oscuro'}
-        >
-          {darkMode ? (
-            <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd"/>
-            </svg>
-          ) : (
-            <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
-            </svg>
-          )}
-        </button>
-        
-        {/* 🔧 Panel Admin - Solo si es admin */}
-        {user.rol === 'admin' && (
-          <Link
-            to="/admin"
-            className="hidden md:flex bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-2 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg text-sm"
-          >
-            🔧 Admin
-          </Link>
-        )}
-        
-        {/* 🛒 Carrito - Siempre visible */}
-        <button
-          onClick={() => setShowCart(true)}
-          className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 md:p-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all flex-shrink-0"
-        >
-          <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
-          </svg>
-          {totalItems > 0 && (
-            <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 md:h-6 md:w-6 flex items-center justify-center">
-              {totalItems}
-            </span>
-          )}
-        </button>
-        
-        {/* 🚪 Logout - Siempre visible */}
-        <button
-          onClick={onLogout}
-          className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
-            darkMode 
-              ? 'text-gray-300 hover:text-white hover:bg-gray-700' 
-              : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
-          }`}
-          title="Cerrar sesión"
-        >
-          <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 01-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </div>
-</header>
+      </header>
 
-{/* ✅ BANNER MÓVIL - Con dark mode corregido */}
-<div className={`lg:hidden p-3 text-center transition-colors duration-300 ${
-  darkMode 
-    ? 'bg-gradient-to-r from-green-700 to-blue-700 text-white' 
-    : 'bg-gradient-to-r from-green-500 to-blue-500 text-white'
-}`}>
-  <div className="flex items-center justify-center">
-    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
-    </svg>
-    <span className="font-medium text-sm">💳 Pago seguro + entrega en máximo 20 minutos</span>
-  </div>
-</div>
-
-{/* ✅ MODAL MÓVIL PARA ADMIN (solo móvil) */}
-{user.rol === 'admin' && (
-  <div className="md:hidden fixed bottom-4 right-4 z-50">
-    <Link
-      to="/admin"
-      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-full shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all"
-      title="Panel Admin"
-    >
-      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
-      </svg>
-    </Link>
-  </div>
-)}
-{/* ✅ BANNER MÓVIL - Con dark mode corregido */}
-<div className={`lg:hidden p-3 text-center transition-colors duration-300 ${
-  darkMode 
-    ? 'bg-gradient-to-r from-green-700 to-blue-700 text-white' 
-    : 'bg-gradient-to-r from-green-500 to-blue-500 text-white'
-}`}>
-  <div className="flex items-center justify-center">
-    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
-    </svg>
-    <span className="font-medium text-sm">💳 Pago seguro + entrega en máximo 20 minutos</span>
-  </div>
-</div>
-
-{/* ✅ MODAL MÓVIL PARA ADMIN (solo móvil) */}
-{user.rol === 'admin' && (
-  <div className="md:hidden fixed bottom-4 right-4 z-50">
-    <Link
-      to="/admin"
-      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-full shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all"
-      title="Panel Admin"
-    >
-      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
-      </svg>
-    </Link>
-  </div>
-)}
-      {/* Banner de entrega rápida móvil */}
+      {/* ✅ BANNER MÓVIL ÚNICO */}
       <div className={`lg:hidden p-3 text-center transition-colors duration-300 ${
         darkMode 
           ? 'bg-gradient-to-r from-green-700 to-blue-700 text-white' 
@@ -1088,9 +1032,24 @@ function Store({ user, token, onLogout }) {
           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
           </svg>
-          <span className="font-medium">💳 Pago seguro + entrega en máximo 20 minutos</span>
+          <span className="font-medium text-sm">💳 Pago seguro + entrega en máximo 20 minutos</span>
         </div>
       </div>
+
+      {/* ✅ BOTÓN ADMIN MÓVIL ÚNICO */}
+      {user.rol === 'admin' && (
+        <div className="md:hidden fixed bottom-4 right-4 z-50">
+          <Link
+            to="/admin"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-full shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all"
+            title="Panel Admin"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
+            </svg>
+          </Link>
+        </div>
+      )}
 
       {/* Filtros y búsqueda */}
       <div className="max-w-7xl mx-auto px-4 py-6">
