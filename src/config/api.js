@@ -1,6 +1,7 @@
 import { handleAuthError } from '../utils/authHandler';
 
 const API_URL = 'https://supercasa-backend-vvu1.onrender.com';
+//const API_URL = 'http://localhost:3000';
 export default API_URL;
 
 // También puedes exportar endpoints específicos si quieres
