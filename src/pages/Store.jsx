@@ -779,11 +779,6 @@ function Store({ user, token, onLogout }) {
 
       console.log('🏠 Datos de entrega final:', finalDeliveryData);
       
-      // 🔍 DEBUG: Verificar cada campo individualmente
-      console.log('🔍 Torre final:', finalDeliveryData.torre_entrega, 'Tipo:', typeof finalDeliveryData.torre_entrega);
-      console.log('🔍 Piso final:', finalDeliveryData.piso_entrega, 'Tipo:', typeof finalDeliveryData.piso_entrega);
-      console.log('🔍 Apartamento final:', finalDeliveryData.apartamento_entrega, 'Tipo:', typeof finalDeliveryData.apartamento_entrega);
-
       // ✅ VALIDACIÓN ESTRICTA ANTES DE ENVIAR
       if (!finalDeliveryData.torre_entrega || !['1', '2', '3', '4', '5'].includes(String(finalDeliveryData.torre_entrega))) {
         console.error('❌ Torre inválida:', finalDeliveryData.torre_entrega);
@@ -814,14 +809,12 @@ function Store({ user, token, onLogout }) {
       
       const orderData = {
         cliente_email: finalDeliveryData.email,
-        // ✅ CAMBIAR NOMBRE DEL CAMPO TELÉFONO
         telefono_contacto: finalDeliveryData.telefono_contacto,
-        // ✅ USAR LOS MISMOS NOMBRES QUE USA WOMPI
         torre_entrega: String(finalDeliveryData.torre_entrega),
-        piso_entrega: String(finalDeliveryData.piso_entrega), // Convertir a string como WOMPI
+        piso_entrega: String(finalDeliveryData.piso_entrega),
         apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
         instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
-        notas_entrega: finalDeliveryData.instrucciones_entrega || '', // Por si usa este campo también
+        notas_entrega: finalDeliveryData.instrucciones_entrega || '',
         productos: carrito.map(item => ({
           id: item.id,
           nombre: item.nombre,
@@ -835,14 +828,6 @@ function Store({ user, token, onLogout }) {
         referencia_pago: reference
       };
 
-      // 🔍 LOGGING DETALLADO DE LO QUE SE ENVIARÁ
-      console.log('📦 OrderData FINAL a enviar (formato WOMPI):');
-      console.log('  telefono_contacto:', orderData.telefono_contacto, '(tipo:', typeof orderData.telefono_contacto, ')');
-      console.log('  torre_entrega:', orderData.torre_entrega, '(tipo:', typeof orderData.torre_entrega, ')');
-      console.log('  piso_entrega:', orderData.piso_entrega, '(tipo:', typeof orderData.piso_entrega, ')');
-      console.log('  apartamento_entrega:', orderData.apartamento_entrega, '(tipo:', typeof orderData.apartamento_entrega, ')');
-      console.log('  Completo:', orderData);
-
       const response = await fetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: {
@@ -853,8 +838,6 @@ function Store({ user, token, onLogout }) {
       });
 
       const result = await response.json();
-      console.log('📥 Respuesta del backend:', result);
-      console.log('📊 Status code:', response.status);
 
       if (response.ok && result.success) {
         console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
@@ -871,12 +854,7 @@ function Store({ user, token, onLogout }) {
         setShowCart(false);
         
       } else {
-        console.error('❌ Error del backend:', {
-          status: response.status,
-          result: result,
-          message: result.message,
-          error: result.error
-        });
+        console.error('❌ Error del backend:', result);
         throw new Error(result.message || result.error || `Error ${response.status}: ${response.statusText}`);
       }
 
@@ -911,14 +889,14 @@ function Store({ user, token, onLogout }) {
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
         : 'bg-gradient-to-br from-blue-50 to-indigo-100'
     }`}>
-      {/* ✅ HEADER ÚNICO Y CORREGIDO */}
+      {/* ✅ HEADER ÚNICO CORREGIDO PARA MÓVIL */}
       <header className={`shadow-lg sticky top-0 z-40 transition-colors duration-300 ${
         darkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
-            {/* Logo y info */}
-            <div className="flex items-center space-x-3 flex-shrink-0">
+            {/* ✅ LADO IZQUIERDO - Logo y info usuario */}
+            <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 md:p-3 rounded-xl">
                 <svg className="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.80a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
@@ -936,17 +914,17 @@ function Store({ user, token, onLogout }) {
               </div>
             </div>
             
-            {/* Controles derecha */}
-            <div className="flex items-center space-x-2 md:space-x-4">
-              {/* Saludo - Solo desktop */}
-              <div className={`hidden lg:flex items-center space-x-2 transition-colors duration-300 ${
+            {/* ✅ LADO DERECHO - Reorganizado para móvil */}
+            <div className="flex items-center space-x-1 md:space-x-3">
+              {/* 👤 Saludo usuario - Solo desktop */}
+              <div className={`hidden lg:flex items-center space-x-2 mr-2 transition-colors duration-300 ${
                 darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 <span className="text-sm">Hola, {user.nombre}</span>
               </div>
               
-              {/* Banner entrega - Solo desktop XL */}
-              <div className={`hidden xl:flex items-center rounded-lg px-3 py-2 border transition-colors duration-300 ${
+              {/* ⚡ Banner entrega - Solo desktop grande */}
+              <div className={`hidden xl:flex items-center rounded-lg px-3 py-2 border mr-2 transition-colors duration-300 ${
                 darkMode 
                   ? 'bg-green-900 border-green-700 text-green-300' 
                   : 'bg-green-50 border-green-200 text-green-800'
@@ -957,7 +935,7 @@ function Store({ user, token, onLogout }) {
                 <span className="text-sm font-medium">💳 Pago seguro + entrega 20 min</span>
               </div>
               
-              {/* Toggle modo oscuro */}
+              {/* 🌙 Toggle modo oscuro */}
               <button
                 onClick={toggleDarkMode}
                 className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
@@ -978,7 +956,7 @@ function Store({ user, token, onLogout }) {
                 )}
               </button>
               
-              {/* Panel Admin - Solo desktop */}
+              {/* 🔧 Panel Admin - Solo desktop */}
               {user.rol === 'admin' && (
                 <Link
                   to="/admin"
@@ -988,7 +966,7 @@ function Store({ user, token, onLogout }) {
                 </Link>
               )}
               
-              {/* Carrito */}
+              {/* 🛒 Carrito */}
               <button
                 onClick={() => setShowCart(true)}
                 className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 md:p-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all flex-shrink-0"
@@ -1003,7 +981,7 @@ function Store({ user, token, onLogout }) {
                 )}
               </button>
               
-              {/* Logout */}
+              {/* 🚪 Logout */}
               <button
                 onClick={onLogout}
                 className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
@@ -1035,21 +1013,6 @@ function Store({ user, token, onLogout }) {
           <span className="font-medium text-sm">💳 Pago seguro + entrega en máximo 20 minutos</span>
         </div>
       </div>
-
-      {/* ✅ BOTÓN ADMIN MÓVIL ÚNICO */}
-      {user.rol === 'admin' && (
-        <div className="md:hidden fixed bottom-4 right-4 z-50">
-          <Link
-            to="/admin"
-            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-3 rounded-full shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all"
-            title="Panel Admin"
-          >
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
-            </svg>
-          </Link>
-        </div>
-      )}
 
       {/* Filtros y búsqueda */}
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -1142,6 +1105,21 @@ function Store({ user, token, onLogout }) {
           </div>
         )}
       </div>
+
+      {/* ✅ BOTÓN ADMIN FLOTANTE ÚNICO - Solo móvil */}
+      {user.rol === 'admin' && (
+        <div className="md:hidden fixed bottom-6 right-6 z-50">
+          <Link
+            to="/admin"
+            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-full shadow-xl hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-110"
+            title="Panel Admin"
+          >
+            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/>
+            </svg>
+          </Link>
+        </div>
+      )}
 
       {/* Modal del carrito */}
       {showCart && (
