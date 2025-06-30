@@ -62,54 +62,58 @@ const WompiCheckout = ({
     }
   };
 
-  // 🔄 POLLING AUTOMÁTICO - VERIFICACIÓN DE TRANSACCIÓN
-  const checkTransactionStatus = async (reference) => {
-    try {
-      console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
-      
-      const response = await fetch(`https://api.wompi.co/v1/transactions/${reference}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${WOMPI_PRIVATE_KEY}`
-        }
-      });
+// 🔄 POLLING MEJORADO - USA NUESTRO BACKEND
+const checkTransactionStatus = async (reference) => {
+  try {
+    console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
+    
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/verificar-pago/${reference}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📊 Respuesta WOMPI:', data);
+    if (response.ok) {
+      const data = await response.json();
+      console.log('📊 Respuesta verificación:', data);
+      
+      if (data.status === 'APPROVED') {
+        console.log('✅ ¡PAGO APROBADO DETECTADO!');
+        setPollingActive(false);
         
-        if (data.data && data.data.status) {
-          const status = data.data.status;
-          
-          if (status === 'APPROVED') {
-            console.log('✅ ¡PAGO APROBADO DETECTADO AUTOMÁTICAMENTE!');
-            setPollingActive(false);
-            await createOrder(data.data);
-            return true;
-          } else if (status === 'DECLINED' || status === 'ERROR') {
-            console.log('❌ Pago rechazado:', status);
-            setPollingActive(false);
-            toast.error('Pago rechazado');
-            if (onPaymentError) onPaymentError(data.data);
-            return true;
-          } else {
-            console.log(`⏳ Estado actual: ${status} - Continuando polling...`);
-            return false;
-          }
-        }
-      } else if (response.status === 404) {
-        console.log('⏳ Transacción aún no encontrada, continuando...');
-        return false;
+        // Crear pedido automáticamente
+        await createOrder({
+          reference: data.reference || reference,
+          status: 'APPROVED',
+          payment_method: { type: 'WOMPI' },
+          id: reference,
+          amount_in_cents: total * 100
+        });
+        return true;
+        
+      } else if (data.status === 'DECLINED') {
+        console.log('❌ Pago rechazado');
+        setPollingActive(false);
+        toast.error('Pago rechazado');
+        if (onPaymentError) onPaymentError({ status: 'DECLINED' });
+        return true;
+        
       } else {
-        console.log('⚠️ Error en verificación:', response.status);
+        console.log(`⏳ Estado: ${data.status} - Continuando...`);
         return false;
       }
-    } catch (error) {
-      console.log('⚠️ Error en polling:', error);
+    } else {
+      console.log('⚠️ Error en verificación:', response.status);
       return false;
     }
-  };
+  } catch (error) {
+    console.log('⚠️ Error en polling:', error);
+    return false;
+  }
+};
 
   // 🎯 INICIAR POLLING MÁS AGRESIVO
   const startPolling = (reference) => {
@@ -152,93 +156,104 @@ const WompiCheckout = ({
     };
   };
 
-  // 📦 CREAR PEDIDO
-  const createOrder = async (paymentData) => {
-    try {
-      console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
-      console.log('✅ Creando pedido automáticamente...');
+const createOrder = async (paymentData) => {
+  try {
+    console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
+    console.log('✅ Creando pedido automáticamente...');
 
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Error: Token de autenticación no encontrado');
-        return;
-      }
-
-      const pedidoData = {
-        productos: carrito,
-        total: total,
-        ...deliveryData,
-        // 💳 DATOS DE TRACKING WOMPI
-        payment_reference: paymentData.reference,
-        payment_status: paymentData.status,
-        payment_method: paymentData.payment_method?.type || 'WOMPI',
-        payment_transaction_id: paymentData.id,
-        payment_amount_cents: paymentData.amount_in_cents
-      };
-
-      console.log('📦 Creando pedido:', pedidoData);
-
-      const response = await fetch(`${API_URL}/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(pedidoData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('🎉 ¡PEDIDO CREADO EXITOSAMENTE!', result);
-        
-        toast.success('¡Pago aprobado automáticamente! Pedido creado con éxito', {
-          duration: 5000
-        });
-        
-        if (onPaymentSuccess) {
-          onPaymentSuccess({
-            ...result,
-            paymentData: paymentData
-          });
-        }
-      } else {
-        console.error('❌ Error al crear pedido:', response.status);
-const errorData = await response.json();
-console.error('Error details:', errorData);
-
-// ✅ NUEVO: Manejo específico de errores de stock
-if (errorData.error && errorData.error.includes('Stock insuficiente')) {
-  toast.error(`❌ ${errorData.error}`, {
-    duration: 6000,
-    style: {
-      background: '#fef2f2',
-      color: '#dc2626',
-      border: '1px solid #fecaca'
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Error: Token de autenticación no encontrado');
+      setLoading(false);
+      setPollingActive(false);
+      return;
     }
-  });
-} else if (errorData.detalles && Array.isArray(errorData.detalles)) {
-  // Si vienen detalles específicos de stock
-  toast.error(`📦 Problemas de inventario:\n${errorData.detalles.join('\n')}`, {
-    duration: 8000
-  });
-} else {
-  // Error genérico (como antes)
-  toast.error('Error al crear el pedido. Contacta soporte.');
-}
-      }
-    } catch (error) {
-  console.error('❌ Error en createOrder:', error);
-  
-  // ✅ NUEVO: Manejo específico de errores de stock
-  if (error.message && error.message.includes('Stock')) {
-    toast.error(`📦 ${error.message}`, {
-      duration: 6000
+
+    const pedidoData = {
+      productos: carrito,
+      total: total,
+      ...deliveryData,
+      // 💳 DATOS DE TRACKING WOMPI
+      payment_reference: paymentData.reference,
+      payment_status: paymentData.status,
+      payment_method: paymentData.payment_method?.type || 'WOMPI',
+      payment_transaction_id: paymentData.id,
+      payment_amount_cents: paymentData.amount_in_cents
+    };
+
+    console.log('📦 Creando pedido:', pedidoData);
+
+    const response = await fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(pedidoData)
     });
-  } else {
-    toast.error('Error al procesar el pedido');
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('🎉 ¡PEDIDO CREADO EXITOSAMENTE!', result);
+      
+      toast.success('¡Pago aprobado automáticamente! Pedido creado con éxito', {
+        duration: 5000
+      });
+      
+      // ✅ RESETEAR ESTADOS ANTES DE CALLBACK
+      setLoading(false);
+      setPollingActive(false);
+      
+      if (onPaymentSuccess) {
+        onPaymentSuccess({
+          ...result,
+          paymentData: paymentData
+        });
+      }
+    } else {
+      console.error('❌ Error al crear pedido:', response.status);
+      const errorData = await response.json();
+      console.error('Error details:', errorData);
+
+      // ✅ MANEJO DE ERRORES DE STOCK
+      if (errorData.error && errorData.error.includes('Stock insuficiente')) {
+        toast.error(`❌ ${errorData.error}`, {
+          duration: 6000,
+          style: {
+            background: '#fef2f2',
+            color: '#dc2626',
+            border: '1px solid #fecaca'
+          }
+        });
+      } else if (errorData.detalles && Array.isArray(errorData.detalles)) {
+        toast.error(`📦 Problemas de inventario:\n${errorData.detalles.join('\n')}`, {
+          duration: 8000
+        });
+      } else {
+        toast.error('Error al crear el pedido. Contacta soporte.');
+      }
+      
+      // ✅ RESETEAR ESTADOS EN ERROR
+      setLoading(false);
+      setPollingActive(false);
+    }
+  } catch (error) {
+    console.error('❌ Error en createOrder:', error);
+    
+    // ✅ MANEJO DE ERRORES ESPECÍFICOS
+    if (error.message && error.message.includes('Stock')) {
+      toast.error(`📦 ${error.message}`, {
+        duration: 6000
+      });
+    } else {
+      toast.error('Error al procesar el pedido');
+    }
+    
+    // ✅ RESETEAR ESTADOS EN CATCH
+    setLoading(false);
+    setPollingActive(false);
   }
-}
-  };
+};
 
   // 📱 CONFIRMACIÓN MANUAL (BACKUP)
   const showManualConfirmation = (reference) => {
