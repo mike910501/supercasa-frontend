@@ -108,13 +108,13 @@ export default function AdminOrdersManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 📦 Gestión de Pedidos
               </h1>
               <p className="text-gray-600 mt-1">
@@ -122,11 +122,11 @@ export default function AdminOrdersManagement() {
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <select
                 value={filtroEstado}
                 onChange={(e) => setFiltroEstado(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+                className="px-3 sm:px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="todos">Todos los estados</option>
                 <option value="pendiente">Pendientes</option>
@@ -137,7 +137,7 @@ export default function AdminOrdersManagement() {
               <select
                 value={filtroTorre}
                 onChange={(e) => setFiltroTorre(e.target.value)}
-                className="px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500"
+                className="px-3 sm:px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">Todas las torres</option>
                 <option value="1">Torre 1</option>
@@ -151,76 +151,135 @@ export default function AdminOrdersManagement() {
         </div>
 
         {/* Estadísticas rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
             <div className="flex items-center">
-              <div className="bg-yellow-100 text-yellow-600 p-3 rounded-xl">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-yellow-100 text-yellow-600 p-2 sm:p-3 rounded-xl">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
                 </svg>
               </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-800">
+              <div className="ml-3 sm:ml-4">
+                <p className="text-lg sm:text-2xl font-bold text-gray-800">
                   {pedidos.filter(p => p.estado === 'Pendiente').length}
                 </p>
-                <p className="text-gray-600">Pendientes</p>
+                <p className="text-xs sm:text-sm text-gray-600">Pendientes</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
             <div className="flex items-center">
-              <div className="bg-green-100 text-green-600 p-3 rounded-xl">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-green-100 text-green-600 p-2 sm:p-3 rounded-xl">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                 </svg>
               </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-800">
+              <div className="ml-3 sm:ml-4">
+                <p className="text-lg sm:text-2xl font-bold text-gray-800">
                   {pedidos.filter(p => p.estado === 'entregado').length}
                 </p>
-                <p className="text-gray-600">Entregados</p>
+                <p className="text-xs sm:text-sm text-gray-600">Entregados</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
             <div className="flex items-center">
-              <div className="bg-blue-100 text-blue-600 p-3 rounded-xl">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-blue-100 text-blue-600 p-2 sm:p-3 rounded-xl">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
                   <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd"/>
                 </svg>
               </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-800">
+              <div className="ml-3 sm:ml-4">
+                <p className="text-sm sm:text-2xl font-bold text-gray-800">
                   ${pedidos.reduce((acc, p) => acc + (p.total || 0), 0).toLocaleString()}
                 </p>
-                <p className="text-gray-600">Total vendido</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total vendido</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
             <div className="flex items-center">
-              <div className="bg-purple-100 text-purple-600 p-3 rounded-xl">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <div className="bg-purple-100 text-purple-600 p-2 sm:p-3 rounded-xl">
+                <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3z"/>
                 </svg>
               </div>
-              <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-800">
+              <div className="ml-3 sm:ml-4">
+                <p className="text-lg sm:text-2xl font-bold text-gray-800">
                   {new Set(pedidos.map(p => p.torre_entrega).filter(Boolean)).size}
                 </p>
-                <p className="text-gray-600">Torres activas</p>
+                <p className="text-xs sm:text-sm text-gray-600">Torres activas</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Lista de pedidos */}
+        {/* Lista de pedidos - Responsive */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Vista móvil - Cards */}
+          <div className="block lg:hidden">
+            <div className="p-4 space-y-4">
+              {pedidosFiltrados.map((pedido) => (
+                <div key={pedido.id} className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-bold text-gray-900">{pedido.numero_pedido}</p>
+                      <p className="text-sm text-gray-600">{pedido.productos?.length || 0} productos</p>
+                    </div>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getEstadoColor(pedido.estado)}`}>
+                      {pedido.estado}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-sm"><span className="font-medium">Cliente:</span> {pedido.usuario?.nombre}</p>
+                    <p className="text-sm"><span className="font-medium">Entrega:</span> Torre {pedido.torre_entrega} - Piso {pedido.piso_entrega} - Apt {pedido.apartamento_entrega}</p>
+                    <p className="text-sm"><span className="font-medium">Total:</span> <span className="font-bold text-blue-600">${pedido.total?.toLocaleString() || '0'}</span></p>
+                    <p className="text-sm"><span className="font-medium">Fecha:</span> {formatearFecha(pedido.fecha_pedido)}</p>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pt-2">
+                    <button
+                      onClick={() => {
+                        setPedidoSeleccionado(pedido);
+                        setShowModal(true);
+                      }}
+                      className="w-full text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors text-sm"
+                    >
+                      Ver Detalles
+                    </button>
+                    {pedido.estado === 'Pendiente' && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
+                          className="flex-1 text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-2 rounded-lg transition-colors text-sm"
+                        >
+                          ✓ Entregado
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`¿Cancelar este pedido? El stock se restaurará automáticamente.`)) {
+                              cambiarEstadoPedido(pedido.id, 'cancelado');
+                            }
+                          }}
+                          className="flex-1 text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg transition-colors text-sm"
+                        >
+                          ❌ Cancelar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Vista desktop - Tabla */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -295,26 +354,26 @@ export default function AdminOrdersManagement() {
                       >
                         Ver Detalles
                       </button>
-                      {pedido.estado === 'pendiente' && (
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
-                                      className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
-                                    >
-                                      ✓ Entregado
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        if (window.confirm(`¿Cancelar este pedido? El stock se restaurará automáticamente.`)) {
-                                          cambiarEstadoPedido(pedido.id, 'cancelado');
-                                        }
-                                      }}
-                                      className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors"
-                                    >
-                                      ❌ Cancelar
-                                    </button>
-                                  </div>
-                                )}
+                      {pedido.estado === 'Pendiente' && (
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
+                            className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1 rounded-lg transition-colors"
+                          >
+                            ✓ Entregado
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`¿Cancelar este pedido? El stock se restaurará automáticamente.`)) {
+                                cambiarEstadoPedido(pedido.id, 'cancelado');
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition-colors"
+                          >
+                            ❌ Cancelar
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -324,26 +383,26 @@ export default function AdminOrdersManagement() {
         </div>
 
         {pedidosFiltrados.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <div className="text-gray-400 text-6xl mb-4">📦</div>
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay pedidos</h3>
-            <p className="text-gray-500">No se encontraron pedidos con los filtros seleccionados</p>
+          <div className="bg-white rounded-2xl shadow-lg p-8 sm:p-12 text-center">
+            <div className="text-gray-400 text-4xl sm:text-6xl mb-4">📦</div>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">No hay pedidos</h3>
+            <p className="text-gray-500 text-sm sm:text-base">No se encontraron pedidos con los filtros seleccionados</p>
           </div>
         )}
       </div>
 
-      {/* Modal de detalles del pedido */}
+      {/* Modal de detalles del pedido - Responsive mejorado */}
       {showModal && pedidoSeleccionado && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className="text-lg sm:text-2xl font-bold text-gray-800">
                   Detalles del Pedido {pedidoSeleccionado.numero_pedido}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 p-1"
                 >
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
@@ -352,120 +411,133 @@ export default function AdminOrdersManagement() {
               </div>
             </div>
 
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                 {/* Información del cliente */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"/>
                       </svg>
                       Información del Cliente
                     </h3>
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                      <p><span className="font-medium">Nombre:</span> {pedidoSeleccionado.usuario?.nombre}</p>
-                      <p><span className="font-medium">Email:</span> {pedidoSeleccionado.usuario?.email}</p>
-                      <p><span className="font-medium">Teléfono:</span> {pedidoSeleccionado.telefono_contacto}</p>
+                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4 space-y-2">
+                      <p className="text-sm sm:text-base"><span className="font-medium">Nombre:</span> {pedidoSeleccionado.usuario?.nombre}</p>
+                      <p className="text-sm sm:text-base"><span className="font-medium">Email:</span> {pedidoSeleccionado.usuario?.email}</p>
+                      <p className="text-sm sm:text-base"><span className="font-medium">Teléfono:</span> {pedidoSeleccionado.telefono_contacto}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"/>
                       </svg>
                       Dirección de Entrega
                     </h3>
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                      <p><span className="font-medium">Torre:</span> {pedidoSeleccionado.torre_entrega}</p>
-                      <p><span className="font-medium">Piso:</span> {pedidoSeleccionado.piso_entrega}</p>
-                      <p><span className="font-medium">Apartamento:</span> {pedidoSeleccionado.apartamento_entrega}</p>
+                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4 space-y-2">
+                      <p className="text-sm sm:text-base"><span className="font-medium">Torre:</span> {pedidoSeleccionado.torre_entrega}</p>
+                      <p className="text-sm sm:text-base"><span className="font-medium">Piso:</span> {pedidoSeleccionado.piso_entrega}</p>
+                      <p className="text-sm sm:text-base"><span className="font-medium">Apartamento:</span> {pedidoSeleccionado.apartamento_entrega}</p>
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
                         <div className="flex items-center">
-                          <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
                           </svg>
-                          <span className="text-blue-800 font-medium">⚡ Entrega rápida: máximo 20 minutos</span>
+                          <span className="text-blue-800 font-medium text-sm sm:text-base">⚡ Entrega rápida: máximo 20 minutos</span>
                         </div>
                       </div>
                       {pedidoSeleccionado.instrucciones_entrega && (
-                        <p><span className="font-medium">Instrucciones:</span> {pedidoSeleccionado.instrucciones_entrega}</p>
+                        <p className="text-sm sm:text-base"><span className="font-medium">Instrucciones:</span> {pedidoSeleccionado.instrucciones_entrega}</p>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                      <svg className="w-5 h-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
                       </svg>
                       Estado del Pedido
                     </h3>
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4 space-y-2">
                       <div className="flex items-center space-x-2">
                         <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getEstadoColor(pedidoSeleccionado.estado)}`}>
                           {pedidoSeleccionado.estado}
                         </span>
                         {pedidoSeleccionado.estado === 'Pendiente' && (
-  <div className="flex gap-3">
-    <button
-      onClick={() => cambiarEstadoPedido(pedidoSeleccionado.id, 'entregado')}
-      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-    >
-      ✓ Marcar como Entregado
-    </button>
-    <button
-      onClick={() => {
-        if (window.confirm(`¿Cancelar este pedido?\n\nEl stock se restaurará automáticamente.`)) {
-          cambiarEstadoPedido(pedidoSeleccionado.id, 'cancelado');
-          setShowModal(false); // Cerrar modal después de cancelar
-        }
-      }}
-      className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-    >
-      ❌ Cancelar Pedido
-    </button>
-  </div>
-)}
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+                            <button
+                              onClick={() => cambiarEstadoPedido(pedidoSeleccionado.id, 'entregado')}
+                              className="bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                            >
+                              ✓ Marcar como Entregado
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`¿Cancelar este pedido?\n\nEl stock se restaurará automáticamente.`)) {
+                                  cambiarEstadoPedido(pedidoSeleccionado.id, 'cancelado');
+                                  setShowModal(false);
+                                }
+                              }}
+                              className="bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+                            >
+                              ❌ Cancelar Pedido
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <p><span className="font-medium">Fecha del pedido:</span> {formatearFecha(pedidoSeleccionado.fecha_pedido)}</p>
+                      <p className="text-sm sm:text-base"><span className="font-medium">Fecha del pedido:</span> {formatearFecha(pedidoSeleccionado.fecha_pedido)}</p>
                       {pedidoSeleccionado.fecha_entrega && (
-                        <p><span className="font-medium">Fecha de entrega:</span> {formatearFecha(pedidoSeleccionado.fecha_entrega)}</p>
+                        <p className="text-sm sm:text-base"><span className="font-medium">Fecha de entrega:</span> {formatearFecha(pedidoSeleccionado.fecha_entrega)}</p>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Productos del pedido */}
+                {/* Productos del pedido - CON CÓDIGO AGREGADO */}
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <svg className="w-5 h-5 mr-2 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 2L3 7v11a2 2 0 002 2h10a2 2 0 002-2V7l-7-5zM8 15v-3a1 1 0 011-1h2a1 1 0 011 1v3h-4z" clipRule="evenodd"/>
                     </svg>
                     Productos ({pedidoSeleccionado.productos?.length || 0})
                   </h3>
                   <div className="space-y-3">
                     {pedidoSeleccionado.productos?.map((producto, index) => (
-                      <div key={index} className="bg-gray-50 rounded-xl p-4 flex justify-between items-center">
-                        <div>
-                          <p className="font-medium text-gray-800">{producto.nombre}</p>
-                          <p className="text-sm text-gray-600">Cantidad: {producto.cantidad}</p>
-                          <p className="text-sm text-gray-600">Precio unitario: ${producto.precio?.toLocaleString()}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-blue-600">
-                            ${((producto.precio || 0) * (producto.cantidad || 0)).toLocaleString()}
-                          </p>
+                      <div key={index} className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                        {/* Header con código y nombre */}
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3">
+                          <div className="flex-1">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                              {/* 🎯 CÓDIGO DEL PRODUCTO AGREGADO */}
+                              {producto.codigo && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-mono bg-blue-100 text-blue-800 border">
+                                  📋 {producto.codigo}
+                                </span>
+                              )}
+                              <h4 className="font-medium text-gray-800 text-sm sm:text-base">{producto.nombre}</h4>
+                            </div>
+                            <div className="space-y-1 text-xs sm:text-sm text-gray-600">
+                              <p><span className="font-medium">Cantidad:</span> {producto.cantidad}</p>
+                              <p><span className="font-medium">Precio unitario:</span> ${producto.precio?.toLocaleString()}</p>
+                            </div>
+                          </div>
+                          <div className="text-right mt-2 sm:mt-0">
+                            <p className="font-bold text-blue-600 text-sm sm:text-base">
+                              ${((producto.precio || 0) * (producto.cantidad || 0)).toLocaleString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                   
-                  <div className="mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
+                  <div className="mt-4 sm:mt-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
                     <div className="flex justify-between items-center">
-                      <span className="text-xl font-bold text-gray-800">Total del Pedido:</span>
-                      <span className="text-2xl font-bold text-blue-600">
+                      <span className="text-lg sm:text-xl font-bold text-gray-800">Total del Pedido:</span>
+                      <span className="text-xl sm:text-2xl font-bold text-blue-600">
                         ${pedidoSeleccionado.total?.toLocaleString() || '0'}
                       </span>
                     </div>
