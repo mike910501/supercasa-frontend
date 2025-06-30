@@ -62,7 +62,7 @@ const WompiCheckout = ({
     }
   };
 
-// 🔄 POLLING MEJORADO - USA NUESTRO BACKEND
+// 🔄 POLLING MEJORADO - REEMPLAZAR FUNCIÓN COMPLETA
 const checkTransactionStatus = async (reference) => {
   try {
     console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
@@ -84,14 +84,33 @@ const checkTransactionStatus = async (reference) => {
         console.log('✅ ¡PAGO APROBADO DETECTADO!');
         setPollingActive(false);
         
-        // Crear pedido automáticamente
-        await createOrder({
-          reference: data.reference || reference,
-          status: 'APPROVED',
-          payment_method: { type: 'WOMPI' },
-          id: reference,
-          amount_in_cents: total * 100
-        });
+        // Si ya tiene pedidoId, no crear otro
+        if (data.pedidoId) {
+          console.log(`✅ Pedido ya existe: ${data.pedidoId}`);
+          toast.success('¡Pago confirmado! Tu pedido está siendo procesado.', {
+            duration: 5000
+          });
+          
+          if (onPaymentSuccess) {
+            onPaymentSuccess({
+              pedidoId: data.pedidoId,
+              paymentData: {
+                reference: data.reference,
+                status: 'APPROVED',
+                id: reference
+              }
+            });
+          }
+        } else {
+          // Crear pedido si no existe
+          await createOrder({
+            reference: data.reference || reference,
+            status: 'APPROVED',
+            payment_method: { type: 'WOMPI' },
+            id: reference,
+            amount_in_cents: total * 100
+          });
+        }
         return true;
         
       } else if (data.status === 'DECLINED') {
@@ -102,16 +121,17 @@ const checkTransactionStatus = async (reference) => {
         return true;
         
       } else {
-        console.log(`⏳ Estado: ${data.status} - Continuando...`);
-        return false;
+        // PENDING o cualquier otro estado - CONTINUAR POLLING
+        console.log(`⏳ Estado: ${data.status} - Continuando polling...`);
+        return false; // Seguir consultando
       }
     } else {
       console.log('⚠️ Error en verificación:', response.status);
-      return false;
+      return false; // Seguir consultando
     }
   } catch (error) {
     console.log('⚠️ Error en polling:', error);
-    return false;
+    return false; // Seguir consultando
   }
 };
 
