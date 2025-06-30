@@ -62,7 +62,7 @@ const WompiCheckout = ({
     }
   };
 
-// 🔄 POLLING MEJORADO - REEMPLAZAR FUNCIÓN COMPLETA
+// 🔄 POLLING CORREGIDO - REEMPLAZAR FUNCIÓN COMPLETA
 const checkTransactionStatus = async (reference) => {
   try {
     console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
@@ -82,18 +82,27 @@ const checkTransactionStatus = async (reference) => {
       
       if (data.status === 'APPROVED') {
         console.log('✅ ¡PAGO APROBADO DETECTADO!');
-        setPollingActive(false);
         
-        // Si ya tiene pedidoId, no crear otro
+        // ✅ RESETEAR ESTADOS INMEDIATAMENTE
+        setPollingActive(false);
+        setLoading(false);
+        
+        // ✅ LIMPIAR CARRITO
+        localStorage.removeItem('carrito');
+        
         if (data.pedidoId) {
-          console.log(`✅ Pedido ya existe: ${data.pedidoId}`);
-          toast.success('¡Pago confirmado! Tu pedido está siendo procesado.', {
+          // ✅ WEBHOOK YA CREÓ EL PEDIDO - NO CREAR OTRO
+          console.log(`✅ Pedido ya existe: ${data.pedidoId} - NO crear duplicado`);
+          
+          toast.success('¡Pago confirmado! Tu pedido será entregado en máximo 20 minutos.', {
             duration: 5000
           });
           
           if (onPaymentSuccess) {
             onPaymentSuccess({
               pedidoId: data.pedidoId,
+              success: true,
+              message: 'Pedido creado exitosamente por webhook',
               paymentData: {
                 reference: data.reference,
                 status: 'APPROVED',
@@ -101,8 +110,13 @@ const checkTransactionStatus = async (reference) => {
               }
             });
           }
+          localStorage.removeItem('carrito');
+            setLoading(false);
+            setPollingActive(false);
         } else {
-          // Crear pedido si no existe
+          // ✅ NO EXISTE PEDIDO - CREAR UNO
+          console.log('⚠️ Pago aprobado pero sin pedido - Creando...');
+          
           await createOrder({
             reference: data.reference || reference,
             status: 'APPROVED',
@@ -116,22 +130,23 @@ const checkTransactionStatus = async (reference) => {
       } else if (data.status === 'DECLINED') {
         console.log('❌ Pago rechazado');
         setPollingActive(false);
+        setLoading(false);
         toast.error('Pago rechazado');
         if (onPaymentError) onPaymentError({ status: 'DECLINED' });
         return true;
         
       } else {
-        // PENDING o cualquier otro estado - CONTINUAR POLLING
-        console.log(`⏳ Estado: ${data.status} - Continuando polling...`);
-        return false; // Seguir consultando
+        // PENDING - seguir consultando
+        console.log(`⏳ Estado: ${data.status} - Continuando...`);
+        return false;
       }
     } else {
       console.log('⚠️ Error en verificación:', response.status);
-      return false; // Seguir consultando
+      return false;
     }
   } catch (error) {
     console.log('⚠️ Error en polling:', error);
-    return false; // Seguir consultando
+    return false;
   }
 };
 
