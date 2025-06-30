@@ -170,16 +170,16 @@ const createOrder = async (paymentData) => {
     }
 
     const pedidoData = {
-      productos: carrito,
-      total: total,
-      ...deliveryData,
-      // 💳 DATOS DE TRACKING WOMPI
-      payment_reference: paymentData.reference,
-      payment_status: paymentData.status,
-      payment_method: paymentData.payment_method?.type || 'WOMPI',
-      payment_transaction_id: paymentData.id,
-      payment_amount_cents: paymentData.amount_in_cents
-    };
+        productos: carrito,
+        total: total,
+        ...deliveryData,
+        // 💳 DATOS DE TRACKING WOMPI - CORREGIDO
+        payment_reference: paymentData.reference || paymentData.id,
+        payment_status: paymentData.status || 'APPROVED',
+        payment_method: paymentData.payment_method?.type || 'WOMPI',
+        payment_transaction_id: paymentData.id,
+        payment_amount_cents: paymentData.amount_in_cents || (total * 100)
+        };
 
     console.log('📦 Creando pedido:', pedidoData);
 
