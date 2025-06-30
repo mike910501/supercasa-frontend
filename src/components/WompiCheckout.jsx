@@ -115,47 +115,62 @@ const checkTransactionStatus = async (reference) => {
   }
 };
 
-  // 🎯 INICIAR POLLING MÁS AGRESIVO
-  const startPolling = (reference) => {
-    console.log('🔄 Iniciando polling AGRESIVO automático para:', reference);
-    setPollingActive(true);
-    setPollingAttempts(0);
-    setTransactionReference(reference);
+ // 🎯 POLLING SÚPER PERSISTENTE - REEMPLAZAR FUNCIÓN COMPLETA
+const startPolling = (reference) => {
+  console.log('🔄 Iniciando polling SÚPER PERSISTENTE para:', reference);
+  setPollingActive(true);
+  setPollingAttempts(0);
+  setTransactionReference(reference);
 
-    // Primer intento inmediato
-    setTimeout(() => checkTransactionStatus(reference), 1000);
+  // Primer intento inmediato
+  setTimeout(() => checkTransactionStatus(reference), 1000);
 
-    const pollInterval = setInterval(async () => {
-      if (!pollingActive) {
-        clearInterval(pollInterval);
-        return;
-      }
+  const pollInterval = setInterval(async () => {
+    if (!pollingActive) {
+      clearInterval(pollInterval);
+      return;
+    }
 
-      const completed = await checkTransactionStatus(reference);
-      setPollingAttempts(prev => prev + 1);
+    const completed = await checkTransactionStatus(reference);
+    setPollingAttempts(prev => prev + 1);
 
-      if (completed || pollingAttempts >= 60) { // 60 intentos = 5 minutos
-        clearInterval(pollInterval);
-        setPollingActive(false);
-        
-        if (pollingAttempts >= 60) {
-          console.log('⏰ Timeout de polling extendido - Activando confirmación manual');
-          toast('⏰ Verificación automática agotada. ¿Tu pago fue exitoso?', {
-            duration: 15000,
-            icon: '⚡'
-          });
-          showManualConfirmation(reference);
-        }
-      }
-    }, 3000); // Cada 3 segundos en lugar de 5
-
-    // Cleanup al desmontar componente
-    return () => {
+    // ✅ CAMBIO: Polling más largo - 120 intentos = 10 minutos
+    if (completed || pollingAttempts >= 120) {
       clearInterval(pollInterval);
       setPollingActive(false);
-    };
-  };
+      
+      if (pollingAttempts >= 120 && !completed) {
+        console.log('⏰ Polling agotado - Mostrando opción de verificación manual');
+        showPaymentSuccessCheck(reference);
+      }
+    }
+  }, 3000); // Cada 3 segundos
 
+  return () => {
+    clearInterval(pollInterval);
+    setPollingActive(false);
+  };
+};
+// 🔍 VERIFICACIÓN MANUAL INTELIGENTE Y SEGURA - REEMPLAZAR
+const showPaymentSuccessCheck = async (reference) => {
+  const userConfirm = window.confirm(
+    '🤔 ¿Tu pago fue procesado exitosamente?\n\n' +
+    '⚠️ IMPORTANTE: Solo confirma si recibiste notificación de pago exitoso.\n' +
+    'Verificaremos en WOMPI antes de crear tu pedido.'
+  );
+
+  if (userConfirm) {
+    // Usar la misma función segura
+    await showManualConfirmation(reference);
+  } else {
+    console.log('❌ Usuario indicó que el pago falló');
+    toast.error('Si el dinero fue debitado, contacta soporte. Tu pedido será procesado automáticamente si el pago fue exitoso.', {
+      duration: 8000
+    });
+    
+    if (onPaymentError) onPaymentError({ status: 'USER_CANCELLED' });
+  }
+};
 const createOrder = async (paymentData) => {
   try {
     console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
@@ -255,30 +270,78 @@ const createOrder = async (paymentData) => {
   }
 };
 
-  // 📱 CONFIRMACIÓN MANUAL (BACKUP)
-  const showManualConfirmation = (reference) => {
-    const confirmed = window.confirm(
-      '¿Tu pago fue procesado exitosamente?\n\n' +
-      'Si pagaste con Nequi/PSE y recibiste confirmación, haz clic en "Aceptar".\n' +
-      'Si hubo algún problema, haz clic en "Cancelar".'
-    );
+ // 📱 CONFIRMACIÓN MANUAL SEGURA - REEMPLAZAR FUNCIÓN
+const showManualConfirmation = async (reference) => {
+  const userConfirm = window.confirm(
+    '¿Tu pago fue procesado exitosamente?\n\n' +
+    'Verificaremos el estado real en WOMPI antes de crear tu pedido.'
+  );
 
-    if (confirmed) {
-      console.log('✅ Confirmación manual: Pago exitoso');
-      // Simular datos de pago para crear el pedido
-      createOrder({
-        reference: reference,
-        status: 'APPROVED',
-        payment_method: { type: 'MANUAL_CONFIRMATION' },
-        id: reference,
-        amount_in_cents: total * 100
+  if (userConfirm) {
+    console.log('✅ Usuario dice que pagó - VERIFICANDO EN WOMPI...');
+    setLoading(true);
+    
+    try {
+      // ✅ VERIFICAR REALMENTE EN WOMPI ANTES DE CREAR PEDIDO
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/verificar-pago/${reference}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
-    } else {
-      console.log('❌ Confirmación manual: Pago cancelado');
-      toast.error('Pago cancelado por el usuario');
-      if (onPaymentError) onPaymentError({ status: 'DECLINED' });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.status === 'APPROVED') {
+          console.log('✅ CONFIRMADO: Pago real en WOMPI');
+          toast.success('¡Pago confirmado en WOMPI! Creando tu pedido...', {
+            duration: 3000
+          });
+          
+          await createOrder({
+            reference: reference,
+            status: 'APPROVED',
+            payment_method: { type: 'MANUAL_VERIFIED' },
+            id: reference,
+            amount_in_cents: total * 100
+          });
+          
+        } else if (data.status === 'PENDING') {
+          console.log('⏳ Pago aún pendiente en WOMPI');
+          toast.loading('Tu pago aún está siendo procesado. Intenta en 2 minutos.', {
+            duration: 5000
+          });
+          
+        } else {
+          console.log('❌ Pago no encontrado en WOMPI');
+          toast.error('No encontramos tu pago en WOMPI. Si realizaste el pago, espera unos minutos e intenta de nuevo.', {
+            duration: 8000
+          });
+        }
+      } else {
+        throw new Error('Error verificando en WOMPI');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error verificando pago:', error);
+      toast.error('Error verificando el pago. Si pagaste, tu pedido se procesará automáticamente.', {
+        duration: 6000
+      });
+    } finally {
+      setLoading(false);
     }
-  };
+    
+  } else {
+    console.log('❌ Usuario canceló confirmación manual');
+    toast.error('Si el dinero fue debitado, contacta soporte. Tu pedido será procesado automáticamente si el pago fue exitoso.', {
+      duration: 8000
+    });
+    
+    if (onPaymentError) onPaymentError({ status: 'USER_CANCELLED' });
+  }
+};
 
   // 🔐 CALCULAR SIGNATURE
   const calculateSignature = async (reference, amountInCents) => {
@@ -557,28 +620,48 @@ const createOrder = async (paymentData) => {
 
       {/* ESTADO DE POLLING */}
       {pollingActive && (
-        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-            <span className="text-blue-700 font-medium">
-              Verificando pago automáticamente... (Intento {pollingAttempts + 1}/36)
-            </span>
-          </div>
-          <p className="text-blue-600 text-sm mt-2">
-            Completa tu pago en Nequi/PSE. El sistema detectará automáticamente cuando se apruebe.
-          </p>
-          
-          {/* VERIFICACIÓN MANUAL DE EMERGENCIA */}
-          {pollingAttempts > 10 && (
-            <button
-              onClick={() => showManualConfirmation(transactionReference)}
-              className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
-            >
-              ⚡ Confirmar pago manualmente
-            </button>
-          )}
-        </div>
-      )}
+  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+    <div className="flex items-center space-x-2">
+      <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+      <span className="text-blue-700 font-medium">
+        Verificando pago automáticamente... (Intento {pollingAttempts + 1}/120)
+      </span>
+    </div>
+    <p className="text-blue-600 text-sm mt-2">
+      Completa tu pago en Nequi/PSE. El sistema detectará automáticamente cuando se apruebe.
+    </p>
+    
+    {/* VERIFICACIÓN MANUAL DE EMERGENCIA */}
+    {pollingAttempts > 10 && (
+      <button
+        onClick={() => showManualConfirmation(transactionReference)}
+        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+      >
+        ⚡ Confirmar pago manualmente
+      </button>
+    )}
+    
+    {/* ✅ NUEVO: Enlace a verificación adicional */}
+    <div className="mt-3 text-center">
+      <button
+        onClick={() => window.open('/verificar-pago', '_blank')}
+        className="text-sm text-blue-600 hover:text-blue-800 underline"
+      >
+        🔍 ¿Ya pagaste? Verifica tu pago aquí
+      </button>
+    </div>
+    
+    {/* ✅ NUEVO: Información adicional para tranquilizar al usuario */}
+    <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+      <p className="text-xs text-blue-700">
+        💡 <strong>Tu pago está protegido:</strong><br/>
+        • Si pagaste, recibirás tu pedido automáticamente<br/>
+        • Nuestro sistema verifica pagos cada 3 segundos<br/>
+        • En caso de dudas, contacta soporte
+      </p>
+    </div>
+  </div>
+)}
 
       {/* BOTÓN CANCELAR */}
       {!loading && !pollingActive && onCancel && (
