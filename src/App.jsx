@@ -1,5 +1,5 @@
 // src/App.jsx
-// TU ESTRUCTURA ORIGINAL + PaymentSuccess
+// TU ESTRUCTURA ORIGINAL + PaymentSuccess + HistorialPedidos
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
@@ -8,8 +8,9 @@ import AdminDashboard from './pages/AdminDashboard'; // Nuevo dashboard integrad
 import ProtectedRoute from './components/ProtectedRoute';
 import ToastProvider from './components/ToastProvider';  // ✅ TU TOASTPROVIDER ORIGINAL
 
-// ✅ ÚNICA NUEVA IMPORTACIÓN
+// ✅ IMPORTACIONES
 import PaymentSuccess from './pages/PaymentSuccess';
+import HistorialPedidos from './components/HistorialPedidos'; // 🎯 NUEVA IMPORTACIÓN
 
 export default function App() {
   return (
@@ -19,8 +20,9 @@ export default function App() {
         <Route path="/" element={<StoreApp />} />
         <Route path="/store" element={<StoreApp />} />
         
-        {/* ✅ ÚNICA RUTA NUEVA - Para éxito del pago */}
+        {/* ✅ RUTAS NUEVAS */}
         <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/historial" element={<HistorialPedidos />} /> {/* 🎯 NUEVA RUTA */}
         
         {/* ✅ TU RUTA ADMIN ORIGINAL - SIN CAMBIOS */}
         <Route path="/admin" element={

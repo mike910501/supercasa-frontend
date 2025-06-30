@@ -995,7 +995,20 @@ function Store({ user, token, onLogout }) {
                   </svg>
                 </Link>
               )}
-              
+              {/* 📋 Mi Historial */}
+                  <Link
+                    to="/historial"
+                    className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
+                      darkMode 
+                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                        : 'bg-green-600 hover:bg-green-700 text-white'
+                    }`}
+                    title="Mi Historial"
+                  >
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
+                    </svg>
+                  </Link>
               {/* 🛒 Carrito */}
               <button
                 onClick={() => setShowCart(true)}
