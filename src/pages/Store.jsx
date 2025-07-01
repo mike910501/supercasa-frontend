@@ -750,139 +750,168 @@ function Store({ user, token, onLogout }) {
   const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
   const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
 
-  const processCashPayment = async () => {
-    setIsProcessingCash(true);
-    
-    try {
-      console.log('💵 PROCESANDO PAGO EN EFECTIVO');
-      
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Debes iniciar sesión para hacer un pedido');
-        return;
-      }
-
-      // 🔍 DEBUG: Verificar datos antes de procesar
-      console.log('🔍 deliveryData:', deliveryData);
-      console.log('🔍 user completo:', user);
-      
-      // ✅ VALIDAR Y COMPLETAR DATOS DE ENTREGA
-      const finalDeliveryData = {
-        torre_entrega: deliveryData.torre_entrega || user.torre || '1',
-        piso_entrega: deliveryData.piso_entrega || user.piso || '1',
-        apartamento_entrega: deliveryData.apartamento_entrega || user.apartamento || '101',
-        telefono_contacto: deliveryData.telefono_contacto || user.telefono || '3000000000',
-        email: deliveryData.email || user.email,
-        nombre: deliveryData.nombre || user.nombre,
-        instrucciones_entrega: deliveryData.instrucciones_entrega || user.notas_entrega || ''
-      };
-
-      console.log('🏠 Datos de entrega final:', finalDeliveryData);
-      
-      // ✅ VALIDACIÓN ESTRICTA ANTES DE ENVIAR
-      if (!finalDeliveryData.torre_entrega || !['1', '2', '3', '4', '5'].includes(String(finalDeliveryData.torre_entrega))) {
-        console.error('❌ Torre inválida:', finalDeliveryData.torre_entrega);
-        toast.error('Torre inválida. Debe ser 1, 2, 3, 4 o 5');
-        return;
-      }
-      
-      const pisoNum = parseInt(finalDeliveryData.piso_entrega);
-      if (!pisoNum || pisoNum < 1 || pisoNum > 30) {
-        console.error('❌ Piso inválido:', finalDeliveryData.piso_entrega, 'Parseado:', pisoNum);
-        toast.error('Piso inválido. Debe estar entre 1 y 30');
-        return;
-      }
-      
-      if (!finalDeliveryData.apartamento_entrega || String(finalDeliveryData.apartamento_entrega).trim() === '') {
-        console.error('❌ Apartamento inválido:', finalDeliveryData.apartamento_entrega);
-        toast.error('El apartamento es obligatorio');
-        return;
-      }
-
-      console.log('✅ Validaciones pasadas - Torre:', finalDeliveryData.torre_entrega, 'Piso:', pisoNum, 'Apt:', finalDeliveryData.apartamento_entrega);
-
-      // Usar los datos validados
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const orderNumber = Math.floor(Math.random() * 9000) + 1000;
-      const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
-      
-      const orderData = {
-        cliente_email: finalDeliveryData.email,
-        telefono_contacto: finalDeliveryData.telefono_contacto,
-        torre_entrega: String(finalDeliveryData.torre_entrega),
-        piso_entrega: String(finalDeliveryData.piso_entrega),
-        apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
-        instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
-        notas_entrega: finalDeliveryData.instrucciones_entrega || '',
-        productos: carrito.map(item => ({
-          id: item.id,
-          nombre: item.nombre,
-          precio: item.precio,
-          cantidad: item.cantidad
-        })),
-        total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
-        metodo_pago: 'EFECTIVO',
-        estado_pago: 'PENDIENTE_EFECTIVO',
-        transaccion_id: `CASH-${reference}`,
-        referencia_pago: reference
-      };
-
-      const response = await fetch(`${API_URL}/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(orderData)
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
-        
-        toast.success(`¡Pedido creado exitosamente! 💵 Pago en efectivo al recibir. Entrega en máximo 20 minutos.`, {
-          duration: 8000,
-          icon: '🎉'
-        });
-        
-        // Limpiar y cerrar
-        setCarrito([]);
-        localStorage.removeItem('carrito');
-        setCashPaymentModal(false);
-        setShowCart(false);
-        
-      } else {
-        console.error('❌ Error del backend:', result);
-        throw new Error(result.message || result.error || `Error ${response.status}: ${response.statusText}`);
-      }
-
-    } catch (error) {
-  console.error('❌ Error en efectivo:', error);
+ const processCashPayment = async () => {
+  setIsProcessingCash(true);
   
-  // ✅ NUEVO: Manejo específico de errores de stock
-  if (error.message && error.message.includes('Stock insuficiente')) {
-    toast.error(`❌ ${error.message}`, {
-      duration: 6000,
-      style: {
-        background: '#fef2f2',
-        color: '#dc2626',
-        border: '1px solid #fecaca'
-      }
-    });
-  } else if (error.message && error.message.includes('Stock')) {
-    toast.error(`📦 Problema de inventario: ${error.message}`, {
-      duration: 5000
-    });
-  } else {
-    // Error genérico (como antes)
-    toast.error(`Error al crear el pedido: ${error.message}`);
-  }
-} finally {
-      setIsProcessingCash(false);
+  try {
+    console.log('💵 PROCESANDO PAGO EN EFECTIVO');
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Debes iniciar sesión para hacer un pedido');
+      return;
     }
-  };
+
+    // 🔍 DEBUG: Verificar datos antes de procesar
+    console.log('🔍 deliveryData:', deliveryData);
+    console.log('🔍 user completo:', user);
+    
+    // ✅ VALIDAR Y COMPLETAR DATOS DE ENTREGA
+    const finalDeliveryData = {
+      torre_entrega: deliveryData.torre_entrega || user.torre || '1',
+      piso_entrega: deliveryData.piso_entrega || user.piso || '1',
+      apartamento_entrega: deliveryData.apartamento_entrega || user.apartamento || '101',
+      telefono_contacto: deliveryData.telefono_contacto || user.telefono || '3000000000',
+      email: deliveryData.email || user.email,
+      nombre: deliveryData.nombre || user.nombre,
+      instrucciones_entrega: deliveryData.instrucciones_entrega || user.notas_entrega || ''
+    };
+
+    console.log('🏠 Datos de entrega final:', finalDeliveryData);
+    
+    // ✅ VALIDACIÓN ESTRICTA ANTES DE ENVIAR
+    if (!finalDeliveryData.torre_entrega || !['1', '2', '3', '4', '5'].includes(String(finalDeliveryData.torre_entrega))) {
+      console.error('❌ Torre inválida:', finalDeliveryData.torre_entrega);
+      toast.error('Torre inválida. Debe ser 1, 2, 3, 4 o 5');
+      return;
+    }
+    
+    const pisoNum = parseInt(finalDeliveryData.piso_entrega);
+    if (!pisoNum || pisoNum < 1 || pisoNum > 30) {
+      console.error('❌ Piso inválido:', finalDeliveryData.piso_entrega, 'Parseado:', pisoNum);
+      toast.error('Piso inválido. Debe estar entre 1 y 30');
+      return;
+    }
+    
+    if (!finalDeliveryData.apartamento_entrega || String(finalDeliveryData.apartamento_entrega).trim() === '') {
+      console.error('❌ Apartamento inválido:', finalDeliveryData.apartamento_entrega);
+      toast.error('El apartamento es obligatorio');
+      return;
+    }
+
+    console.log('✅ Validaciones pasadas - Torre:', finalDeliveryData.torre_entrega, 'Piso:', pisoNum, 'Apt:', finalDeliveryData.apartamento_entrega);
+
+    // Usar los datos validados
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const orderNumber = Math.floor(Math.random() * 9000) + 1000;
+    const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
+    
+    const orderData = {
+      cliente_email: finalDeliveryData.email,
+      telefono_contacto: finalDeliveryData.telefono_contacto,
+      torre_entrega: String(finalDeliveryData.torre_entrega),
+      piso_entrega: String(finalDeliveryData.piso_entrega),
+      apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
+      instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
+      notas_entrega: finalDeliveryData.instrucciones_entrega || '',
+      productos: carrito.map(item => ({
+        id: item.id,
+        nombre: item.nombre,
+        precio: item.precio,
+        cantidad: item.cantidad
+      })),
+      total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
+      metodo_pago: 'EFECTIVO',
+      estado_pago: 'PENDIENTE_EFECTIVO',
+      transaccion_id: `CASH-${reference}`,
+      referencia_pago: reference
+    };
+
+    const response = await fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(orderData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
+      
+      toast.success(`¡Pedido creado exitosamente! 💵 Pago en efectivo al recibir. Entrega en máximo 20 minutos.`, {
+        duration: 8000,
+        icon: '🎉'
+      });
+      
+      // Limpiar y cerrar
+      setCarrito([]);
+      localStorage.removeItem('carrito');
+      setCashPaymentModal(false);
+      setShowCart(false);
+      
+    } else {
+      console.error('❌ Error del backend:', result);
+      throw new Error(result.message || result.error || `Error ${response.status}: ${response.statusText}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error en efectivo:', error);
+    
+    // ✅ NUEVO: Manejo de sesión expirada - MENSAJES AMIGABLES
+    if (error.message && (
+        error.message.includes('sesión ha expirado') || 
+        error.message.includes('inicie sesión') ||
+        error.message.includes('Token inválido') ||
+        error.message.includes('LOGIN_REQUIRED') ||
+        error.message.includes('SESSION_EXPIRED')
+    )) {
+      toast.error('Su sesión ha expirado. Por favor inicie sesión nuevamente.', {
+        duration: 4000,
+        icon: '🔑',
+        style: {
+          background: '#fef3c7',
+          color: '#92400e',
+          border: '1px solid #f59e0b'
+        }
+      });
+      
+      // Cerrar modales y limpiar estado
+      setCashPaymentModal(false);
+      setShowCart(false);
+      
+      // Cerrar sesión automáticamente después de 2 segundos
+      setTimeout(() => {
+        onLogout();
+      }, 2000);
+      return;
+    }
+    
+    // ✅ MANEJO específico de errores de stock
+    if (error.message && error.message.includes('Stock insuficiente')) {
+      toast.error(`❌ ${error.message}`, {
+        duration: 6000,
+        style: {
+          background: '#fef2f2',
+          color: '#dc2626',
+          border: '1px solid #fecaca'
+        }
+      });
+    } else if (error.message && error.message.includes('Stock')) {
+      toast.error(`📦 Problema de inventario: ${error.message}`, {
+        duration: 5000
+      });
+    } else {
+      // Error genérico (como antes)
+      toast.error(`Error al crear el pedido: ${error.message}`);
+    }
+  } finally {
+    setIsProcessingCash(false);
+  }
+};
 
   if (isLoading) {
     return (
