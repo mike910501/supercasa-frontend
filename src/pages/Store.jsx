@@ -4,6 +4,7 @@ import API_URL, { api } from '../config/api';
 import { toast } from 'react-hot-toast';
 import { restoreCartAfterLogin, hasTemporaryCart } from '../utils/authHandler';
 import WompiCheckout from '../components/WompiCheckout';
+import ChatWidget from '../components/ChatWidget'; // 🎯 AGREGAR SOLO ESTA LÍNEA
 
 // Aplicación principal que maneja autenticación
 export default function App() {
@@ -1596,7 +1597,7 @@ function Store({ user, token, onLogout }) {
                     <span className="animate-spin">⏳</span>
                     <span>Creando...</span>
                   </span>
-                ) : (
+                  ) : (
                   '✅ Confirmar Pedido'
                 )}
               </button>
@@ -1604,6 +1605,13 @@ function Store({ user, token, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* 💬 CHAT WIDGET */}
+      <ChatWidget 
+        productos={productos}
+        agregarAlCarrito={agregarAlCarrito}
+        darkMode={darkMode}
+      />
     </div>
   );
 }
