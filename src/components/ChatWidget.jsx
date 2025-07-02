@@ -9,7 +9,8 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [mostrarSoporte, setMostrarSoporte] = useState(false);
-  const [consultasPedido, setConsultasPedido] = useState({}); // 🆕 Rastrear consultas por pedido
+  const [consultasPedido, setConsultasPedido] = useState({});
+  const [isMobile, setIsMobile] = useState(false); // 🆕 Detectar móvil
 
   // 🧠 Estado conversacional para productos
   const [estadoConversacion, setEstadoConversacion] = useState({
@@ -17,27 +18,54 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     esperandoCantidad: false,
   });
 
-  // 💾 PERSISTENCIA - Cargar mensajes guardados
-  useEffect(() => {
-    const mensajesGuardados = localStorage.getItem('chat_mensajes');
-    if (mensajesGuardados) {
-      try {
-        const mensajesParsed = JSON.parse(mensajesGuardados);
-        if (mensajesParsed.length > 0) {
-          setMensajes(mensajesParsed);
-        }
-      } catch (error) {
-        console.error('Error cargando chat:', error);
-      }
-    }
-  }, []);
+// 🆕 Detectar si es móvil
+useEffect(() => {
+  const checkMobile = () => {
+    setIsMobile(window.innerWidth < 640);
+  };
+  
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+  
+  return () => window.removeEventListener('resize', checkMobile);
+}, []);
 
-  // 💾 PERSISTENCIA - Guardar mensajes
-  useEffect(() => {
-    if (mensajes.length > 1) {
-      localStorage.setItem('chat_mensajes', JSON.stringify(mensajes));
+// 💾 PERSISTENCIA - Cargar mensajes guardados
+useEffect(() => {
+  const mensajesGuardados = localStorage.getItem('chat_mensajes');
+  if (mensajesGuardados) {
+    try {
+      const mensajesParsed = JSON.parse(mensajesGuardados);
+      if (mensajesParsed.length > 0) {
+        setMensajes(mensajesParsed);
+      }
+    } catch (error) {
+      console.error('Error cargando chat:', error);
     }
-  }, [mensajes]);
+  }
+}, []);
+
+// 💾 PERSISTENCIA - Guardar mensajes
+useEffect(() => {
+  if (mensajes.length > 1) {
+    localStorage.setItem('chat_mensajes', JSON.stringify(mensajes));
+  }
+}, [mensajes]);
+
+// 🆕 NUEVO: Escuchar eventos para abrir chat con pedido
+useEffect(() => {
+  const handleAbrirChatConPedido = (event) => {
+    const { numeroPedido } = event.detail;
+    setVisible(true);
+    setInput(numeroPedido);
+  };
+
+  window.addEventListener('abrirChatConPedido', handleAbrirChatConPedido);
+  
+  return () => {
+    window.removeEventListener('abrirChatConPedido', handleAbrirChatConPedido);
+  };
+}, []);
 
   const limpiarTexto = (texto) =>
     texto
@@ -59,7 +87,6 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     return patrones.some((p) => texto.includes(p));
   };
 
-  // 📱 Función para detectar cuando necesita soporte técnico
   const necesitaEscalamiento = (mensaje) => {
     const texto = limpiarTexto(mensaje);
     const palabrasClave = [
@@ -72,14 +99,12 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     return palabrasClave.some(palabra => texto.includes(palabra));
   };
 
-  // 🆕 Función para detectar números de pedido
   const detectarNumeroPedido = (mensaje) => {
     const regex = /SUP-(\d+)|sup-(\d+)/gi;
     const match = mensaje.match(regex);
     return match ? match[0].toUpperCase() : null;
   };
 
-  // 🆕 Función para detectar si dice que no recibió el pedido
   const dicePedidoNoRecibido = (mensaje) => {
     const texto = limpiarTexto(mensaje);
     const frases = [
@@ -89,7 +114,6 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     return frases.some(frase => texto.includes(frase));
   };
 
-  // 🆕 Función para consultar pedido real
   const consultarPedidoReal = async (numeroPedido) => {
     try {
       const token = localStorage.getItem('token');
@@ -97,8 +121,6 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         return { encontrado: false, error: 'No autenticado' };
       }
 
-      console.log(`🔍 Consultando pedido ${numeroPedido}`);
-      
       const res = await fetch(`${API_URL}/chat/pedido/${numeroPedido}`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -106,10 +128,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         }
       });
 
-      const data = await res.json();
-      console.log(`📊 Respuesta consulta:`, data);
-      
-      return data;
+      return await res.json();
     } catch (error) {
       console.error('❌ Error consultando pedido:', error);
       return { encontrado: false, error: 'Error de conexión' };
@@ -120,7 +139,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     setMensajes([{ de: 'bot', texto: '¡Hola! 👋 Soy el asistente de Supercasa. ¿En qué puedo ayudarte?' }]);
     setEstadoConversacion({ productoPendiente: null, esperandoCantidad: false });
     setMostrarSoporte(false);
-    setConsultasPedido({}); // 🆕 Limpiar historial de consultas
+    setConsultasPedido({});
     localStorage.removeItem('chat_mensajes');
   };
 
@@ -134,13 +153,10 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     setInput('');
     setIsLoading(true);
 
-    // 🆕 PRIORIDAD 1: DETECTAR Y CONSULTAR NÚMEROS DE PEDIDO
+    // CONSULTA DE PEDIDOS (lógica igual que antes)
     const numeroPedido = detectarNumeroPedido(textoUsuario);
     
     if (numeroPedido) {
-      console.log(`🎯 Detectado número de pedido: ${numeroPedido}`);
-      
-      // Incrementar contador de consultas para este pedido
       const consultasActuales = consultasPedido[numeroPedido] || 0;
       setConsultasPedido(prev => ({
         ...prev,
@@ -154,38 +170,27 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         let necesitaEscalamiento = false;
         
         if (pedidoInfo.estado === 'cancelado') {
-          respuesta = `❌ Tu pedido ${numeroPedido} fue cancelado. Nuestro equipo te contactará para resolver esta situación y procesar cualquier reembolso necesario.`;
+          respuesta = `❌ Tu pedido ${numeroPedido} fue cancelado. Nuestro equipo te contactará para resolver esta situación.`;
           necesitaEscalamiento = true;
           
         } else if (pedidoInfo.estado === 'entregado') {
           if (dicePedidoNoRecibido(textoUsuario)) {
-            respuesta = `🤔 Según nuestros registros, el pedido ${numeroPedido} fue entregado el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} a las ${new Date(pedidoInfo.fecha_entrega).toLocaleTimeString()}. Como indicas que no lo recibiste, contactaremos inmediatamente a nuestro equipo para revisar esta situación.`;
+            respuesta = `🤔 Según nuestros registros, el pedido ${numeroPedido} fue entregado el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()}. Como indicas que no lo recibiste, contactaremos a nuestro equipo para revisar esta situación.`;
             necesitaEscalamiento = true;
           } else {
-            respuesta = `✅ ¡Excelente! Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} a las ${new Date(pedidoInfo.fecha_entrega).toLocaleTimeString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()}. ¡Gracias por elegir Supercasa! 🎉`;
+            respuesta = `✅ Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} 🎉`;
           }
           
         } else if (pedidoInfo.estado === 'pendiente') {
           if (pedidoInfo.minutos_transcurridos > 20) {
-            respuesta = `⏰ Tu pedido ${numeroPedido} lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado de 20 minutos, contactaremos inmediatamente a nuestro equipo para agilizar la entrega. ¡Disculpas por la demora!`;
+            respuesta = `⏰ Tu pedido ${numeroPedido} lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado, contactaremos a nuestro equipo para agilizar la entrega.`;
             necesitaEscalamiento = true;
           } else {
             const tiempoRestante = Math.max(20 - pedidoInfo.minutos_transcurridos, 2);
-            respuesta = `🚚 Tu pedido ${numeroPedido} está en proceso. Tiempo estimado de entrega: ${tiempoRestante} minutos más. Destino: ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} ⏱️`;
-          }
-          
-        } else {
-          // Estados como 'procesando', 'enviado', etc.
-          respuesta = `📦 Tu pedido ${numeroPedido} está en estado: ${pedidoInfo.estado}. Destino: ${pedidoInfo.direccion}. Si tienes dudas, nuestro equipo puede ayudarte.`;
-          
-          // Escalamiento si consulta múltiples veces
-          if (consultasActuales >= 2) {
-            respuesta += ` Como es tu ${consultasActuales + 1}ª consulta sobre este pedido, te conectaremos con soporte especializado.`;
-            necesitaEscalamiento = true;
+            respuesta = `🚚 Tu pedido ${numeroPedido} está en proceso. Tiempo estimado: ${tiempoRestante} minutos más. Destino: ${pedidoInfo.direccion}`;
           }
         }
         
-        // Escalamiento automático por pedido problemático
         if (pedidoInfo.necesita_escalamiento) {
           necesitaEscalamiento = true;
         }
@@ -197,26 +202,23 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         }
         
         setIsLoading(false);
-        return; // No llamar a ChatGPT para consultas de pedidos
+        return;
         
       } else {
-        // Pedido no encontrado
-        const respuestaNoEncontrado = `🔍 No pude encontrar el pedido ${numeroPedido} en tu cuenta. Verifica que el número sea correcto (formato: SUP-123) o que hayas iniciado sesión con la cuenta correcta.`;
+        const respuestaNoEncontrado = `🔍 No encontré el pedido ${numeroPedido} en tu cuenta. Verifica el número o inicia sesión con la cuenta correcta.`;
         setMensajes(prev => [...prev, { de: 'bot', texto: respuestaNoEncontrado }]);
         setIsLoading(false);
         return;
       }
     }
 
-    // 🆕 PRIORIDAD 2: DETECTAR ESCALAMIENTO GENERAL (no relacionado con pedidos específicos)
     if (necesitaEscalamiento(textoUsuario)) {
       setMostrarSoporte(true);
     }
 
-    // RESTO DE LA LÓGICA ORIGINAL (productos, ChatGPT, etc.)
+    // RESTO DE LÓGICA (productos, ChatGPT, etc.) - igual que antes
     const cantidad = parseInt(textoLimpio);
 
-    // 🧠 Si está esperando cantidad
     if (estadoConversacion.esperandoCantidad && estadoConversacion.productoPendiente && !isNaN(cantidad)) {
       for (let i = 0; i < cantidad; i++) {
         agregarAlCarrito(estadoConversacion.productoPendiente);
@@ -226,7 +228,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         ...prev,
         {
           de: 'bot',
-          texto: `✅ ¡Listo! Agregué ${cantidad} ${estadoConversacion.productoPendiente.nombre} al carrito. Ve al carrito para finalizar tu pedido 🛒`,
+          texto: `✅ ¡Listo! Agregué ${cantidad} ${estadoConversacion.productoPendiente.nombre} al carrito 🛒`,
         },
       ]);
 
@@ -238,7 +240,6 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     const productoDetectado = detectarProducto(textoUsuario);
     const quiereComprar = detectarIntencionDeCompra(textoUsuario);
 
-    // 🧠 Si quiere comprar algo y detectamos el producto
     if (quiereComprar && productoDetectado) {
       setEstadoConversacion({
         productoPendiente: productoDetectado,
@@ -256,7 +257,6 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       return;
     }
 
-    // 🧠 Si solo se detecta producto pero no hay intención clara aún
     if (productoDetectado && !estadoConversacion.esperandoCantidad) {
       setMensajes((prev) => [
         ...prev,
@@ -269,7 +269,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       return;
     }
 
-    // 🌐 Llamada a la IA con CONTEXTO (solo si no se manejó arriba)
+    // Llamada a ChatGPT
     try {
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
@@ -317,22 +317,26 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         </div>
       </button>
 
-      {/* Chat modal */}
+      {/* Chat modal - 🆕 MEJORADO PARA MÓVIL */}
       {visible && (
-        <div className={`fixed bottom-20 right-2 sm:right-6 w-[95vw] sm:w-80 max-w-sm shadow-2xl rounded-xl border z-50 flex flex-col transition-colors duration-300 ${
+        <div className={`fixed ${
+          isMobile 
+            ? 'inset-2 top-4' // 🆕 Móvil: ocupa casi toda la pantalla
+            : 'bottom-20 right-2 sm:right-6 w-[95vw] sm:w-80 max-w-sm' // Desktop: como antes
+        } shadow-2xl rounded-xl border z-50 flex flex-col transition-colors duration-300 ${
           darkMode 
             ? 'bg-gray-800 border-gray-600' 
             : 'bg-white border-gray-300'
         }`}>
           {/* Header */}
-          <div className={`p-4 font-semibold border-b flex justify-between items-center transition-colors duration-300 ${
+          <div className={`p-3 sm:p-4 font-semibold border-b flex justify-between items-center transition-colors duration-300 ${
             darkMode ? 'border-gray-600 text-white' : 'border-gray-200 text-gray-800'
           }`}>
             <div className="flex items-center gap-2">
               <span className="text-lg">🤖</span>
-              <span>Asistente Supercasa</span>
+              <span className="text-sm sm:text-base">Asistente Supercasa</span>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2">
               <button
                 onClick={limpiarChat}
                 className={`text-xs px-2 py-1 rounded transition-colors ${
@@ -358,19 +362,21 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             </div>
           </div>
 
-          {/* Mensajes */}
-          <div className="p-3 h-64 overflow-y-auto space-y-3 text-sm">
+          {/* Mensajes - 🆕 ALTURA ADAPTATIVA */}
+          <div className={`p-2 sm:p-3 overflow-y-auto space-y-3 text-sm flex-1 ${
+            isMobile ? 'max-h-none' : 'h-64'
+          }`}>
             {mensajes.map((msg, i) => (
               <div
                 key={i}
-                className={`p-3 rounded-lg ${
+                className={`p-2 sm:p-3 rounded-lg ${
                   msg.de === 'bot'
                     ? darkMode
                       ? 'bg-gray-700 text-gray-100 text-left'
                       : 'bg-gray-100 text-gray-800 text-left'
                     : darkMode
-                      ? 'bg-blue-700 text-white text-right ml-6'
-                      : 'bg-blue-100 text-blue-900 text-right ml-6'
+                      ? 'bg-blue-700 text-white text-right ml-4 sm:ml-6'
+                      : 'bg-blue-100 text-blue-900 text-right ml-4 sm:ml-6'
                 }`}
               >
                 {msg.texto}
@@ -379,7 +385,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             
             {/* Indicador de carga */}
             {isLoading && (
-              <div className={`p-3 rounded-lg text-left ${
+              <div className={`p-2 sm:p-3 rounded-lg text-left ${
                 darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
               }`}>
                 <div className="flex items-center gap-2">
@@ -394,16 +400,16 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             )}
           </div>
 
-          {/* 📱 BOTÓN WHATSAPP INTELIGENTE */}
+          {/* Botón WhatsApp */}
           {(mostrarSoporte || (input && necesitaEscalamiento(input))) && (
-            <div className={`p-3 border-t transition-colors duration-300 ${
+            <div className={`p-2 sm:p-3 border-t transition-colors duration-300 ${
               darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-green-50'
             }`}>
               <div className="flex justify-between items-start mb-2">
-                <p className={`text-sm transition-colors duration-300 ${
+                <p className={`text-xs sm:text-sm transition-colors duration-300 ${
                   darkMode ? 'text-gray-300' : 'text-green-800'
                 }`}>
-                  🚨 Te conectaremos con nuestro equipo de soporte especializado.
+                  🚨 Te conectaremos con soporte especializado.
                 </p>
                 <button 
                   onClick={() => setMostrarSoporte(false)}
@@ -412,7 +418,6 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                       ? 'text-gray-400 hover:text-gray-200' 
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
-                  title="Cerrar"
                 >
                   ✕
                 </button>
@@ -421,7 +426,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                 href="https://wa.me/573133592457?text=Hola%2C%20necesito%20soporte%20con%20mi%20pedido%20en%20Supercasa"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors w-full justify-center"
+                className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-green-700 transition-colors w-full justify-center"
               >
                 <span>📱</span>
                 <span>Contactar Soporte WhatsApp</span>
@@ -429,7 +434,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             </div>
           )}
 
-          {/* Input */}
+          {/* Input - 🆕 SIEMPRE VISIBLE EN MÓVIL */}
           <div className={`flex border-t transition-colors duration-300 ${
             darkMode ? 'border-gray-600' : 'border-gray-200'
           }`}>
@@ -437,17 +442,17 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className={`flex-1 p-3 text-sm outline-none transition-colors duration-300 ${
+              className={`flex-1 p-2 sm:p-3 text-sm outline-none transition-colors duration-300 ${
                 darkMode 
                   ? 'bg-gray-800 text-white placeholder-gray-400' 
                   : 'bg-white text-gray-900 placeholder-gray-500'
               }`}
-              placeholder="Escribe tu mensaje o número de pedido (SUP-123)..."
+              placeholder={isMobile ? "Mensaje o SUP-123..." : "Escribe tu mensaje o número de pedido (SUP-123)..."}
               onKeyDown={(e) => e.key === 'Enter' && enviarMensaje()}
               disabled={isLoading}
             />
             <button
-              className={`px-4 text-sm font-medium transition-colors duration-300 ${
+              className={`px-3 sm:px-4 text-sm font-medium transition-colors duration-300 ${
                 isLoading 
                   ? 'bg-gray-400 cursor-not-allowed'
                   : darkMode

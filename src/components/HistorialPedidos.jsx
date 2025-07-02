@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API_URL from '../config/api';
 import { toast } from 'react-hot-toast';
+import CopyButton from './CopyButton'; // 🆕 AGREGAR ESTA LÍNEA
 
 export default function HistorialPedidos() {
   const [pedidos, setPedidos] = useState([]);
@@ -190,16 +191,22 @@ export default function HistorialPedidos() {
                   {/* Header del pedido */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="text-2xl">{getEstadoIcon(pedido.estado)}</div>
-                      <div>
-                        <h3 className="text-lg sm:text-xl font-bold text-gray-800">
-                          Pedido {formatearNumeroPedido(pedido.id)}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {formatearFecha(pedido.fecha)}
-                        </p>
-                      </div>
-                    </div>
+  <div className="text-2xl">{getEstadoIcon(pedido.estado)}</div>
+  <div className="flex-1">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-1">
+      <h3 className="text-lg sm:text-xl font-bold text-gray-800">
+        Pedido {formatearNumeroPedido(pedido.id)}
+      </h3>
+      <CopyButton 
+        text={formatearNumeroPedido(pedido.id)}
+        size="sm"
+      />
+    </div>
+    <p className="text-sm text-gray-600">
+      {formatearFecha(pedido.fecha)}
+    </p>
+  </div>
+</div>
                     
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                       <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full border ${getEstadoColor(pedido.estado)}`}>
@@ -246,17 +253,32 @@ export default function HistorialPedidos() {
                   </div>
 
                   {/* Botón Ver Detalles */}
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => {
-                        setPedidoSeleccionado(pedido);
-                        setShowModal(true);
-                      }}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                    >
-                      👁️ Ver Detalles
-                    </button>
-                  </div>
+                  {/* Botones de acción */}
+<div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
+  <button
+    onClick={() => {
+      // Crear evento para abrir chat con este pedido
+      const numeroPedido = formatearNumeroPedido(pedido.id);
+      const event = new CustomEvent('abrirChatConPedido', { 
+        detail: { numeroPedido } 
+      });
+      window.dispatchEvent(event);
+    }}
+    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+  >
+    💬 Consultar en Chat
+  </button>
+  
+  <button
+    onClick={() => {
+      setPedidoSeleccionado(pedido);
+      setShowModal(true);
+    }}
+    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+  >
+    👁️ Ver Detalles
+  </button>
+</div>
                 </div>
               </div>
             ))}
