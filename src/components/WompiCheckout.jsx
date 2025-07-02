@@ -119,15 +119,11 @@ const checkTransactionStatus = async (reference) => {
   }
 };
 
- // 🎯 POLLING SÚPER PERSISTENTE - REEMPLAZAR FUNCIÓN COMPLETA
 const startPolling = (reference) => {
-  console.log('🔄 Iniciando polling SÚPER PERSISTENTE para:', reference);
+  console.log('🔄 Iniciando polling MEJORADO para:', reference);
   setPollingActive(true);
   setPollingAttempts(0);
   setTransactionReference(reference);
-
-  // Primer intento inmediato
-  setTimeout(() => checkTransactionStatus(reference), 1000);
 
   const pollInterval = setInterval(async () => {
     if (!pollingActive) {
@@ -135,20 +131,57 @@ const startPolling = (reference) => {
       return;
     }
 
+    // 🆕 VERIFICAR PRIMERO SI YA EXISTE UN PEDIDO RECIENTE
+    try {
+      const token = localStorage.getItem('token');
+      const pedidoRecenteResponse = await fetch(`${API_URL}/api/verificar-pedido-reciente`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (pedidoRecenteResponse.ok) {
+        const pedidoData = await pedidoRecenteResponse.json();
+        
+        if (pedidoData.found && pedidoData.payment_status === 'APPROVED') {
+          console.log('🎉 ¡PEDIDO CREADO POR WEBHOOK DETECTADO!', pedidoData);
+          
+          // ✅ LIMPIAR TODO INMEDIATAMENTE
+          clearInterval(pollInterval);
+          setPollingActive(false);
+          setLoading(false);
+          localStorage.removeItem('carrito');
+          
+          toast.success(`¡Pago confirmado! Pedido ${pedidoData.pedidoId} creado exitosamente.`, {
+            duration: 4000
+          });
+          
+          // ✅ REDIRECCIONAR PARA LIMPIAR CARRITO
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+          
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('⚠️ Error verificando pedido reciente:', error);
+    }
+
+    // ✅ SI NO HAY PEDIDO RECIENTE, VERIFICAR TRANSACCIÓN NORMAL
     const completed = await checkTransactionStatus(reference);
     setPollingAttempts(prev => prev + 1);
 
-    // ✅ CAMBIO: Polling más largo - 120 intentos = 10 minutos
-    if (completed || pollingAttempts >= 120) {
+    if (completed || pollingAttempts >= 60) {
       clearInterval(pollInterval);
       setPollingActive(false);
       
-      if (pollingAttempts >= 120 && !completed) {
-        console.log('⏰ Polling agotado - Mostrando opción de verificación manual');
+      if (pollingAttempts >= 60 && !completed) {
         showPaymentSuccessCheck(reference);
       }
     }
-  }, 3000); // Cada 3 segundos
+  }, 3000);
 
   return () => {
     clearInterval(pollInterval);
