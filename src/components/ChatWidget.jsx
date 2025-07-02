@@ -187,6 +187,25 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       return { encontrado: false, error: 'Error de conexión' };
     }
   };
+  const consultarProductosDisponibles = async (busqueda) => {
+  try {
+    console.log('🔍 Buscando productos:', busqueda);
+    
+    const res = await fetch(`${API_URL}/productos/buscar/${encodeURIComponent(busqueda)}`);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    
+    const data = await res.json();
+    console.log('📦 Productos encontrados:', data);
+    return data;
+    
+  } catch (error) {
+    console.error('❌ Error buscando productos:', error);
+    return { encontrados: false, productos: [], cantidad: 0 };
+  }
+};
 
   const limpiarChat = () => {
     setMensajes([{ de: 'bot', texto: '¡Hola! 👋 Soy **Luna**, tu asistente de Supercasa. Siempre tendrás la opción de contactar a soporte, pero primero trata conmigo de gestionar tu duda - podría ayudarte más rápido 🚀 ¿En qué puedo ayudarte?' }]);
