@@ -10,7 +10,6 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
   const [isLoading, setIsLoading] = useState(false);
   const [mostrarSoporte, setMostrarSoporte] = useState(false);
   const [consultasPedido, setConsultasPedido] = useState({});
-  const [isMobile, setIsMobile] = useState(false); // 🆕 Detectar móvil
 
   // 🧠 Estado conversacional para productos
   const [estadoConversacion, setEstadoConversacion] = useState({
@@ -18,54 +17,42 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     esperandoCantidad: false,
   });
 
-// 🆕 Detectar si es móvil
-useEffect(() => {
-  const checkMobile = () => {
-    setIsMobile(window.innerWidth < 640);
-  };
-  
-  checkMobile();
-  window.addEventListener('resize', checkMobile);
-  
-  return () => window.removeEventListener('resize', checkMobile);
-}, []);
-
-// 💾 PERSISTENCIA - Cargar mensajes guardados
-useEffect(() => {
-  const mensajesGuardados = localStorage.getItem('chat_mensajes');
-  if (mensajesGuardados) {
-    try {
-      const mensajesParsed = JSON.parse(mensajesGuardados);
-      if (mensajesParsed.length > 0) {
-        setMensajes(mensajesParsed);
+  // 💾 PERSISTENCIA - Cargar mensajes guardados
+  useEffect(() => {
+    const mensajesGuardados = localStorage.getItem('chat_mensajes');
+    if (mensajesGuardados) {
+      try {
+        const mensajesParsed = JSON.parse(mensajesGuardados);
+        if (mensajesParsed.length > 0) {
+          setMensajes(mensajesParsed);
+        }
+      } catch (error) {
+        console.error('Error cargando chat:', error);
       }
-    } catch (error) {
-      console.error('Error cargando chat:', error);
     }
-  }
-}, []);
+  }, []);
 
-// 💾 PERSISTENCIA - Guardar mensajes
-useEffect(() => {
-  if (mensajes.length > 1) {
-    localStorage.setItem('chat_mensajes', JSON.stringify(mensajes));
-  }
-}, [mensajes]);
+  // 💾 PERSISTENCIA - Guardar mensajes
+  useEffect(() => {
+    if (mensajes.length > 1) {
+      localStorage.setItem('chat_mensajes', JSON.stringify(mensajes));
+    }
+  }, [mensajes]);
 
-// 🆕 NUEVO: Escuchar eventos para abrir chat con pedido
-useEffect(() => {
-  const handleAbrirChatConPedido = (event) => {
-    const { numeroPedido } = event.detail;
-    setVisible(true);
-    setInput(numeroPedido);
-  };
+  // 🆕 NUEVO: Escuchar eventos para abrir chat con pedido
+  useEffect(() => {
+    const handleAbrirChatConPedido = (event) => {
+      const { numeroPedido } = event.detail;
+      setVisible(true);
+      setInput(numeroPedido);
+    };
 
-  window.addEventListener('abrirChatConPedido', handleAbrirChatConPedido);
-  
-  return () => {
-    window.removeEventListener('abrirChatConPedido', handleAbrirChatConPedido);
-  };
-}, []);
+    window.addEventListener('abrirChatConPedido', handleAbrirChatConPedido);
+    
+    return () => {
+      window.removeEventListener('abrirChatConPedido', handleAbrirChatConPedido);
+    };
+  }, []);
 
   const limpiarTexto = (texto) =>
     texto
@@ -153,7 +140,7 @@ useEffect(() => {
     setInput('');
     setIsLoading(true);
 
-    // CONSULTA DE PEDIDOS (lógica igual que antes)
+    // CONSULTA DE PEDIDOS
     const numeroPedido = detectarNumeroPedido(textoUsuario);
     
     if (numeroPedido) {
@@ -175,7 +162,7 @@ useEffect(() => {
           
         } else if (pedidoInfo.estado === 'entregado') {
           if (dicePedidoNoRecibido(textoUsuario)) {
-            respuesta = `🤔 Según nuestros registros, el pedido ${numeroPedido} fue entregado el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()}. Como indicas que no lo recibiste, contactaremos a nuestro equipo para revisar esta situación.`;
+            respuesta = `🤔 Según nuestros registros, el pedido ${numeroPedido} fue entregado el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()}. Como indicas que no lo recibiste, contactaremos a nuestro equipo.`;
             necesitaEscalamiento = true;
           } else {
             respuesta = `✅ Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} 🎉`;
@@ -183,7 +170,7 @@ useEffect(() => {
           
         } else if (pedidoInfo.estado === 'pendiente') {
           if (pedidoInfo.minutos_transcurridos > 20) {
-            respuesta = `⏰ Tu pedido ${numeroPedido} lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado, contactaremos a nuestro equipo para agilizar la entrega.`;
+            respuesta = `⏰ Tu pedido ${numeroPedido} lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado, contactaremos a nuestro equipo.`;
             necesitaEscalamiento = true;
           } else {
             const tiempoRestante = Math.max(20 - pedidoInfo.minutos_transcurridos, 2);
@@ -216,7 +203,7 @@ useEffect(() => {
       setMostrarSoporte(true);
     }
 
-    // RESTO DE LÓGICA (productos, ChatGPT, etc.) - igual que antes
+    // RESTO DE LÓGICA (productos, ChatGPT, etc.)
     const cantidad = parseInt(textoLimpio);
 
     if (estadoConversacion.esperandoCantidad && estadoConversacion.productoPendiente && !isNaN(cantidad)) {
@@ -301,7 +288,15 @@ useEffect(() => {
   };
 
   return (
-    <div>
+    <>
+      {/* Overlay para cerrar en móvil */}
+      {visible && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-30 z-40 md:hidden"
+          onClick={() => setVisible(false)}
+        />
+      )}
+
       {/* Botón flotante */}
       <button
         className={`fixed bottom-6 right-3 sm:right-6 text-white px-4 py-3 rounded-full shadow-lg z-50 transition-all duration-300 ${
@@ -317,16 +312,15 @@ useEffect(() => {
         </div>
       </button>
 
-      {/* Chat modal - 🆕 MEJORADO PARA MÓVIL */}
+      {/* Chat modal - 🆕 TAMAÑOS CORREGIDOS */}
       {visible && (
-        <div className={`fixed ${
-          isMobile 
-            ? 'inset-2 top-4' // 🆕 Móvil: ocupa casi toda la pantalla
-            : 'bottom-20 right-2 sm:right-6 w-[95vw] sm:w-80 max-w-sm' // Desktop: como antes
-        } shadow-2xl rounded-xl border z-50 flex flex-col transition-colors duration-300 ${
+        <div className={`fixed z-50 shadow-2xl rounded-xl border flex flex-col transition-colors duration-300 ${
           darkMode 
             ? 'bg-gray-800 border-gray-600' 
             : 'bg-white border-gray-300'
+        } ${
+          // 🆕 RESPONSIVE CORREGIDO
+          'bottom-20 right-2 sm:right-6 w-[95vw] sm:w-96 md:w-80 max-w-sm h-[70vh] sm:h-96'
         }`}>
           {/* Header */}
           <div className={`p-3 sm:p-4 font-semibold border-b flex justify-between items-center transition-colors duration-300 ${
@@ -362,10 +356,8 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Mensajes - 🆕 ALTURA ADAPTATIVA */}
-          <div className={`p-2 sm:p-3 overflow-y-auto space-y-3 text-sm flex-1 ${
-            isMobile ? 'max-h-none' : 'h-64'
-          }`}>
+          {/* Mensajes - 🆕 ALTURA FIJA Y SCROLL */}
+          <div className="p-2 sm:p-3 overflow-y-auto space-y-3 text-sm flex-1">
             {mensajes.map((msg, i) => (
               <div
                 key={i}
@@ -434,7 +426,7 @@ useEffect(() => {
             </div>
           )}
 
-          {/* Input - 🆕 SIEMPRE VISIBLE EN MÓVIL */}
+          {/* Input - 🆕 SIEMPRE VISIBLE */}
           <div className={`flex border-t transition-colors duration-300 ${
             darkMode ? 'border-gray-600' : 'border-gray-200'
           }`}>
@@ -447,7 +439,7 @@ useEffect(() => {
                   ? 'bg-gray-800 text-white placeholder-gray-400' 
                   : 'bg-white text-gray-900 placeholder-gray-500'
               }`}
-              placeholder={isMobile ? "Mensaje o SUP-123..." : "Escribe tu mensaje o número de pedido (SUP-123)..."}
+              placeholder="Mensaje o SUP-123..."
               onKeyDown={(e) => e.key === 'Enter' && enviarMensaje()}
               disabled={isLoading}
             />
@@ -467,6 +459,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
