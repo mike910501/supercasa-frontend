@@ -8,6 +8,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     { de: 'bot', texto: '¡Hola! 👋 Soy el asistente de Supercasa. ¿En qué puedo ayudarte?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [mostrarSoporte, setMostrarSoporte] = useState(false); // 🆕 Estado persistente
 
   // 🧠 Estado conversacional para productos
   const [estadoConversacion, setEstadoConversacion] = useState({
@@ -64,7 +65,8 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       'problema', 'error', 'no funciona', 'bug', 'fallo', 'soporte',
       'reclamo', 'queja', 'devolucion', 'cancelar', 'reembolso',
       'no puedo', 'no me deja', 'no carga', 'ayuda urgente',
-      'soporte tecnico', 'no me funciona', 'esta malo'
+      'soporte tecnico', 'no me funciona', 'esta malo', 'no ha llegado',
+      'no me ha llegado', 'demora', 'pedido cancelado', 'hablar con soporte'
     ];
     return palabrasClave.some(palabra => texto.includes(palabra));
   };
@@ -72,6 +74,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
   const limpiarChat = () => {
     setMensajes([{ de: 'bot', texto: '¡Hola! 👋 Soy el asistente de Supercasa. ¿En qué puedo ayudarte?' }]);
     setEstadoConversacion({ productoPendiente: null, esperandoCantidad: false });
+    setMostrarSoporte(false); // 🆕 Resetear soporte
     localStorage.removeItem('chat_mensajes');
   };
 
@@ -79,8 +82,14 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     if (!input.trim() || isLoading) return;
 
     const textoUsuario = input.trim();
+    
+    // 🆕 DETECTAR SOPORTE ANTES DE LIMPIAR INPUT
+    if (necesitaEscalamiento(textoUsuario)) {
+      setMostrarSoporte(true);
+    }
+    
     setMensajes((prev) => [...prev, { de: 'usuario', texto: textoUsuario }]);
-    setInput('');
+    setInput(''); // Ahora se limpia DESPUÉS de detectar soporte
     setIsLoading(true);
 
     const textoLimpio = limpiarTexto(textoUsuario);
@@ -264,21 +273,34 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             )}
           </div>
 
-          {/* 📱 BOTÓN WHATSAPP CUANDO NECESITA SOPORTE */}
-          {input && necesitaEscalamiento(input) && (
+          {/* 📱 BOTÓN WHATSAPP PERSISTENTE */}
+          {(mostrarSoporte || (input && necesitaEscalamiento(input))) && (
             <div className={`p-3 border-t transition-colors duration-300 ${
               darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-green-50'
             }`}>
-              <p className={`text-sm mb-2 transition-colors duration-300 ${
-                darkMode ? 'text-gray-300' : 'text-green-800'
-              }`}>
-                🤔 Parece que necesitas soporte especializado.
-              </p>
+              <div className="flex justify-between items-start mb-2">
+                <p className={`text-sm transition-colors duration-300 ${
+                  darkMode ? 'text-gray-300' : 'text-green-800'
+                }`}>
+                  🤔 Parece que necesitas soporte especializado.
+                </p>
+                <button 
+                  onClick={() => setMostrarSoporte(false)}
+                  className={`text-xs px-1 py-1 rounded transition-colors ml-2 ${
+                    darkMode 
+                      ? 'text-gray-400 hover:text-gray-200' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Cerrar"
+                >
+                  ✕
+                </button>
+              </div>
               <a
                 href="https://wa.me/573133592457?text=Hola%2C%20necesito%20soporte%20t%C3%A9cnico%20con%20Supercasa"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors"
+                className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors w-full justify-center"
               >
                 <span>📱</span>
                 <span>Contactar por WhatsApp</span>
