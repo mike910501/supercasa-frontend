@@ -16,30 +16,51 @@ export default function HistorialPedidos() {
 
   
 
-  const obtenerMisPedidos = async () => {
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/orders`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPedidos(data);
-        console.log('📦 Mis pedidos cargados:', data);
-      } else {
-        toast.error('Error al cargar el historial');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error de conexión');
-    } finally {
-      setIsLoading(false);
+ const obtenerMisPedidos = async () => {
+  setIsLoading(true);
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error('Debes iniciar sesión para ver tu historial');
+      window.location.href = '/'; // Redirigir al login
+      return;
     }
-  };
+
+    console.log('🔑 Obteniendo pedidos con token:', !!token);
+    
+    const response = await fetch(`${API_URL}/orders`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('📡 Respuesta del servidor:', response.status);
+
+    if (response.status === 403) {
+      console.log('🔒 Token expirado o inválido');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      toast.error('Tu sesión expiró. Por favor inicia sesión nuevamente.');
+      window.location.href = '/';
+      return;
+    }
+
+    if (response.ok) {
+      const data = await response.json();
+      setPedidos(data);
+      console.log('📦 Mis pedidos cargados:', data);
+    } else {
+      toast.error('Error al cargar el historial');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    toast.error('Error de conexión');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Filtrar pedidos por estado
   const pedidosFiltrados = pedidos.filter(pedido => {
@@ -258,7 +279,7 @@ export default function HistorialPedidos() {
                   {/* Botones de acción */}
 <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
   <a
-  href={`/?openChat=true&pedido=${formatearNumeroPedido(pedido.id)}`}
+  href={`/?openChat=true&mensaje=${formatearNumeroPedido(pedido.id)}&autoFocus=true`}
   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium inline-block text-center no-underline"
 >
   💬 Consultar en Chat

@@ -5,7 +5,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
   const [visible, setVisible] = useState(false);
   const [input, setInput] = useState('');
   const [mensajes, setMensajes] = useState([
-    { de: 'bot', texto: '¡Hola! 👋 Soy el asistente de Supercasa. ¿En qué puedo ayudarte?' }
+    { de: 'bot', texto: '¡Hola! 👋 Soy **Luna**, tu asistente de Supercasa. Siempre tendrás la opción de contactar a soporte, pero primero trata conmigo de gestionar tu duda - podría ayudarte más rápido 🚀 ¿En qué puedo ayudarte?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [mostrarSoporte, setMostrarSoporte] = useState(false);
@@ -17,52 +17,57 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     esperandoCantidad: false,
   });
 
- useEffect(() => {
-  // 💾 Cargar mensajes guardados
-  const mensajesGuardados = localStorage.getItem('chat_mensajes');
-  if (mensajesGuardados) {
-    try {
-      const mensajesParsed = JSON.parse(mensajesGuardados);
-      if (mensajesParsed.length > 0) {
-        setMensajes(mensajesParsed);
-      }
-    } catch (error) {
-      console.error('Error cargando chat:', error);
-    }
-  }
-
-  // 🆕 Verificar parámetros URL para abrir chat automáticamente
-  const urlParams = new URLSearchParams(window.location.search);
-  const openChat = urlParams.get('openChat');
-  const pedidoConsulta = urlParams.get('pedido');
-  
-  if (openChat === 'true') {
-    console.log('📱 Abriendo chat desde URL con pedido:', pedidoConsulta);
-    setVisible(true);
-    
-    if (pedidoConsulta) {
-      setInput(pedidoConsulta);
-      
-      // Auto-enviar el mensaje después de 1 segundo
-      setTimeout(() => {
-        if (pedidoConsulta.trim()) {
-          console.log('🚀 Auto-enviando mensaje:', pedidoConsulta);
-          
-          // Agregar mensaje del usuario
-          setMensajes((prev) => [...prev, { de: 'usuario', texto: pedidoConsulta }]);
-          setInput('');
-          setIsLoading(true);
-          
-          // Procesar el mensaje
-          enviarMensajeDirecto(pedidoConsulta);
+  useEffect(() => {
+    // Cargar mensajes guardados
+    const mensajesGuardados = localStorage.getItem('chat_mensajes');
+    if (mensajesGuardados) {
+      try {
+        const mensajesParsed = JSON.parse(mensajesGuardados);
+        if (mensajesParsed.length > 0) {
+          setMensajes(mensajesParsed);
         }
-      }, 1000);
+      } catch (error) {
+        console.error('Error cargando chat:', error);
+      }
     }
+
+    // Verificar parámetros URL para abrir chat
+    const urlParams = new URLSearchParams(window.location.search);
+    const openChat = urlParams.get('openChat');
+    const mensaje = urlParams.get('mensaje');
+    const autoFocus = urlParams.get('autoFocus');
     
-    // Limpiar URL sin recargar
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-}, []);
+    if (openChat === 'true') {
+      setVisible(true);
+      
+      if (mensaje) {
+        setInput(mensaje);
+        
+        // Mensaje de bienvenida
+        setTimeout(() => {
+          setMensajes(prev => [...prev, { 
+            de: 'bot', 
+            texto: `👋 ¡Hola! Veo que quieres consultar el pedido ${mensaje}. Presiona el botón ➤ para ver el estado.` 
+          }]);
+        }, 500);
+        
+        // Focus y highlight del input
+        if (autoFocus === 'true') {
+          setTimeout(() => {
+            const chatInput = document.querySelector('input[placeholder*="SUP"], input[placeholder*="Mensaje"]');
+            if (chatInput) {
+              chatInput.focus();
+              chatInput.style.borderColor = '#22c55e';
+              chatInput.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.1)';
+            }
+          }, 1000);
+        }
+      }
+      
+      // Limpiar URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   // 💾 PERSISTENCIA - Guardar mensajes
   useEffect(() => {
@@ -85,101 +90,6 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       window.removeEventListener('abrirChatConPedido', handleAbrirChatConPedido);
     };
   }, []);
-  const enviarMensajeDirecto = async (textoUsuario) => {
-  if (!textoUsuario.trim()) {
-    setIsLoading(false);
-    return;
-  }
-
-  const textoLimpio = limpiarTexto(textoUsuario);
-  
-  // Detectar número de pedido
-  const numeroPedido = detectarNumeroPedido(textoUsuario);
-  
-  if (numeroPedido) {
-    const consultasActuales = consultasPedido[numeroPedido] || 0;
-    setConsultasPedido(prev => ({
-      ...prev,
-      [numeroPedido]: consultasActuales + 1
-    }));
-
-    const pedidoInfo = await consultarPedidoReal(numeroPedido);
-    
-    if (pedidoInfo.encontrado) {
-      let respuesta = '';
-      let necesitaEscalamiento = false;
-      
-      if (pedidoInfo.estado === 'cancelado') {
-        respuesta = `❌ Tu pedido ${numeroPedido} fue cancelado. Nuestro equipo te contactará para resolver esta situación.`;
-        necesitaEscalamiento = true;
-        
-      } else if (pedidoInfo.estado === 'entregado') {
-        if (dicePedidoNoRecibido(textoUsuario)) {
-          respuesta = `🤔 Según nuestros registros, el pedido ${numeroPedido} fue entregado el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()}. Como indicas que no lo recibiste, contactaremos a nuestro equipo.`;
-          necesitaEscalamiento = true;
-        } else {
-          respuesta = `✅ Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} 🎉`;
-        }
-        
-      } else if (pedidoInfo.estado === 'pendiente') {
-        if (pedidoInfo.minutos_transcurridos > 20) {
-          respuesta = `⏰ Tu pedido ${numeroPedido} lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado, contactaremos a nuestro equipo.`;
-          necesitaEscalamiento = true;
-        } else {
-          const tiempoRestante = Math.max(20 - pedidoInfo.minutos_transcurridos, 2);
-          respuesta = `🚚 Tu pedido ${numeroPedido} está en proceso. Tiempo estimado: ${tiempoRestante} minutos más. Destino: ${pedidoInfo.direccion}`;
-        }
-      }
-      
-      if (pedidoInfo.necesita_escalamiento) {
-        necesitaEscalamiento = true;
-      }
-      
-      setMensajes(prev => [...prev, { de: 'bot', texto: respuesta }]);
-      
-      if (necesitaEscalamiento) {
-        setMostrarSoporte(true);
-      }
-      
-    } else {
-      const respuestaNoEncontrado = `🔍 No encontré el pedido ${numeroPedido} en tu cuenta. Verifica el número o inicia sesión con la cuenta correcta.`;
-      setMensajes(prev => [...prev, { de: 'bot', texto: respuestaNoEncontrado }]);
-    }
-    
-    setIsLoading(false);
-    return;
-  }
-
-  // Si no es un pedido, usar ChatGPT
-  try {
-    const res = await fetch(`${API_URL}/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        mensaje: textoUsuario,
-        historial: mensajes
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    setMensajes((prev) => [...prev, { de: 'bot', texto: data.respuesta }]);
-  } catch (err) {
-    console.error('❌ Error chat:', err);
-    setMensajes((prev) => [
-      ...prev,
-      {
-        de: 'bot',
-        texto: '⚠️ Disculpa, tuve un problemita técnico. ¿Puedes intentar de nuevo? 😅',
-      },
-    ]);
-  } finally {
-    setIsLoading(false);
-  }
-};
 
   const limpiarTexto = (texto) =>
     texto
@@ -208,7 +118,11 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       'reclamo', 'queja', 'devolucion', 'cancelar', 'reembolso',
       'no puedo', 'no me deja', 'no carga', 'ayuda urgente',
       'soporte tecnico', 'no me funciona', 'esta malo',
-      'hablar con soporte', 'contactar soporte'
+      'hablar con soporte', 'contactar soporte',
+      // 🆕 NUEVAS PALABRAS PARA TIEMPO
+      'ya paso', 'tardo', 'demoro', 'no llega', 'lento', 'tiempo', 
+      'esp', 'retraso', 'tarda', 'tarde', 'demora', 'mucho tiempo',
+      'muy lento', 'no ha llegado', 'donde esta'
     ];
     return palabrasClave.some(palabra => texto.includes(palabra));
   };
@@ -216,7 +130,9 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
   const detectarNumeroPedido = (mensaje) => {
     const regex = /SUP-(\d+)|sup-(\d+)/gi;
     const match = mensaje.match(regex);
-    return match ? match[0].toUpperCase() : null;
+    const resultado = match ? match[0].toUpperCase() : null;
+    console.log('🔍 detectarNumeroPedido:', { mensaje, match, resultado });
+    return resultado;
   };
 
   const dicePedidoNoRecibido = (mensaje) => {
@@ -231,10 +147,14 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
   const consultarPedidoReal = async (numeroPedido) => {
     try {
       const token = localStorage.getItem('token');
+      console.log('🔑 Token disponible:', !!token);
+      
       if (!token) {
-        return { encontrado: false, error: 'No autenticado' };
+        console.log('❌ No hay token de autenticación');
+        return { encontrado: false, error: 'No autenticado. Por favor inicia sesión.' };
       }
 
+      console.log('🌐 Consultando pedido:', numeroPedido);
       const res = await fetch(`${API_URL}/chat/pedido/${numeroPedido}`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -242,7 +162,26 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         }
       });
 
-      return await res.json();
+      console.log('📡 Respuesta del servidor:', res.status, res.statusText);
+
+      if (res.status === 403) {
+        console.log('🔒 Error 403 - Token inválido o expirado');
+        localStorage.removeItem('token'); // Limpiar token inválido
+        return { encontrado: false, error: 'Sesión expirada. Por favor inicia sesión nuevamente.' };
+      }
+
+      if (res.status === 404) {
+        return { encontrado: false, error: 'Pedido no encontrado' };
+      }
+
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      console.log('✅ Datos del pedido:', data);
+      return data;
+
     } catch (error) {
       console.error('❌ Error consultando pedido:', error);
       return { encontrado: false, error: 'Error de conexión' };
@@ -250,7 +189,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
   };
 
   const limpiarChat = () => {
-    setMensajes([{ de: 'bot', texto: '¡Hola! 👋 Soy el asistente de Supercasa. ¿En qué puedo ayudarte?' }]);
+    setMensajes([{ de: 'bot', texto: '¡Hola! 👋 Soy **Luna**, tu asistente de Supercasa. Siempre tendrás la opción de contactar a soporte, pero primero trata conmigo de gestionar tu duda - podría ayudarte más rápido 🚀 ¿En qué puedo ayudarte?' }]);
     setEstadoConversacion({ productoPendiente: null, esperandoCantidad: false });
     setMostrarSoporte(false);
     setConsultasPedido({});
@@ -263,14 +202,19 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     const textoUsuario = input.trim();
     const textoLimpio = limpiarTexto(textoUsuario);
     
+    console.log('📤 Enviando mensaje:', textoUsuario);
+    
     setMensajes((prev) => [...prev, { de: 'usuario', texto: textoUsuario }]);
     setInput('');
     setIsLoading(true);
 
     // CONSULTA DE PEDIDOS
     const numeroPedido = detectarNumeroPedido(textoUsuario);
+    console.log('🔍 Número de pedido detectado:', numeroPedido);
     
     if (numeroPedido) {
+      console.log('✅ ENTRANDO A LÓGICA DE PEDIDOS');
+      
       const consultasActuales = consultasPedido[numeroPedido] || 0;
       setConsultasPedido(prev => ({
         ...prev,
@@ -278,6 +222,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       }));
 
       const pedidoInfo = await consultarPedidoReal(numeroPedido);
+      console.log('📋 Respuesta de consultarPedidoReal:', pedidoInfo);
       
       if (pedidoInfo.encontrado) {
         let respuesta = '';
@@ -288,12 +233,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
           necesitaEscalamiento = true;
           
         } else if (pedidoInfo.estado === 'entregado') {
-          if (dicePedidoNoRecibido(textoUsuario)) {
-            respuesta = `🤔 Según nuestros registros, el pedido ${numeroPedido} fue entregado el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()}. Como indicas que no lo recibiste, contactaremos a nuestro equipo.`;
-            necesitaEscalamiento = true;
-          } else {
-            respuesta = `✅ Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} 🎉`;
-          }
+          respuesta = `✅ Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} 🎉`;
           
         } else if (pedidoInfo.estado === 'pendiente') {
           if (pedidoInfo.minutos_transcurridos > 20) {
@@ -303,10 +243,8 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             const tiempoRestante = Math.max(20 - pedidoInfo.minutos_transcurridos, 2);
             respuesta = `🚚 Tu pedido ${numeroPedido} está en proceso. Tiempo estimado: ${tiempoRestante} minutos más. Destino: ${pedidoInfo.direccion}`;
           }
-        }
-        
-        if (pedidoInfo.necesita_escalamiento) {
-          necesitaEscalamiento = true;
+        } else {
+          respuesta = `📦 Tu pedido ${numeroPedido} está en estado: ${pedidoInfo.estado}. Total: $${pedidoInfo.total.toLocaleString()}`;
         }
         
         setMensajes(prev => [...prev, { de: 'bot', texto: respuesta }]);
@@ -319,18 +257,30 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         return;
         
       } else {
-        const respuestaNoEncontrado = `🔍 No encontré el pedido ${numeroPedido} en tu cuenta. Verifica el número o inicia sesión con la cuenta correcta.`;
-        setMensajes(prev => [...prev, { de: 'bot', texto: respuestaNoEncontrado }]);
+        console.log('❌ Pedido no encontrado o error de autenticación');
+        let mensajeError = '';
+        
+        if (pedidoInfo.error === 'No autenticado. Por favor inicia sesión.') {
+          mensajeError = `🔒 Para consultar tu pedido ${numeroPedido}, necesitas iniciar sesión primero.`;
+        } else if (pedidoInfo.error === 'Sesión expirada. Por favor inicia sesión nuevamente.') {
+          mensajeError = `⏰ Tu sesión expiró. Por favor inicia sesión nuevamente para consultar el pedido ${numeroPedido}.`;
+        } else {
+          mensajeError = `🔍 No encontré el pedido ${numeroPedido} en tu cuenta. Verifica el número o inicia sesión con la cuenta correcta.`;
+        }
+        
+        setMensajes(prev => [...prev, { de: 'bot', texto: mensajeError }]);
         setIsLoading(false);
         return;
       }
     }
 
+    console.log('🤖 No es pedido, continuando con lógica normal...');
+
     if (necesitaEscalamiento(textoUsuario)) {
       setMostrarSoporte(true);
     }
 
-    // RESTO DE LÓGICA (productos, ChatGPT, etc.)
+    // LÓGICA DE PRODUCTOS
     const cantidad = parseInt(textoLimpio);
 
     if (estadoConversacion.esperandoCantidad && estadoConversacion.productoPendiente && !isNaN(cantidad)) {
@@ -424,7 +374,22 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         />
       )}
 
-      {/* Botón flotante */}
+      {/* 🆕 BOTÓN DE WHATSAPP PEQUEÑO AL LADO */}
+      <a
+        href="https://wa.me/573133592457?text=Hola%2C%20necesito%20soporte%20con%20mi%20pedido%20en%20Supercasa"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`fixed bottom-6 right-20 sm:right-28 text-white px-3 py-3 rounded-full shadow-lg z-50 transition-all duration-300 hover:scale-110 ${
+          darkMode 
+            ? 'bg-green-700 hover:bg-green-800' 
+            : 'bg-green-600 hover:bg-green-700'
+        }`}
+        title="Contactar Soporte WhatsApp"
+      >
+        <span className="text-lg">📱</span>
+      </a>
+
+      {/* Botón flotante del chat */}
       <button
         className={`fixed bottom-6 right-3 sm:right-6 text-white px-4 py-3 rounded-full shadow-lg z-50 transition-all duration-300 ${
           darkMode 
@@ -439,14 +404,13 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         </div>
       </button>
 
-      {/* Chat modal - 🆕 TAMAÑOS CORREGIDOS */}
+      {/* Chat modal */}
       {visible && (
         <div className={`fixed z-50 shadow-2xl rounded-xl border flex flex-col transition-colors duration-300 ${
           darkMode 
             ? 'bg-gray-800 border-gray-600' 
             : 'bg-white border-gray-300'
         } ${
-          // 🆕 RESPONSIVE CORREGIDO
           'bottom-20 right-2 sm:right-6 w-[95vw] sm:w-96 md:w-80 max-w-sm h-[70vh] sm:h-96'
         }`}>
           {/* Header */}
@@ -455,7 +419,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
           }`}>
             <div className="flex items-center gap-2">
               <span className="text-lg">🤖</span>
-              <span className="text-sm sm:text-base">Asistente Supercasa</span>
+              <span className="text-sm sm:text-base">Luna - Asistente Supercasa</span>
             </div>
             <div className="flex gap-1 sm:gap-2">
               <button
@@ -483,7 +447,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             </div>
           </div>
 
-          {/* Mensajes - 🆕 ALTURA FIJA Y SCROLL */}
+          {/* Mensajes */}
           <div className="p-2 sm:p-3 overflow-y-auto space-y-3 text-sm flex-1">
             {mensajes.map((msg, i) => (
               <div
@@ -519,41 +483,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             )}
           </div>
 
-          {/* Botón WhatsApp */}
-          {(mostrarSoporte || (input && necesitaEscalamiento(input))) && (
-            <div className={`p-2 sm:p-3 border-t transition-colors duration-300 ${
-              darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-green-50'
-            }`}>
-              <div className="flex justify-between items-start mb-2">
-                <p className={`text-xs sm:text-sm transition-colors duration-300 ${
-                  darkMode ? 'text-gray-300' : 'text-green-800'
-                }`}>
-                  🚨 Te conectaremos con soporte especializado.
-                </p>
-                <button 
-                  onClick={() => setMostrarSoporte(false)}
-                  className={`text-xs px-1 py-1 rounded transition-colors ml-2 ${
-                    darkMode 
-                      ? 'text-gray-400 hover:text-gray-200' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  ✕
-                </button>
-              </div>
-              <a
-                href="https://wa.me/573133592457?text=Hola%2C%20necesito%20soporte%20con%20mi%20pedido%20en%20Supercasa"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-xs sm:text-sm hover:bg-green-700 transition-colors w-full justify-center"
-              >
-                <span>📱</span>
-                <span>Contactar Soporte WhatsApp</span>
-              </a>
-            </div>
-          )}
-
-          {/* Input - 🆕 SIEMPRE VISIBLE */}
+          {/* Input */}
           <div className={`flex border-t transition-colors duration-300 ${
             darkMode ? 'border-gray-600' : 'border-gray-200'
           }`}>
