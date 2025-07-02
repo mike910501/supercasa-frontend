@@ -252,7 +252,7 @@ export default function AdminOrdersManagement() {
                     >
                       Ver Detalles
                     </button>
-                    {pedido.estado === 'Pendiente' && (
+                    {(pedido.estado === 'Pendiente' || pedido.estado === 'pendiente') && (
                       <div className="flex gap-2">
                         <button
                           onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
