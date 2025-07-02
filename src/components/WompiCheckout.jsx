@@ -62,7 +62,6 @@ const WompiCheckout = ({
     }
   };
 
-// 🔄 POLLING CORREGIDO - REEMPLAZAR FUNCIÓN COMPLETA
 const checkTransactionStatus = async (reference) => {
   try {
     console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
@@ -83,48 +82,21 @@ const checkTransactionStatus = async (reference) => {
       if (data.status === 'APPROVED') {
         console.log('✅ ¡PAGO APROBADO DETECTADO!');
         
-        // ✅ RESETEAR ESTADOS INMEDIATAMENTE
+        // ✅ LIMPIAR TODO INMEDIATAMENTE
         setPollingActive(false);
         setLoading(false);
-        
-        // ✅ LIMPIAR CARRITO
         localStorage.removeItem('carrito');
         
-        if (data.pedidoId) {
-          // ✅ WEBHOOK YA CREÓ EL PEDIDO - NO CREAR OTRO
-          console.log(`✅ Pedido ya existe: ${data.pedidoId} - NO crear duplicado`);
-          
-          toast.success('¡Pago confirmado! Tu pedido será entregado en máximo 20 minutos.', {
-            duration: 5000
-          });
-          
-          if (onPaymentSuccess) {
-            onPaymentSuccess({
-              pedidoId: data.pedidoId,
-              success: true,
-              message: 'Pedido creado exitosamente por webhook',
-              paymentData: {
-                reference: data.reference,
-                status: 'APPROVED',
-                id: reference
-              }
-            });
-          }
-          localStorage.removeItem('carrito');
-            setLoading(false);
-            setPollingActive(false);
-        } else {
-          // ✅ NO EXISTE PEDIDO - CREAR UNO
-          console.log('⚠️ Pago aprobado pero sin pedido - Creando...');
-          
-          await createOrder({
-            reference: data.reference || reference,
-            status: 'APPROVED',
-            payment_method: { type: 'WOMPI' },
-            id: reference,
-            amount_in_cents: total * 100
-          });
-        }
+        // ✅ FORZAR RECARGA DE PÁGINA PARA LIMPIAR CARRITO
+        toast.success('¡Pago confirmado! Tu pedido será entregado en máximo 20 minutos.', {
+          duration: 3000
+        });
+        
+        // ✅ RECARGAR PÁGINA DESPUÉS DE 2 SEGUNDOS
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+        
         return true;
         
       } else if (data.status === 'DECLINED') {
@@ -132,16 +104,13 @@ const checkTransactionStatus = async (reference) => {
         setPollingActive(false);
         setLoading(false);
         toast.error('Pago rechazado');
-        if (onPaymentError) onPaymentError({ status: 'DECLINED' });
         return true;
         
       } else {
-        // PENDING - seguir consultando
         console.log(`⏳ Estado: ${data.status} - Continuando...`);
         return false;
       }
     } else {
-      console.log('⚠️ Error en verificación:', response.status);
       return false;
     }
   } catch (error) {
@@ -209,29 +178,24 @@ const showPaymentSuccessCheck = async (reference) => {
 const createOrder = async (paymentData) => {
   try {
     console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
-    console.log('✅ Creando pedido automáticamente...');
 
     const token = localStorage.getItem('token');
     if (!token) {
       toast.error('Error: Token de autenticación no encontrado');
       setLoading(false);
-      setPollingActive(false);
       return;
     }
 
     const pedidoData = {
-        productos: carrito,
-        total: total,
-        ...deliveryData,
-        // 💳 DATOS DE TRACKING WOMPI - CORREGIDO
-        payment_reference: paymentData.reference || paymentData.id,
-        payment_status: paymentData.status || 'APPROVED',
-        payment_method: paymentData.payment_method?.type || 'WOMPI',
-        payment_transaction_id: paymentData.id,
-        payment_amount_cents: paymentData.amount_in_cents || (total * 100)
-        };
-
-    console.log('📦 Creando pedido:', pedidoData);
+      productos: carrito,
+      total: total,
+      ...deliveryData,
+      payment_reference: paymentData.reference || paymentData.id,
+      payment_status: paymentData.status || 'APPROVED',
+      payment_method: paymentData.payment_method?.type || 'WOMPI',
+      payment_transaction_id: paymentData.id,
+      payment_amount_cents: paymentData.amount_in_cents || (total * 100)
+    };
 
     const response = await fetch(`${API_URL}/orders`, {
       method: 'POST',
@@ -246,78 +210,44 @@ const createOrder = async (paymentData) => {
       const result = await response.json();
       console.log('🎉 ¡PEDIDO CREADO EXITOSAMENTE!', result);
       
-      toast.success('¡Pago aprobado automáticamente! Pedido creado con éxito', {
-        duration: 5000
+      // ✅ LIMPIAR TODO
+      localStorage.removeItem('carrito');
+      setLoading(false);
+      setPollingActive(false);
+      
+      toast.success('¡Pedido creado exitosamente! Redirigiendo...', {
+        duration: 3000
       });
       
-      // ✅ RESETEAR ESTADOS ANTES DE CALLBACK
-      setLoading(false);
-      setPollingActive(false);
+      // ✅ FORZAR RECARGA PARA LIMPIAR CARRITO
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
       
-      if (onPaymentSuccess) {
-        onPaymentSuccess({
-          ...result,
-          paymentData: paymentData
-        });
-      }
     } else {
-      console.error('❌ Error al crear pedido:', response.status);
       const errorData = await response.json();
-      console.error('Error details:', errorData);
-
-      // ✅ MANEJO DE ERRORES DE STOCK
-      if (errorData.error && errorData.error.includes('Stock insuficiente')) {
-        toast.error(`❌ ${errorData.error}`, {
-          duration: 6000,
-          style: {
-            background: '#fef2f2',
-            color: '#dc2626',
-            border: '1px solid #fecaca'
-          }
-        });
-      } else if (errorData.detalles && Array.isArray(errorData.detalles)) {
-        toast.error(`📦 Problemas de inventario:\n${errorData.detalles.join('\n')}`, {
-          duration: 8000
-        });
-      } else {
-        toast.error('Error al crear el pedido. Contacta soporte.');
-      }
-      
-      // ✅ RESETEAR ESTADOS EN ERROR
+      console.error('❌ Error al crear pedido:', errorData);
+      toast.error(errorData.error || 'Error al crear el pedido');
       setLoading(false);
-      setPollingActive(false);
     }
   } catch (error) {
     console.error('❌ Error en createOrder:', error);
-    
-    // ✅ MANEJO DE ERRORES ESPECÍFICOS
-    if (error.message && error.message.includes('Stock')) {
-      toast.error(`📦 ${error.message}`, {
-        duration: 6000
-      });
-    } else {
-      toast.error('Error al procesar el pedido');
-    }
-    
-    // ✅ RESETEAR ESTADOS EN CATCH
+    toast.error('Error al procesar el pedido');
     setLoading(false);
-    setPollingActive(false);
   }
 };
 
- // 📱 CONFIRMACIÓN MANUAL SEGURA - REEMPLAZAR FUNCIÓN
 const showManualConfirmation = async (reference) => {
   const userConfirm = window.confirm(
     '¿Tu pago fue procesado exitosamente?\n\n' +
-    'Verificaremos el estado real en WOMPI antes de crear tu pedido.'
+    'Verificaremos el estado real en WOMPI.'
   );
 
   if (userConfirm) {
-    console.log('✅ Usuario dice que pagó - VERIFICANDO EN WOMPI...');
+    console.log('✅ Usuario confirmó pago - Verificando...');
     setLoading(true);
     
     try {
-      // ✅ VERIFICAR REALMENTE EN WOMPI ANTES DE CREAR PEDIDO
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/verificar-pago/${reference}`, {
         headers: {
@@ -331,50 +261,31 @@ const showManualConfirmation = async (reference) => {
         
         if (data.status === 'APPROVED') {
           console.log('✅ CONFIRMADO: Pago real en WOMPI');
-          toast.success('¡Pago confirmado en WOMPI! Creando tu pedido...', {
+          
+          // ✅ LIMPIAR Y REDIRECCIONAR INMEDIATAMENTE
+          localStorage.removeItem('carrito');
+          
+          toast.success('¡Pago confirmado! Tu pedido está en proceso.', {
             duration: 3000
           });
           
-          await createOrder({
-            reference: reference,
-            status: 'APPROVED',
-            payment_method: { type: 'MANUAL_VERIFIED' },
-            id: reference,
-            amount_in_cents: total * 100
-          });
-          
-        } else if (data.status === 'PENDING') {
-          console.log('⏳ Pago aún pendiente en WOMPI');
-          toast.loading('Tu pago aún está siendo procesado. Intenta en 2 minutos.', {
-            duration: 5000
-          });
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
           
         } else {
-          console.log('❌ Pago no encontrado en WOMPI');
-          toast.error('No encontramos tu pago en WOMPI. Si realizaste el pago, espera unos minutos e intenta de nuevo.', {
-            duration: 8000
+          toast.error('Pago no confirmado en WOMPI. Si pagaste, espera unos minutos.', {
+            duration: 6000
           });
         }
-      } else {
-        throw new Error('Error verificando en WOMPI');
       }
       
     } catch (error) {
       console.error('❌ Error verificando pago:', error);
-      toast.error('Error verificando el pago. Si pagaste, tu pedido se procesará automáticamente.', {
-        duration: 6000
-      });
+      toast.error('Error verificando pago.');
     } finally {
       setLoading(false);
     }
-    
-  } else {
-    console.log('❌ Usuario canceló confirmación manual');
-    toast.error('Si el dinero fue debitado, contacta soporte. Tu pedido será procesado automáticamente si el pago fue exitoso.', {
-      duration: 8000
-    });
-    
-    if (onPaymentError) onPaymentError({ status: 'USER_CANCELLED' });
   }
 };
 
