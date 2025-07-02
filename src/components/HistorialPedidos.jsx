@@ -257,19 +257,12 @@ export default function HistorialPedidos() {
                   {/* Botón Ver Detalles */}
                   {/* Botones de acción */}
 <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-  <button
-    onClick={() => {
-      // Crear evento para abrir chat con este pedido
-      const numeroPedido = formatearNumeroPedido(pedido.id);
-      const event = new CustomEvent('abrirChatConPedido', { 
-        detail: { numeroPedido } 
-      });
-      window.dispatchEvent(event);
-    }}
-    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
-  >
-    💬 Consultar en Chat
-  </button>
+  <a
+  href={`/?openChat=true&pedido=${formatearNumeroPedido(pedido.id)}`}
+  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium inline-block text-center no-underline"
+>
+  💬 Consultar en Chat
+</a>
   
   <button
     onClick={() => {

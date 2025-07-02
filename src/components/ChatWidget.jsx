@@ -17,20 +17,52 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     esperandoCantidad: false,
   });
 
-  // 💾 PERSISTENCIA - Cargar mensajes guardados
-  useEffect(() => {
-    const mensajesGuardados = localStorage.getItem('chat_mensajes');
-    if (mensajesGuardados) {
-      try {
-        const mensajesParsed = JSON.parse(mensajesGuardados);
-        if (mensajesParsed.length > 0) {
-          setMensajes(mensajesParsed);
-        }
-      } catch (error) {
-        console.error('Error cargando chat:', error);
+ useEffect(() => {
+  // 💾 Cargar mensajes guardados
+  const mensajesGuardados = localStorage.getItem('chat_mensajes');
+  if (mensajesGuardados) {
+    try {
+      const mensajesParsed = JSON.parse(mensajesGuardados);
+      if (mensajesParsed.length > 0) {
+        setMensajes(mensajesParsed);
       }
+    } catch (error) {
+      console.error('Error cargando chat:', error);
     }
-  }, []);
+  }
+
+  // 🆕 Verificar parámetros URL para abrir chat automáticamente
+  const urlParams = new URLSearchParams(window.location.search);
+  const openChat = urlParams.get('openChat');
+  const pedidoConsulta = urlParams.get('pedido');
+  
+  if (openChat === 'true') {
+    console.log('📱 Abriendo chat desde URL con pedido:', pedidoConsulta);
+    setVisible(true);
+    
+    if (pedidoConsulta) {
+      setInput(pedidoConsulta);
+      
+      // Auto-enviar el mensaje después de 1 segundo
+      setTimeout(() => {
+        if (pedidoConsulta.trim()) {
+          console.log('🚀 Auto-enviando mensaje:', pedidoConsulta);
+          
+          // Agregar mensaje del usuario
+          setMensajes((prev) => [...prev, { de: 'usuario', texto: pedidoConsulta }]);
+          setInput('');
+          setIsLoading(true);
+          
+          // Procesar el mensaje
+          enviarMensajeDirecto(pedidoConsulta);
+        }
+      }, 1000);
+    }
+    
+    // Limpiar URL sin recargar
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}, []);
 
   // 💾 PERSISTENCIA - Guardar mensajes
   useEffect(() => {
@@ -53,6 +85,101 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       window.removeEventListener('abrirChatConPedido', handleAbrirChatConPedido);
     };
   }, []);
+  const enviarMensajeDirecto = async (textoUsuario) => {
+  if (!textoUsuario.trim()) {
+    setIsLoading(false);
+    return;
+  }
+
+  const textoLimpio = limpiarTexto(textoUsuario);
+  
+  // Detectar número de pedido
+  const numeroPedido = detectarNumeroPedido(textoUsuario);
+  
+  if (numeroPedido) {
+    const consultasActuales = consultasPedido[numeroPedido] || 0;
+    setConsultasPedido(prev => ({
+      ...prev,
+      [numeroPedido]: consultasActuales + 1
+    }));
+
+    const pedidoInfo = await consultarPedidoReal(numeroPedido);
+    
+    if (pedidoInfo.encontrado) {
+      let respuesta = '';
+      let necesitaEscalamiento = false;
+      
+      if (pedidoInfo.estado === 'cancelado') {
+        respuesta = `❌ Tu pedido ${numeroPedido} fue cancelado. Nuestro equipo te contactará para resolver esta situación.`;
+        necesitaEscalamiento = true;
+        
+      } else if (pedidoInfo.estado === 'entregado') {
+        if (dicePedidoNoRecibido(textoUsuario)) {
+          respuesta = `🤔 Según nuestros registros, el pedido ${numeroPedido} fue entregado el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()}. Como indicas que no lo recibiste, contactaremos a nuestro equipo.`;
+          necesitaEscalamiento = true;
+        } else {
+          respuesta = `✅ Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} 🎉`;
+        }
+        
+      } else if (pedidoInfo.estado === 'pendiente') {
+        if (pedidoInfo.minutos_transcurridos > 20) {
+          respuesta = `⏰ Tu pedido ${numeroPedido} lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado, contactaremos a nuestro equipo.`;
+          necesitaEscalamiento = true;
+        } else {
+          const tiempoRestante = Math.max(20 - pedidoInfo.minutos_transcurridos, 2);
+          respuesta = `🚚 Tu pedido ${numeroPedido} está en proceso. Tiempo estimado: ${tiempoRestante} minutos más. Destino: ${pedidoInfo.direccion}`;
+        }
+      }
+      
+      if (pedidoInfo.necesita_escalamiento) {
+        necesitaEscalamiento = true;
+      }
+      
+      setMensajes(prev => [...prev, { de: 'bot', texto: respuesta }]);
+      
+      if (necesitaEscalamiento) {
+        setMostrarSoporte(true);
+      }
+      
+    } else {
+      const respuestaNoEncontrado = `🔍 No encontré el pedido ${numeroPedido} en tu cuenta. Verifica el número o inicia sesión con la cuenta correcta.`;
+      setMensajes(prev => [...prev, { de: 'bot', texto: respuestaNoEncontrado }]);
+    }
+    
+    setIsLoading(false);
+    return;
+  }
+
+  // Si no es un pedido, usar ChatGPT
+  try {
+    const res = await fetch(`${API_URL}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        mensaje: textoUsuario,
+        historial: mensajes
+      }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    setMensajes((prev) => [...prev, { de: 'bot', texto: data.respuesta }]);
+  } catch (err) {
+    console.error('❌ Error chat:', err);
+    setMensajes((prev) => [
+      ...prev,
+      {
+        de: 'bot',
+        texto: '⚠️ Disculpa, tuve un problemita técnico. ¿Puedes intentar de nuevo? 😅',
+      },
+    ]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const limpiarTexto = (texto) =>
     texto
