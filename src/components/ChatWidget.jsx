@@ -8,7 +8,8 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     { de: 'bot', texto: '¡Hola! 👋 Soy el asistente de Supercasa. ¿En qué puedo ayudarte?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [mostrarSoporte, setMostrarSoporte] = useState(false); // 🆕 Estado persistente
+  const [mostrarSoporte, setMostrarSoporte] = useState(false);
+  const [consultasPedido, setConsultasPedido] = useState({}); // 🆕 Rastrear consultas por pedido
 
   // 🧠 Estado conversacional para productos
   const [estadoConversacion, setEstadoConversacion] = useState({
@@ -33,7 +34,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
 
   // 💾 PERSISTENCIA - Guardar mensajes
   useEffect(() => {
-    if (mensajes.length > 1) { // No guardar solo el mensaje inicial
+    if (mensajes.length > 1) {
       localStorage.setItem('chat_mensajes', JSON.stringify(mensajes));
     }
   }, [mensajes]);
@@ -65,16 +66,61 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       'problema', 'error', 'no funciona', 'bug', 'fallo', 'soporte',
       'reclamo', 'queja', 'devolucion', 'cancelar', 'reembolso',
       'no puedo', 'no me deja', 'no carga', 'ayuda urgente',
-      'soporte tecnico', 'no me funciona', 'esta malo', 'no ha llegado',
-      'no me ha llegado', 'demora', 'pedido cancelado', 'hablar con soporte'
+      'soporte tecnico', 'no me funciona', 'esta malo',
+      'hablar con soporte', 'contactar soporte'
     ];
     return palabrasClave.some(palabra => texto.includes(palabra));
+  };
+
+  // 🆕 Función para detectar números de pedido
+  const detectarNumeroPedido = (mensaje) => {
+    const regex = /SUP-(\d+)|sup-(\d+)/gi;
+    const match = mensaje.match(regex);
+    return match ? match[0].toUpperCase() : null;
+  };
+
+  // 🆕 Función para detectar si dice que no recibió el pedido
+  const dicePedidoNoRecibido = (mensaje) => {
+    const texto = limpiarTexto(mensaje);
+    const frases = [
+      'no ha llegado', 'no me ha llegado', 'no recibí', 'no me llegó',
+      'no llegó', 'no entregaron', 'no vino', 'no aparece'
+    ];
+    return frases.some(frase => texto.includes(frase));
+  };
+
+  // 🆕 Función para consultar pedido real
+  const consultarPedidoReal = async (numeroPedido) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return { encontrado: false, error: 'No autenticado' };
+      }
+
+      console.log(`🔍 Consultando pedido ${numeroPedido}`);
+      
+      const res = await fetch(`${API_URL}/chat/pedido/${numeroPedido}`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await res.json();
+      console.log(`📊 Respuesta consulta:`, data);
+      
+      return data;
+    } catch (error) {
+      console.error('❌ Error consultando pedido:', error);
+      return { encontrado: false, error: 'Error de conexión' };
+    }
   };
 
   const limpiarChat = () => {
     setMensajes([{ de: 'bot', texto: '¡Hola! 👋 Soy el asistente de Supercasa. ¿En qué puedo ayudarte?' }]);
     setEstadoConversacion({ productoPendiente: null, esperandoCantidad: false });
-    setMostrarSoporte(false); // 🆕 Resetear soporte
+    setMostrarSoporte(false);
+    setConsultasPedido({}); // 🆕 Limpiar historial de consultas
     localStorage.removeItem('chat_mensajes');
   };
 
@@ -82,17 +128,92 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
     if (!input.trim() || isLoading) return;
 
     const textoUsuario = input.trim();
+    const textoLimpio = limpiarTexto(textoUsuario);
     
-    // 🆕 DETECTAR SOPORTE ANTES DE LIMPIAR INPUT
+    setMensajes((prev) => [...prev, { de: 'usuario', texto: textoUsuario }]);
+    setInput('');
+    setIsLoading(true);
+
+    // 🆕 PRIORIDAD 1: DETECTAR Y CONSULTAR NÚMEROS DE PEDIDO
+    const numeroPedido = detectarNumeroPedido(textoUsuario);
+    
+    if (numeroPedido) {
+      console.log(`🎯 Detectado número de pedido: ${numeroPedido}`);
+      
+      // Incrementar contador de consultas para este pedido
+      const consultasActuales = consultasPedido[numeroPedido] || 0;
+      setConsultasPedido(prev => ({
+        ...prev,
+        [numeroPedido]: consultasActuales + 1
+      }));
+
+      const pedidoInfo = await consultarPedidoReal(numeroPedido);
+      
+      if (pedidoInfo.encontrado) {
+        let respuesta = '';
+        let necesitaEscalamiento = false;
+        
+        if (pedidoInfo.estado === 'cancelado') {
+          respuesta = `❌ Tu pedido ${numeroPedido} fue cancelado. Nuestro equipo te contactará para resolver esta situación y procesar cualquier reembolso necesario.`;
+          necesitaEscalamiento = true;
+          
+        } else if (pedidoInfo.estado === 'entregado') {
+          if (dicePedidoNoRecibido(textoUsuario)) {
+            respuesta = `🤔 Según nuestros registros, el pedido ${numeroPedido} fue entregado el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} a las ${new Date(pedidoInfo.fecha_entrega).toLocaleTimeString()}. Como indicas que no lo recibiste, contactaremos inmediatamente a nuestro equipo para revisar esta situación.`;
+            necesitaEscalamiento = true;
+          } else {
+            respuesta = `✅ ¡Excelente! Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} a las ${new Date(pedidoInfo.fecha_entrega).toLocaleTimeString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()}. ¡Gracias por elegir Supercasa! 🎉`;
+          }
+          
+        } else if (pedidoInfo.estado === 'pendiente') {
+          if (pedidoInfo.minutos_transcurridos > 20) {
+            respuesta = `⏰ Tu pedido ${numeroPedido} lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado de 20 minutos, contactaremos inmediatamente a nuestro equipo para agilizar la entrega. ¡Disculpas por la demora!`;
+            necesitaEscalamiento = true;
+          } else {
+            const tiempoRestante = Math.max(20 - pedidoInfo.minutos_transcurridos, 2);
+            respuesta = `🚚 Tu pedido ${numeroPedido} está en proceso. Tiempo estimado de entrega: ${tiempoRestante} minutos más. Destino: ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} ⏱️`;
+          }
+          
+        } else {
+          // Estados como 'procesando', 'enviado', etc.
+          respuesta = `📦 Tu pedido ${numeroPedido} está en estado: ${pedidoInfo.estado}. Destino: ${pedidoInfo.direccion}. Si tienes dudas, nuestro equipo puede ayudarte.`;
+          
+          // Escalamiento si consulta múltiples veces
+          if (consultasActuales >= 2) {
+            respuesta += ` Como es tu ${consultasActuales + 1}ª consulta sobre este pedido, te conectaremos con soporte especializado.`;
+            necesitaEscalamiento = true;
+          }
+        }
+        
+        // Escalamiento automático por pedido problemático
+        if (pedidoInfo.necesita_escalamiento) {
+          necesitaEscalamiento = true;
+        }
+        
+        setMensajes(prev => [...prev, { de: 'bot', texto: respuesta }]);
+        
+        if (necesitaEscalamiento) {
+          setMostrarSoporte(true);
+        }
+        
+        setIsLoading(false);
+        return; // No llamar a ChatGPT para consultas de pedidos
+        
+      } else {
+        // Pedido no encontrado
+        const respuestaNoEncontrado = `🔍 No pude encontrar el pedido ${numeroPedido} en tu cuenta. Verifica que el número sea correcto (formato: SUP-123) o que hayas iniciado sesión con la cuenta correcta.`;
+        setMensajes(prev => [...prev, { de: 'bot', texto: respuestaNoEncontrado }]);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // 🆕 PRIORIDAD 2: DETECTAR ESCALAMIENTO GENERAL (no relacionado con pedidos específicos)
     if (necesitaEscalamiento(textoUsuario)) {
       setMostrarSoporte(true);
     }
-    
-    setMensajes((prev) => [...prev, { de: 'usuario', texto: textoUsuario }]);
-    setInput(''); // Ahora se limpia DESPUÉS de detectar soporte
-    setIsLoading(true);
 
-    const textoLimpio = limpiarTexto(textoUsuario);
+    // RESTO DE LA LÓGICA ORIGINAL (productos, ChatGPT, etc.)
     const cantidad = parseInt(textoLimpio);
 
     // 🧠 Si está esperando cantidad
@@ -148,14 +269,14 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       return;
     }
 
-    // 🌐 Llamada a la IA con CONTEXTO
+    // 🌐 Llamada a la IA con CONTEXTO (solo si no se manejó arriba)
     try {
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           mensaje: textoUsuario,
-          historial: mensajes // ✅ ENVIAR HISTORIAL COMPLETO
+          historial: mensajes
         }),
       });
 
@@ -267,13 +388,13 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                     <div className="w-2 h-2 bg-current rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
                     <div className="w-2 h-2 bg-current rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                   </div>
-                  <span className="text-xs">Escribiendo...</span>
+                  <span className="text-xs">Consultando...</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* 📱 BOTÓN WHATSAPP PERSISTENTE */}
+          {/* 📱 BOTÓN WHATSAPP INTELIGENTE */}
           {(mostrarSoporte || (input && necesitaEscalamiento(input))) && (
             <div className={`p-3 border-t transition-colors duration-300 ${
               darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-green-50'
@@ -282,7 +403,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                 <p className={`text-sm transition-colors duration-300 ${
                   darkMode ? 'text-gray-300' : 'text-green-800'
                 }`}>
-                  🤔 Parece que necesitas soporte especializado.
+                  🚨 Te conectaremos con nuestro equipo de soporte especializado.
                 </p>
                 <button 
                   onClick={() => setMostrarSoporte(false)}
@@ -297,13 +418,13 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                 </button>
               </div>
               <a
-                href="https://wa.me/573133592457?text=Hola%2C%20necesito%20soporte%20t%C3%A9cnico%20con%20Supercasa"
+                href="https://wa.me/573133592457?text=Hola%2C%20necesito%20soporte%20con%20mi%20pedido%20en%20Supercasa"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors w-full justify-center"
               >
                 <span>📱</span>
-                <span>Contactar por WhatsApp</span>
+                <span>Contactar Soporte WhatsApp</span>
               </a>
             </div>
           )}
@@ -321,7 +442,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                   ? 'bg-gray-800 text-white placeholder-gray-400' 
                   : 'bg-white text-gray-900 placeholder-gray-500'
               }`}
-              placeholder="Escribe tu mensaje..."
+              placeholder="Escribe tu mensaje o número de pedido (SUP-123)..."
               onKeyDown={(e) => e.key === 'Enter' && enviarMensaje()}
               disabled={isLoading}
             />
