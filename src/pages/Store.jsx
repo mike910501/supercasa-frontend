@@ -610,6 +610,72 @@ function Store({ user, token, onLogout }) {
     }
   }, []);
 
+  // 🆕 VERIFICAR PEDIDOS RECIENTES AL REGRESAR DE PAGOS PSE
+  useEffect(() => {
+    const verificarPedidoReciente = async () => {
+      const carritoActual = JSON.parse(localStorage.getItem('carrito') || '[]');
+      
+      // Solo verificar si hay carrito con productos
+      if (carritoActual.length > 0) {
+        console.log('🔍 Verificando pedidos recientes al cargar Store...');
+        
+        try {
+          const response = await fetch(`${API_URL}/api/verificar-pedido-reciente`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.found && data.payment_status === 'APPROVED') {
+              console.log('🎉 ¡PEDIDO RECIENTE DETECTADO AL REGRESAR!', data);
+              
+              // ✅ LIMPIAR CARRITO Y MOSTRAR CONFIRMACIÓN
+              setCarrito([]);
+              localStorage.removeItem('carrito');
+              
+              toast.success(`🎉 ¡Tu pago fue confirmado! Pedido ${data.pedidoId} creado exitosamente. Entrega en máximo 20 minutos.`, {
+                duration: 10000,
+                style: {
+                  background: '#10B981',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  padding: '16px',
+                  fontSize: '16px'
+                }
+              });
+              
+              // Opcional: Mostrar modal adicional de confirmación
+              setTimeout(() => {
+                const userConfirm = window.confirm(
+                  `✅ ¡PEDIDO CONFIRMADO!\n\n` +
+                  `Número: ${data.pedidoId}\n` +
+                  `Total: $${data.total.toLocaleString()}\n` +
+                  `Entrega: Máximo 20 minutos\n\n` +
+                  `¿Deseas ver tu historial de pedidos?`
+                );
+                
+                if (userConfirm) {
+                  navigate('/historial');
+                }
+              }, 3000);
+            }
+          }
+        } catch (error) {
+          console.log('⚠️ Error verificando pedido reciente:', error);
+        }
+      }
+    };
+
+    // Verificar inmediatamente al cargar
+    if (token) {
+      verificarPedidoReciente();
+    }
+  }, [token, navigate]); // Solo cuando el token esté disponible
+
   // Guardar carrito en localStorage cuando cambie
   useEffect(() => {
     localStorage.setItem('carrito', JSON.stringify(carrito));
