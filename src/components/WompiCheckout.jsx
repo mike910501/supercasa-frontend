@@ -482,6 +482,33 @@ const showManualConfirmation = async (reference) => {
       const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
       const randomNumber = Math.floor(Math.random() * 9000) + 1000;
       const reference = `SC-000-${timestamp}-${randomString}-${randomNumber}`;
+
+      // 💾 NUEVO: GUARDAR CARRITO TEMPORAL ANTES DEL PAGO
+console.log('💾 Guardando carrito temporal...');
+try {
+  const token = localStorage.getItem('token');
+  const carritoResponse = await fetch(`${API_URL}/api/guardar-carrito-temporal`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      referencia: reference,
+      productos: carrito,
+      datos_entrega: deliveryData
+    })
+  });
+  
+  if (carritoResponse.ok) {
+    console.log('✅ Carrito temporal guardado exitosamente');
+  } else {
+    console.log('⚠️ Error guardando carrito temporal, continuando...');
+  }
+} catch (carritoError) {
+  console.log('⚠️ Error en carrito temporal:', carritoError);
+  // Continuar con el pago aunque falle guardar carrito
+}
       
       console.log('🔗 Referencia generada:', reference);
 
