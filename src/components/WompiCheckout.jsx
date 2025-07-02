@@ -66,6 +66,52 @@ const checkTransactionStatus = async (reference) => {
   try {
     console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
     
+    // 🆕 VERIFICAR PRIMERO EN WOMPI DIRECTAMENTE
+    try {
+      const wompiResponse = await fetch(`https://api.wompi.co/v1/transactions/${reference}`, {
+        headers: {
+          'Authorization': `Bearer prv_prod_bR8TUl71quylBwNiQcNn8OIFD1i9IdsR`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (wompiResponse.ok) {
+        const wompiData = await wompiResponse.json();
+        const status = wompiData.data?.status;
+        
+        console.log('📊 Estado en WOMPI:', status);
+        
+        if (status === 'APPROVED') {
+          console.log('✅ ¡PAGO CONFIRMADO EN WOMPI! Creando pedido...');
+          
+          // ✅ CREAR PEDIDO INMEDIATAMENTE
+          await createOrder({
+            reference: wompiData.data.reference || reference,
+            status: 'APPROVED',
+            payment_method: { type: wompiData.data.payment_method_type || 'WOMPI' },
+            id: reference,
+            amount_in_cents: wompiData.data.amount_in_cents || (total * 100)
+          });
+          
+          return true;
+          
+        } else if (status === 'DECLINED') {
+          console.log('❌ Pago rechazado en WOMPI');
+          setPollingActive(false);
+          setLoading(false);
+          toast.error('Pago rechazado');
+          return true;
+          
+        } else {
+          console.log(`⏳ Estado en WOMPI: ${status} - Continuando...`);
+          return false;
+        }
+      }
+    } catch (wompiError) {
+      console.log('⚠️ Error consultando WOMPI:', wompiError);
+    }
+    
+    // 🔄 FALLBACK: Verificar en nuestro backend  
     const token = localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/verificar-pago/${reference}`, {
       method: 'GET',
@@ -77,42 +123,39 @@ const checkTransactionStatus = async (reference) => {
 
     if (response.ok) {
       const data = await response.json();
-      console.log('📊 Respuesta verificación:', data);
+      console.log('📊 Respuesta backend:', data);
       
       if (data.status === 'APPROVED') {
-        console.log('✅ ¡PAGO APROBADO DETECTADO!');
+        console.log('✅ Pago confirmado en backend');
         
-        // ✅ LIMPIAR TODO INMEDIATAMENTE
-        setPollingActive(false);
-        setLoading(false);
-        localStorage.removeItem('carrito');
-        
-        // ✅ FORZAR RECARGA DE PÁGINA PARA LIMPIAR CARRITO
-        toast.success('¡Pago confirmado! Tu pedido será entregado en máximo 20 minutos.', {
-          duration: 3000
-        });
-        
-        // ✅ RECARGAR PÁGINA DESPUÉS DE 2 SEGUNDOS
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
+        if (data.pedidoId) {
+          // Ya existe pedido
+          setPollingActive(false);
+          setLoading(false);
+          localStorage.removeItem('carrito');
+          
+          toast.success('¡Pago confirmado! Tu pedido será entregado en máximo 20 minutos.');
+          
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        } else {
+          // Crear pedido
+          await createOrder({
+            reference: data.reference || reference,
+            status: 'APPROVED',
+            payment_method: { type: 'BACKEND_VERIFIED' },
+            id: reference,
+            amount_in_cents: total * 100
+          });
+        }
         
         return true;
-        
-      } else if (data.status === 'DECLINED') {
-        console.log('❌ Pago rechazado');
-        setPollingActive(false);
-        setLoading(false);
-        toast.error('Pago rechazado');
-        return true;
-        
-      } else {
-        console.log(`⏳ Estado: ${data.status} - Continuando...`);
-        return false;
       }
-    } else {
-      return false;
     }
+    
+    return false;
+    
   } catch (error) {
     console.log('⚠️ Error en polling:', error);
     return false;
