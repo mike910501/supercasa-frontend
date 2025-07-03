@@ -5,7 +5,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
   const [visible, setVisible] = useState(false);
   const [input, setInput] = useState('');
   const [mensajes, setMensajes] = useState([
-    { de: 'bot', texto: '¡Hola! 👋 Soy **Luna**, tu asistente de Supercasa. Siempre tendrás la opción de contactar a soporte, pero primero trata conmigo de gestionar tu duda - podría ayudarte más rápido 🚀 ¿En qué puedo ayudarte?' }
+    { de: 'bot', texto: '¡Hola! 👋 Soy **Luna**, tu asistente de las 5 Torres de Supercasa 🏗️. Siempre tendrás la opción de contactar a soporte, pero primero trata conmigo de gestionar tu duda - podría ayudarte más rápido 🚀 ¿En qué puedo ayudarte?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [mostrarSoporte, setMostrarSoporte] = useState(false);
@@ -47,7 +47,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         setTimeout(() => {
           setMensajes(prev => [...prev, { 
             de: 'bot', 
-            texto: `👋 ¡Hola! Veo que quieres consultar el pedido ${mensaje}. Presiona el botón ➤ para ver el estado.` 
+            texto: `🏗️ ¡Hola! Veo que quieres consultar el pedido ${mensaje}. Presiona el botón ➤ para ver el estado en Supercasa.` 
           }]);
         }, 500);
         
@@ -57,8 +57,8 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             const chatInput = document.querySelector('input[placeholder*="SUP"], input[placeholder*="Mensaje"]');
             if (chatInput) {
               chatInput.focus();
-              chatInput.style.borderColor = '#22c55e';
-              chatInput.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.1)';
+              chatInput.style.borderColor = '#f59e0b';
+              chatInput.style.boxShadow = '0 0 0 3px rgba(245, 158, 11, 0.1)';
             }
           }, 1000);
         }
@@ -187,28 +187,29 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
       return { encontrado: false, error: 'Error de conexión' };
     }
   };
+
   const consultarProductosDisponibles = async (busqueda) => {
-  try {
-    console.log('🔍 Buscando productos:', busqueda);
-    
-    const res = await fetch(`${API_URL}/productos/buscar/${encodeURIComponent(busqueda)}`);
-    
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+    try {
+      console.log('🔍 Buscando productos:', busqueda);
+      
+      const res = await fetch(`${API_URL}/productos/buscar/${encodeURIComponent(busqueda)}`);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      
+      const data = await res.json();
+      console.log('📦 Productos encontrados:', data);
+      return data;
+      
+    } catch (error) {
+      console.error('❌ Error buscando productos:', error);
+      return { encontrados: false, productos: [], cantidad: 0 };
     }
-    
-    const data = await res.json();
-    console.log('📦 Productos encontrados:', data);
-    return data;
-    
-  } catch (error) {
-    console.error('❌ Error buscando productos:', error);
-    return { encontrados: false, productos: [], cantidad: 0 };
-  }
-};
+  };
 
   const limpiarChat = () => {
-    setMensajes([{ de: 'bot', texto: '¡Hola! 👋 Soy **Luna**, tu asistente de Supercasa. Siempre tendrás la opción de contactar a soporte, pero primero trata conmigo de gestionar tu duda - podría ayudarte más rápido 🚀 ¿En qué puedo ayudarte?' }]);
+    setMensajes([{ de: 'bot', texto: '¡Hola! 👋 Soy **Luna**, tu asistente de las 5 Torres de Supercasa 🏗️. Siempre tendrás la opción de contactar a soporte, pero primero trata conmigo de gestionar tu duda - podría ayudarte más rápido 🚀 ¿En qué puedo ayudarte?' }]);
     setEstadoConversacion({ productoPendiente: null, esperandoCantidad: false });
     setMostrarSoporte(false);
     setConsultasPedido({});
@@ -248,22 +249,22 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         let necesitaEscalamiento = false;
         
         if (pedidoInfo.estado === 'cancelado') {
-          respuesta = `❌ Tu pedido ${numeroPedido} fue cancelado. Nuestro equipo te contactará para resolver esta situación.`;
+          respuesta = `❌ Tu pedido ${numeroPedido} de Supercasa fue cancelado. Nuestro equipo te contactará para resolver esta situación.`;
           necesitaEscalamiento = true;
           
         } else if (pedidoInfo.estado === 'entregado') {
-          respuesta = `✅ Tu pedido ${numeroPedido} fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} 🎉`;
+          respuesta = `🏗️ ¡Perfecto! Tu pedido ${numeroPedido} de Supercasa fue entregado exitosamente el ${new Date(pedidoInfo.fecha_entrega).toLocaleDateString()} en ${pedidoInfo.direccion}. Total: $${pedidoInfo.total.toLocaleString()} 🎉`;
           
         } else if (pedidoInfo.estado === 'pendiente') {
           if (pedidoInfo.minutos_transcurridos > 20) {
-            respuesta = `⏰ Tu pedido ${numeroPedido} lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado, contactaremos a nuestro equipo.`;
+            respuesta = `⏰ Tu pedido ${numeroPedido} de Supercasa lleva ${pedidoInfo.minutos_transcurridos} minutos en proceso. Como ha superado nuestro tiempo estimado de las Torres, contactaremos a nuestro equipo.`;
             necesitaEscalamiento = true;
           } else {
             const tiempoRestante = Math.max(20 - pedidoInfo.minutos_transcurridos, 2);
-            respuesta = `🚚 Tu pedido ${numeroPedido} está en proceso. Tiempo estimado: ${tiempoRestante} minutos más. Destino: ${pedidoInfo.direccion}`;
+            respuesta = `🏗️ Tu pedido ${numeroPedido} está en camino desde Supercasa. Tiempo estimado: ${tiempoRestante} minutos más. Destino: ${pedidoInfo.direccion}`;
           }
         } else {
-          respuesta = `📦 Tu pedido ${numeroPedido} está en estado: ${pedidoInfo.estado}. Total: $${pedidoInfo.total.toLocaleString()}`;
+          respuesta = `📦 Tu pedido ${numeroPedido} de Supercasa está en estado: ${pedidoInfo.estado}. Total: $${pedidoInfo.total.toLocaleString()}`;
         }
         
         setMensajes(prev => [...prev, { de: 'bot', texto: respuesta }]);
@@ -280,11 +281,11 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         let mensajeError = '';
         
         if (pedidoInfo.error === 'No autenticado. Por favor inicia sesión.') {
-          mensajeError = `🔒 Para consultar tu pedido ${numeroPedido}, necesitas iniciar sesión primero.`;
+          mensajeError = `🔒 Para consultar tu pedido ${numeroPedido} de Supercasa, necesitas iniciar sesión primero.`;
         } else if (pedidoInfo.error === 'Sesión expirada. Por favor inicia sesión nuevamente.') {
-          mensajeError = `⏰ Tu sesión expiró. Por favor inicia sesión nuevamente para consultar el pedido ${numeroPedido}.`;
+          mensajeError = `⏰ Tu sesión expiró. Por favor inicia sesión nuevamente para consultar el pedido ${numeroPedido} de Supercasa.`;
         } else {
-          mensajeError = `🔍 No encontré el pedido ${numeroPedido} en tu cuenta. Verifica el número o inicia sesión con la cuenta correcta.`;
+          mensajeError = `🔍 No encontré el pedido ${numeroPedido} en tu cuenta de Supercasa. Verifica el número o inicia sesión con la cuenta correcta.`;
         }
         
         setMensajes(prev => [...prev, { de: 'bot', texto: mensajeError }]);
@@ -311,7 +312,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         ...prev,
         {
           de: 'bot',
-          texto: `✅ ¡Listo! Agregué ${cantidad} ${estadoConversacion.productoPendiente.nombre} al carrito 🛒`,
+          texto: `🏗️ ¡Listo! Agregué ${cantidad} ${estadoConversacion.productoPendiente.nombre} al carrito de Supercasa 🛒`,
         },
       ]);
 
@@ -333,7 +334,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         ...prev,
         {
           de: 'bot',
-          texto: `👍 Perfecto. Tenemos ${productoDetectado.nombre} por $${productoDetectado.precio.toLocaleString()}. ¿Cuántos quieres agregar?`,
+          texto: `🏗️ ¡Perfecto! Tenemos ${productoDetectado.nombre} en Supercasa por $${productoDetectado.precio.toLocaleString()}. ¿Cuántos quieres agregar?`,
         },
       ]);
       setIsLoading(false);
@@ -345,7 +346,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         ...prev,
         {
           de: 'bot',
-          texto: `Tenemos ${productoDetectado.nombre} por $${productoDetectado.precio.toLocaleString()} 💰 ¿Te gustaría comprarlo?`,
+          texto: `🏗️ Tenemos ${productoDetectado.nombre} en Supercasa por $${productoDetectado.precio.toLocaleString()} 💰 ¿Te gustaría comprarlo?`,
         },
       ]);
       setIsLoading(false);
@@ -375,7 +376,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         ...prev,
         {
           de: 'bot',
-          texto: '⚠️ Disculpa, tuve un problemita técnico. ¿Puedes intentar de nuevo? 😅',
+          texto: '⚠️ Disculpa, tuve un problemita técnico en las Torres de Supercasa. ¿Puedes intentar de nuevo? 😅',
         },
       ]);
     } finally {
@@ -393,9 +394,9 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
         />
       )}
 
-      {/* 🆕 BOTÓN DE WHATSAPP PEQUEÑO AL LADO */}
+      {/* 🆕 BOTÓN DE WHATSAPP con branding Supercasa */}
       <a
-        href="https://wa.me/573133592457?text=Hola%2C%20necesito%20soporte%20con%20mi%20pedido%20en%20Supercasa"
+        href="https://wa.me/573133592457?text=Hola%2C%20necesito%20soporte%20con%20mi%20pedido%20en%20Supercasa%20🏗️"
         target="_blank"
         rel="noopener noreferrer"
         className={`fixed bottom-6 right-20 sm:right-28 text-white px-3 py-3 rounded-full shadow-lg z-50 transition-all duration-300 hover:scale-110 ${
@@ -403,41 +404,42 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             ? 'bg-green-700 hover:bg-green-800' 
             : 'bg-green-600 hover:bg-green-700'
         }`}
-        title="Contactar Soporte WhatsApp"
+        title="🏗️ Contactar Soporte Supercasa WhatsApp"
       >
         <span className="text-lg">📱</span>
       </a>
 
-      {/* Botón flotante del chat */}
+      {/* Botón flotante del chat con branding */}
       <button
-        className={`fixed bottom-6 right-3 sm:right-6 text-white px-4 py-3 rounded-full shadow-lg z-50 transition-all duration-300 ${
+        className={`fixed bottom-6 right-3 sm:right-6 text-white px-4 py-3 rounded-full shadow-lg z-50 transition-all duration-300 hover:scale-110 ${
           darkMode 
-            ? 'bg-blue-700 hover:bg-blue-800' 
-            : 'bg-blue-600 hover:bg-blue-700'
+            ? 'bg-gradient-to-r from-amber-600 to-yellow-700 hover:from-amber-700 hover:to-yellow-800' 
+            : 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700'
         }`}
-        onClick={() => setVisible(!visible)}
       >
         <div className="flex items-center gap-2">
-          <span className="text-lg">💬</span>
-          <span className="hidden sm:inline text-sm font-medium">Chat</span>
+          <span className="text-lg">🏗️</span>
+          <span className="hidden sm:inline text-sm font-medium">Chat Luna</span>
         </div>
       </button>
 
-      {/* Chat modal */}
+      {/* Chat modal con branding Supercasa */}
       {visible && (
-        <div className={`fixed z-50 shadow-2xl rounded-xl border flex flex-col transition-colors duration-300 ${
+        <div className={`fixed z-50 shadow-2xl rounded-xl border-2 flex flex-col transition-colors duration-300 ${
           darkMode 
-            ? 'bg-gray-800 border-gray-600' 
-            : 'bg-white border-gray-300'
+            ? 'bg-gray-800 border-amber-600' 
+            : 'bg-white border-amber-300'
         } ${
           'bottom-20 right-2 sm:right-6 w-[95vw] sm:w-96 md:w-80 max-w-sm h-[70vh] sm:h-96'
         }`}>
-          {/* Header */}
-          <div className={`p-3 sm:p-4 font-semibold border-b flex justify-between items-center transition-colors duration-300 ${
-            darkMode ? 'border-gray-600 text-white' : 'border-gray-200 text-gray-800'
+          {/* Header con branding */}
+          <div className={`p-3 sm:p-4 font-semibold border-b-2 flex justify-between items-center transition-colors duration-300 rounded-t-xl ${
+            darkMode 
+              ? 'border-amber-600 text-white bg-gradient-to-r from-amber-700 to-yellow-800' 
+              : 'border-amber-300 text-white bg-gradient-to-r from-amber-500 to-yellow-600'
           }`}>
             <div className="flex items-center gap-2">
-              <span className="text-lg">🤖</span>
+              <span className="text-lg">🏗️</span>
               <span className="text-sm sm:text-base">Luna - Asistente Supercasa</span>
             </div>
             <div className="flex gap-1 sm:gap-2">
@@ -445,10 +447,10 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                 onClick={limpiarChat}
                 className={`text-xs px-2 py-1 rounded transition-colors ${
                   darkMode 
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-amber-800 text-amber-200 hover:bg-amber-700' 
+                    : 'bg-amber-400 text-amber-800 hover:bg-amber-300'
                 }`}
-                title="Limpiar chat"
+                title="🏗️ Limpiar chat Supercasa"
               >
                 🗑️
               </button>
@@ -456,8 +458,8 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                 onClick={() => setVisible(false)}
                 className={`text-xs px-2 py-1 rounded transition-colors ${
                   darkMode 
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-amber-800 text-amber-200 hover:bg-amber-700' 
+                    : 'bg-amber-400 text-amber-800 hover:bg-amber-300'
                 }`}
                 title="Cerrar chat"
               >
@@ -466,29 +468,31 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
             </div>
           </div>
 
-          {/* Mensajes */}
+          {/* Mensajes con branding */}
           <div className="p-2 sm:p-3 overflow-y-auto space-y-3 text-sm flex-1">
             {mensajes.map((msg, i) => (
               <div
                 key={i}
-                className={`p-2 sm:p-3 rounded-lg ${
+                className={`p-2 sm:p-3 rounded-lg border ${
                   msg.de === 'bot'
                     ? darkMode
-                      ? 'bg-gray-700 text-gray-100 text-left'
-                      : 'bg-gray-100 text-gray-800 text-left'
+                      ? 'bg-gray-700 text-gray-100 text-left border-amber-600/30'
+                      : 'bg-amber-50 text-gray-800 text-left border-amber-200'
                     : darkMode
-                      ? 'bg-blue-700 text-white text-right ml-4 sm:ml-6'
-                      : 'bg-blue-100 text-blue-900 text-right ml-4 sm:ml-6'
+                      ? 'bg-gradient-to-r from-amber-600 to-yellow-700 text-white text-right ml-4 sm:ml-6 border-amber-500'
+                      : 'bg-gradient-to-r from-amber-400 to-yellow-500 text-amber-900 text-right ml-4 sm:ml-6 border-amber-300'
                 }`}
               >
                 {msg.texto}
               </div>
             ))}
             
-            {/* Indicador de carga */}
+            {/* Indicador de carga con branding */}
             {isLoading && (
-              <div className={`p-2 sm:p-3 rounded-lg text-left ${
-                darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+              <div className={`p-2 sm:p-3 rounded-lg text-left border ${
+                darkMode 
+                  ? 'bg-gray-700 text-amber-300 border-amber-600/30' 
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
               }`}>
                 <div className="flex items-center gap-2">
                   <div className="flex space-x-1">
@@ -496,26 +500,26 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                     <div className="w-2 h-2 bg-current rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
                     <div className="w-2 h-2 bg-current rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                   </div>
-                  <span className="text-xs">Consultando...</span>
+                  <span className="text-xs">🏗️ Consultando Supercasa...</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Input */}
-          <div className={`flex border-t transition-colors duration-300 ${
-            darkMode ? 'border-gray-600' : 'border-gray-200'
+          {/* Input con branding */}
+          <div className={`flex border-t-2 transition-colors duration-300 ${
+            darkMode ? 'border-amber-600' : 'border-amber-300'
           }`}>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className={`flex-1 p-2 sm:p-3 text-sm outline-none transition-colors duration-300 ${
+              className={`flex-1 p-2 sm:p-3 text-sm outline-none transition-colors duration-300 border-2 border-transparent focus:border-amber-500 ${
                 darkMode 
-                  ? 'bg-gray-800 text-white placeholder-gray-400' 
-                  : 'bg-white text-gray-900 placeholder-gray-500'
+                  ? 'bg-gray-800 text-white placeholder-amber-400' 
+                  : 'bg-white text-gray-900 placeholder-amber-600'
               }`}
-              placeholder="Mensaje o SUP-123..."
+              placeholder="🏗️ Mensaje o SUP-123..."
               onKeyDown={(e) => e.key === 'Enter' && enviarMensaje()}
               disabled={isLoading}
             />
@@ -524,13 +528,14 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
                 isLoading 
                   ? 'bg-gray-400 cursor-not-allowed'
                   : darkMode
-                    ? 'bg-blue-700 hover:bg-blue-800'
-                    : 'bg-blue-600 hover:bg-blue-700'
-              } text-white`}
+                    ? 'bg-gradient-to-r from-amber-600 to-yellow-700 hover:from-amber-700 hover:to-yellow-800'
+                    : 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700'
+              } text-white shadow-lg`}
               onClick={enviarMensaje}
               disabled={isLoading}
+              title="🏗️ Enviar a Supercasa"
             >
-              {isLoading ? '⏳' : '➤'}
+              {isLoading ? '⏳' : '🏗️'}
             </button>
           </div>
         </div>
