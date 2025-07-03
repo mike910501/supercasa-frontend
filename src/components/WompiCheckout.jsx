@@ -22,21 +22,49 @@ const WompiCheckout = ({
   const [daviPlataCountdown, setDaviPlataCountdown] = useState(120); // ⚡ AUMENTADO A 2 MINUTOS
   const [isDaviPlataFlow, setIsDaviPlataFlow] = useState(false);
 
-  // ✅ CONFIGURACIÓN WOMPI PRODUCCIÓN
-  const WOMPI_PUBLIC_KEY = process.env.REACT_APP_WOMPI_PUBLIC_KEY || 'pub_prod_GkQ7DyAjNXb63f1Imr9OQ1YNHLXd89FT';
-  const WOMPI_INTEGRITY_KEY = process.env.REACT_APP_WOMPI_INTEGRITY_KEY || 'prod_integrity_70Ss0SPlsMMTT4uSx4zz85lOCTVtLKDa';
-  const WOMPI_PRIVATE_KEY = process.env.REACT_APP_WOMPI_PRIVATE_KEY || 'prv_prod_bR8TUl71quylBwNiQcNn8OIFD1i9IdsR';
-  const API_URL = process.env.REACT_APP_API_URL || 'https://supercasa-backend-vvu1.onrender.com';
+  // ✅ CONFIGURACIÓN WOMPI PRODUCCIÓN - VERIFICACIÓN ROBUSTA
+  const WOMPI_PUBLIC_KEY = process.env.REACT_APP_WOMPI_PUBLIC_KEY || 
+                           window.REACT_APP_WOMPI_PUBLIC_KEY || 
+                           'pub_prod_GkQ7DyAjNXb63f1Imr9OQ1YNHLXd89FT';
+  
+  const WOMPI_INTEGRITY_KEY = process.env.REACT_APP_WOMPI_INTEGRITY_KEY || 
+                              window.REACT_APP_WOMPI_INTEGRITY_KEY || 
+                              'prod_integrity_70Ss0SPlsMMTT4uSx4zz85lOCTVtLKDa';
+  
+  const WOMPI_PRIVATE_KEY = process.env.REACT_APP_WOMPI_PRIVATE_KEY || 
+                            window.REACT_APP_WOMPI_PRIVATE_KEY || 
+                            'prv_prod_bR8TUl71quylBwNiQcNn8OIFD1i9IdsR';
+  
+  const API_URL = process.env.REACT_APP_API_URL || 
+                  window.REACT_APP_API_URL || 
+                  'https://supercasa-backend-vvu1.onrender.com';
 
-  // 🔍 DEBUG: Verificar variables al montar
+  // 🔍 DEBUG: Verificar variables al montar - VERSIÓN EXTENDIDA
   useEffect(() => {
-    console.log('🔑 Variables WOMPI:', {
-      public_key: WOMPI_PUBLIC_KEY.substring(0, 15) + '...',
-      integrity_key: WOMPI_INTEGRITY_KEY.substring(0, 15) + '...',
-      private_key: WOMPI_PRIVATE_KEY.substring(0, 15) + '...',
+    console.log('🔑🔑🔑 VERIFICACIÓN COMPLETA DE CLAVES WOMPI:');
+    console.log('📝 process.env.REACT_APP_WOMPI_PUBLIC_KEY:', process.env.REACT_APP_WOMPI_PUBLIC_KEY);
+    console.log('📝 window.REACT_APP_WOMPI_PUBLIC_KEY:', window.REACT_APP_WOMPI_PUBLIC_KEY);
+    console.log('📝 WOMPI_PUBLIC_KEY final:', WOMPI_PUBLIC_KEY);
+    console.log('📝 Tipo de WOMPI_PUBLIC_KEY:', typeof WOMPI_PUBLIC_KEY);
+    console.log('📝 WOMPI_PUBLIC_KEY es undefined?:', WOMPI_PUBLIC_KEY === undefined);
+    console.log('📝 WOMPI_PUBLIC_KEY es string vacío?:', WOMPI_PUBLIC_KEY === '');
+    
+    // ⚠️ VALIDACIÓN ESTRICTA INMEDIATA
+    if (!WOMPI_PUBLIC_KEY || WOMPI_PUBLIC_KEY === 'undefined' || typeof WOMPI_PUBLIC_KEY !== 'string') {
+      console.error('❌❌❌ CLAVE PÚBLICA WOMPI INVÁLIDA:', WOMPI_PUBLIC_KEY);
+      alert('ERROR CRÍTICO: Clave WOMPI inválida. Contacta soporte.');
+    } else {
+      console.log('✅ Clave pública WOMPI válida:', WOMPI_PUBLIC_KEY.substring(0, 15) + '...');
+    }
+    
+    console.log('🔑 Variables WOMPI completas:', {
+      public_key: WOMPI_PUBLIC_KEY?.substring(0, 15) + '...',
+      integrity_key: WOMPI_INTEGRITY_KEY?.substring(0, 15) + '...',
+      private_key: WOMPI_PRIVATE_KEY?.substring(0, 15) + '...',
       env_public: process.env.REACT_APP_WOMPI_PUBLIC_KEY ? 'OK' : 'MISSING',
       env_integrity: process.env.REACT_APP_WOMPI_INTEGRITY_KEY ? 'OK' : 'MISSING',
-      env_private: process.env.REACT_APP_WOMPI_PRIVATE_KEY ? 'OK' : 'MISSING'
+      env_private: process.env.REACT_APP_WOMPI_PRIVATE_KEY ? 'OK' : 'MISSING',
+      api_url: API_URL
     });
   }, []);
 
@@ -592,16 +620,35 @@ const WompiCheckout = ({
       setShowDaviPlataWait(false);
       setIsDaviPlataFlow(false);
 
-      // 🔑 VALIDAR CLAVES MÁS ESTRICTO
-      if (!WOMPI_PUBLIC_KEY || WOMPI_PUBLIC_KEY.includes('undefined') || !WOMPI_PUBLIC_KEY.startsWith('pub_prod_')) {
-        throw new Error(`Clave pública de WOMPI inválida: ${WOMPI_PUBLIC_KEY}`);
+      // 🔑 VALIDAR CLAVES MÁS ESTRICTO - VERSIÓN ULTRA ROBUSTA
+      console.log('🔍🔍🔍 VALIDANDO CLAVES ANTES DE PROCEDER:');
+      console.log('WOMPI_PUBLIC_KEY:', WOMPI_PUBLIC_KEY);
+      console.log('Tipo:', typeof WOMPI_PUBLIC_KEY);
+      console.log('Longitud:', WOMPI_PUBLIC_KEY?.length);
+      
+      if (!WOMPI_PUBLIC_KEY || 
+          WOMPI_PUBLIC_KEY === 'undefined' || 
+          WOMPI_PUBLIC_KEY === undefined || 
+          typeof WOMPI_PUBLIC_KEY !== 'string' ||
+          !WOMPI_PUBLIC_KEY.startsWith('pub_prod_')) {
+        
+        const errorMsg = `Clave pública de WOMPI inválida: "${WOMPI_PUBLIC_KEY}" (tipo: ${typeof WOMPI_PUBLIC_KEY})`;
+        console.error('❌❌❌', errorMsg);
+        toast.error('Error de configuración: Claves WOMPI inválidas. Contacta soporte.');
+        throw new Error(errorMsg);
       }
 
-      if (!WOMPI_INTEGRITY_KEY || !WOMPI_INTEGRITY_KEY.startsWith('prod_integrity_')) {
-        throw new Error(`Clave de integridad WOMPI inválida: ${WOMPI_INTEGRITY_KEY}`);
+      if (!WOMPI_INTEGRITY_KEY || 
+          WOMPI_INTEGRITY_KEY === 'undefined' ||
+          !WOMPI_INTEGRITY_KEY.startsWith('prod_integrity_')) {
+        
+        const errorMsg = `Clave de integridad WOMPI inválida: "${WOMPI_INTEGRITY_KEY}"`;
+        console.error('❌❌❌', errorMsg);
+        toast.error('Error de configuración: Claves WOMPI inválidas. Contacta soporte.');
+        throw new Error(errorMsg);
       }
 
-      console.log('✅ Claves WOMPI validadas correctamente');
+      console.log('✅✅✅ Claves WOMPI validadas correctamente');
 
       // 🔍 VERIFICAR CLAVES CON LA API
       const keysValid = await verifyWompiKeys();
@@ -782,6 +829,15 @@ const WompiCheckout = ({
         });
         alert(`Estados: loading=${loading}, polling=${pollingActive}, daviplata=${showDaviPlataWait}, ref=${transactionReference}`);
       },
+      claves: () => {
+        console.log('🚨🚨🚨 CLAVES WOMPI:', {
+          public_key: WOMPI_PUBLIC_KEY,
+          integrity_key: WOMPI_INTEGRITY_KEY,
+          private_key: WOMPI_PRIVATE_KEY,
+          api_url: API_URL
+        });
+        alert(`Clave pública: ${WOMPI_PUBLIC_KEY?.substring(0, 20)}...\nEs válida: ${!!WOMPI_PUBLIC_KEY && WOMPI_PUBLIC_KEY !== 'undefined'}`);
+      },
       forzarVerificacion: () => {
         console.log('🚨🚨🚨 FORZANDO VERIFICACIÓN MANUAL');
         if (transactionReference) {
@@ -949,7 +1005,9 @@ const WompiCheckout = ({
       {/* 🆕 DEBUG: Solo visible en desarrollo */}
       {process.env.NODE_ENV === 'development' && (
         <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
-          🔧 Debug móvil: Consola → <code>window.supercasaDebug.estados()</code>
+          <div>🔧 Debug móvil:</div>
+          <div>• Estados: <code>window.supercasaDebug.estados()</code></div>
+          <div>• Claves: <code>window.supercasaDebug.claves()</code></div>
         </div>
       )}
     </div>
