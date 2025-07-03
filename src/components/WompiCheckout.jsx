@@ -1,5 +1,5 @@
 // src/components/WompiCheckout.jsx
-// VERSIÓN DEFINITIVA CON INICIALIZACIÓN ROBUSTA
+// VERSIÓN DEFINITIVA CON SOLUCIÓN DAVIPLATA
 
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -16,6 +16,11 @@ const WompiCheckout = ({
   const [pollingActive, setPollingActive] = useState(false);
   const [pollingAttempts, setPollingAttempts] = useState(0);
   const [transactionReference, setTransactionReference] = useState('');
+  
+  // 🆕 NUEVO: Estados específicos para DaviPlata
+  const [showDaviPlataWait, setShowDaviPlataWait] = useState(false);
+  const [daviPlataCountdown, setDaviPlataCountdown] = useState(60);
+  const [isDaviPlataFlow, setIsDaviPlataFlow] = useState(false);
 
   // ✅ CONFIGURACIÓN WOMPI PRODUCCIÓN
   const WOMPI_PUBLIC_KEY = process.env.REACT_APP_WOMPI_PUBLIC_KEY || 'pub_prod_GkQ7DyAjNXb63f1Imr9OQ1YNHLXd89FT';
@@ -34,6 +39,25 @@ const WompiCheckout = ({
       env_private: process.env.REACT_APP_WOMPI_PRIVATE_KEY ? 'OK' : 'MISSING'
     });
   }, []);
+
+  // 🆕 NUEVO: Contador DaviPlata
+  useEffect(() => {
+    let interval;
+    if (showDaviPlataWait && daviPlataCountdown > 0) {
+      interval = setInterval(() => {
+        setDaviPlataCountdown(prev => {
+          if (prev <= 1) {
+            setShowDaviPlataWait(false);
+            console.log('⏰ Tiempo de espera DaviPlata terminado, iniciando polling normal');
+            startPolling(transactionReference);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showDaviPlataWait, daviPlataCountdown, transactionReference]);
 
   // 🔍 VERIFICAR CLAVES WOMPI ANTES DE PROCEDER
   const verifyWompiKeys = async () => {
@@ -62,270 +86,62 @@ const WompiCheckout = ({
     }
   };
 
-const checkTransactionStatus = async (reference) => {
-  try {
-    console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
-    
-    // 🆕 VERIFICAR PRIMERO EN WOMPI DIRECTAMENTE
+  const checkTransactionStatus = async (reference) => {
     try {
-      const wompiResponse = await fetch(`https://api.wompi.co/v1/transactions/${reference}`, {
-        headers: {
-          'Authorization': `Bearer prv_prod_bR8TUl71quylBwNiQcNn8OIFD1i9IdsR`,
-          'Accept': 'application/json'
-        }
-      });
+      console.log(`🔍 Verificando transacción: ${reference} (Intento ${pollingAttempts + 1})`);
       
-      if (wompiResponse.ok) {
-        const wompiData = await wompiResponse.json();
-        const status = wompiData.data?.status;
+      // 🆕 VERIFICAR PRIMERO EN WOMPI DIRECTAMENTE
+      try {
+        const wompiResponse = await fetch(`https://api.wompi.co/v1/transactions/${reference}`, {
+          headers: {
+            'Authorization': `Bearer prv_prod_bR8TUl71quylBwNiQcNn8OIFD1i9IdsR`,
+            'Accept': 'application/json'
+          }
+        });
         
-        console.log('📊 Estado en WOMPI:', status);
-        
-        if (status === 'APPROVED') {
-          console.log('✅ ¡PAGO CONFIRMADO EN WOMPI! Creando pedido...');
+        if (wompiResponse.ok) {
+          const wompiData = await wompiResponse.json();
+          const status = wompiData.data?.status;
           
-          // ✅ CREAR PEDIDO INMEDIATAMENTE
-          await createOrder({
-            reference: wompiData.data.reference || reference,
-            status: 'APPROVED',
-            payment_method: { type: wompiData.data.payment_method_type || 'WOMPI' },
-            id: reference,
-            amount_in_cents: wompiData.data.amount_in_cents || (total * 100)
-          });
+          console.log('📊 Estado en WOMPI:', status);
           
-          return true;
-          
-        } else if (status === 'DECLINED') {
-          console.log('❌ Pago rechazado en WOMPI');
-          setPollingActive(false);
-          setLoading(false);
-          toast.error('Pago rechazado');
-          return true;
-          
-        } else {
-          console.log(`⏳ Estado en WOMPI: ${status} - Continuando...`);
-          return false;
+          if (status === 'APPROVED') {
+            console.log('✅ ¡PAGO CONFIRMADO EN WOMPI! Creando pedido...');
+            
+            // ✅ CREAR PEDIDO INMEDIATAMENTE
+            await createOrder({
+              reference: wompiData.data.reference || reference,
+              status: 'APPROVED',
+              payment_method: { type: wompiData.data.payment_method_type || 'WOMPI' },
+              id: reference,
+              amount_in_cents: wompiData.data.amount_in_cents || (total * 100)
+            });
+            
+            return true;
+            
+          } else if (status === 'DECLINED') {
+            console.log('❌ Pago rechazado en WOMPI');
+            setPollingActive(false);
+            setLoading(false);
+            // 🆕 LIMPIAR estados DaviPlata
+            setShowDaviPlataWait(false);
+            setIsDaviPlataFlow(false);
+            toast.error('Pago rechazado');
+            return true;
+            
+          } else {
+            console.log(`⏳ Estado en WOMPI: ${status} - Continuando...`);
+            return false;
+          }
         }
+      } catch (wompiError) {
+        console.log('⚠️ Error consultando WOMPI:', wompiError);
       }
-    } catch (wompiError) {
-      console.log('⚠️ Error consultando WOMPI:', wompiError);
-    }
-    
-    // 🔄 FALLBACK: Verificar en nuestro backend  
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/verificar-pago/${reference}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('📊 Respuesta backend:', data);
       
-      if (data.status === 'APPROVED') {
-        console.log('✅ Pago confirmado en backend');
-        
-        if (data.pedidoId) {
-          // Ya existe pedido
-          setPollingActive(false);
-          setLoading(false);
-          localStorage.removeItem('carrito');
-          
-          toast.success('¡Pago confirmado! Tu pedido será entregado en máximo 20 minutos.');
-          
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 2000);
-        } else {
-          // Crear pedido
-          await createOrder({
-            reference: data.reference || reference,
-            status: 'APPROVED',
-            payment_method: { type: 'BACKEND_VERIFIED' },
-            id: reference,
-            amount_in_cents: total * 100
-          });
-        }
-        
-        return true;
-      }
-    }
-    
-    return false;
-    
-  } catch (error) {
-    console.log('⚠️ Error en polling:', error);
-    return false;
-  }
-};
-
-const startPolling = (reference) => {
-  console.log('🔄 Iniciando polling MEJORADO para:', reference);
-  setPollingActive(true);
-  setPollingAttempts(0);
-  setTransactionReference(reference);
-
-  const pollInterval = setInterval(async () => {
-    if (!pollingActive) {
-      clearInterval(pollInterval);
-      return;
-    }
-
-    // 🆕 VERIFICAR PRIMERO SI YA EXISTE UN PEDIDO RECIENTE
-    try {
-      const token = localStorage.getItem('token');
-      const pedidoRecenteResponse = await fetch(`${API_URL}/api/verificar-pedido-reciente`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (pedidoRecenteResponse.ok) {
-        const pedidoData = await pedidoRecenteResponse.json();
-        
-        if (pedidoData.found && pedidoData.payment_status === 'APPROVED') {
-          console.log('🎉 ¡PEDIDO CREADO POR WEBHOOK DETECTADO!', pedidoData);
-          
-          // ✅ LIMPIAR TODO INMEDIATAMENTE
-          clearInterval(pollInterval);
-          setPollingActive(false);
-          setLoading(false);
-          localStorage.removeItem('carrito');
-          
-          toast.success(`¡Pago confirmado! Pedido ${pedidoData.pedidoId} creado exitosamente.`, {
-            duration: 4000
-          });
-          
-          // ✅ REDIRECCIONAR PARA LIMPIAR CARRITO
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 2000);
-          
-          return;
-        }
-      }
-    } catch (error) {
-      console.log('⚠️ Error verificando pedido reciente:', error);
-    }
-
-    // ✅ SI NO HAY PEDIDO RECIENTE, VERIFICAR TRANSACCIÓN NORMAL
-    const completed = await checkTransactionStatus(reference);
-    setPollingAttempts(prev => prev + 1);
-
-    if (completed || pollingAttempts >= 60) {
-      clearInterval(pollInterval);
-      setPollingActive(false);
-      
-      if (pollingAttempts >= 60 && !completed) {
-        showPaymentSuccessCheck(reference);
-      }
-    }
-  }, 3000);
-
-  return () => {
-    clearInterval(pollInterval);
-    setPollingActive(false);
-  };
-};
-// 🔍 VERIFICACIÓN MANUAL INTELIGENTE Y SEGURA - REEMPLAZAR
-const showPaymentSuccessCheck = async (reference) => {
-  const userConfirm = window.confirm(
-    '🤔 ¿Tu pago fue procesado exitosamente?\n\n' +
-    '⚠️ IMPORTANTE: Solo confirma si recibiste notificación de pago exitoso.\n' +
-    'Verificaremos en WOMPI antes de crear tu pedido.'
-  );
-
-  if (userConfirm) {
-    // Usar la misma función segura
-    await showManualConfirmation(reference);
-  } else {
-    console.log('❌ Usuario indicó que el pago falló');
-    toast.error('Si el dinero fue debitado, contacta soporte. Tu pedido será procesado automáticamente si el pago fue exitoso.', {
-      duration: 8000
-    });
-    
-    if (onPaymentError) onPaymentError({ status: 'USER_CANCELLED' });
-  }
-};
-const createOrder = async (paymentData) => {
-  try {
-    console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
-
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('Error: Token de autenticación no encontrado');
-      setLoading(false);
-      return;
-    }
-
-    const pedidoData = {
-      productos: carrito,
-      total: total,
-      ...deliveryData,
-      payment_reference: paymentData.reference || paymentData.id,
-      payment_status: paymentData.status || 'APPROVED',
-      payment_method: paymentData.payment_method?.type || 'WOMPI',
-      payment_transaction_id: paymentData.id,
-      payment_amount_cents: paymentData.amount_in_cents || (total * 100)
-    };
-
-    const response = await fetch(`${API_URL}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(pedidoData)
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log('🎉 ¡PEDIDO CREADO EXITOSAMENTE!', result);
-      
-      // ✅ LIMPIAR TODO
-      localStorage.removeItem('carrito');
-      setLoading(false);
-      setPollingActive(false);
-      
-      toast.success('¡Pedido creado exitosamente! Redirigiendo...', {
-        duration: 3000
-      });
-      
-      // ✅ FORZAR RECARGA PARA LIMPIAR CARRITO
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 2000);
-      
-    } else {
-      const errorData = await response.json();
-      console.error('❌ Error al crear pedido:', errorData);
-      toast.error(errorData.error || 'Error al crear el pedido');
-      setLoading(false);
-    }
-  } catch (error) {
-    console.error('❌ Error en createOrder:', error);
-    toast.error('Error al procesar el pedido');
-    setLoading(false);
-  }
-};
-
-const showManualConfirmation = async (reference) => {
-  const userConfirm = window.confirm(
-    '¿Tu pago fue procesado exitosamente?\n\n' +
-    'Verificaremos el estado real en WOMPI.'
-  );
-
-  if (userConfirm) {
-    console.log('✅ Usuario confirmó pago - Verificando...');
-    setLoading(true);
-    
-    try {
+      // 🔄 FALLBACK: Verificar en nuestro backend  
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/verificar-pago/${reference}`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -334,36 +150,329 @@ const showManualConfirmation = async (reference) => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Respuesta backend:', data);
         
         if (data.status === 'APPROVED') {
-          console.log('✅ CONFIRMADO: Pago real en WOMPI');
+          console.log('✅ Pago confirmado en backend');
           
-          // ✅ LIMPIAR Y REDIRECCIONAR INMEDIATAMENTE
-          localStorage.removeItem('carrito');
+          if (data.pedidoId) {
+            // Ya existe pedido
+            setPollingActive(false);
+            setLoading(false);
+            // 🆕 LIMPIAR estados DaviPlata
+            setShowDaviPlataWait(false);
+            setIsDaviPlataFlow(false);
+            localStorage.removeItem('carrito');
+            
+            toast.success('¡Pago confirmado! Tu pedido será entregado en máximo 20 minutos.');
+            
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          } else {
+            // Crear pedido
+            await createOrder({
+              reference: data.reference || reference,
+              status: 'APPROVED',
+              payment_method: { type: 'BACKEND_VERIFIED' },
+              id: reference,
+              amount_in_cents: total * 100
+            });
+          }
           
-          toast.success('¡Pago confirmado! Tu pedido está en proceso.', {
-            duration: 3000
-          });
-          
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 2000);
-          
-        } else {
-          toast.error('Pago no confirmado en WOMPI. Si pagaste, espera unos minutos.', {
-            duration: 6000
-          });
+          return true;
         }
       }
       
+      return false;
+      
     } catch (error) {
-      console.error('❌ Error verificando pago:', error);
-      toast.error('Error verificando pago.');
-    } finally {
+      console.log('⚠️ Error en polling:', error);
+      return false;
+    }
+  };
+
+  const startPolling = (reference) => {
+    console.log('🔄 Iniciando polling MEJORADO para:', reference);
+    setPollingActive(true);
+    setPollingAttempts(0);
+    setTransactionReference(reference);
+    // 🆕 LIMPIAR estados DaviPlata al iniciar polling
+    setShowDaviPlataWait(false);
+
+    const pollInterval = setInterval(async () => {
+      if (!pollingActive) {
+        clearInterval(pollInterval);
+        return;
+      }
+
+      // 🆕 VERIFICAR PRIMERO SI YA EXISTE UN PEDIDO RECIENTE
+      try {
+        const token = localStorage.getItem('token');
+        const pedidoRecenteResponse = await fetch(`${API_URL}/api/verificar-pedido-reciente`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (pedidoRecenteResponse.ok) {
+          const pedidoData = await pedidoRecenteResponse.json();
+          
+          if (pedidoData.found && pedidoData.payment_status === 'APPROVED') {
+            console.log('🎉 ¡PEDIDO CREADO POR WEBHOOK DETECTADO!', pedidoData);
+            
+            // ✅ LIMPIAR TODO INMEDIATAMENTE
+            clearInterval(pollInterval);
+            setPollingActive(false);
+            setLoading(false);
+            // 🆕 LIMPIAR estados DaviPlata
+            setShowDaviPlataWait(false);
+            setIsDaviPlataFlow(false);
+            localStorage.removeItem('carrito');
+            
+            toast.success(`¡Pago confirmado! Pedido ${pedidoData.pedidoId} creado exitosamente.`, {
+              duration: 4000
+            });
+            
+            // ✅ REDIRECCIONAR PARA LIMPIAR CARRITO
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+            
+            return;
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Error verificando pedido reciente:', error);
+      }
+
+      // ✅ SI NO HAY PEDIDO RECIENTE, VERIFICAR TRANSACCIÓN NORMAL
+      const completed = await checkTransactionStatus(reference);
+      setPollingAttempts(prev => prev + 1);
+
+      if (completed || pollingAttempts >= 60) {
+        clearInterval(pollInterval);
+        setPollingActive(false);
+        
+        if (pollingAttempts >= 60 && !completed) {
+          showPaymentSuccessCheck(reference);
+        }
+      }
+    }, 3000);
+
+    return () => {
+      clearInterval(pollInterval);
+      setPollingActive(false);
+    };
+  };
+
+  // 🆕 NUEVO: Manejar cierre de widget con lógica DaviPlata
+  const handleWidgetClose = (result, reference) => {
+    console.log('🔍 Analizando cierre de widget:', result);
+    
+    // Si ya hay resultado de transacción, procesar normalmente
+    if (result && result.transaction) {
+      console.log('✅ Transacción detectada en callback:', result.transaction);
+      
+      const transactionId = result.transaction.id;
+      const transactionRef = result.transaction.reference;
+      
+      console.log('🆔 ID real de WOMPI:', transactionId);
+      console.log('🔗 Nuestra referencia:', transactionRef);
+      
+      if (result.transaction.status === 'APPROVED') {
+        console.log('🎉 ¡PAGO YA APROBADO! Creando pedido inmediatamente...');
+        createOrder(result.transaction);
+      } else {
+        console.log('⏳ Estado:', result.transaction.status, '- Iniciando polling con ID real');
+        startPolling(transactionId);
+      }
+      return;
+    }
+
+    // Si hay error, manejarlo
+    if (result && result.error) {
+      console.error('❌ Error en widget:', result.error);
+      toast.error('Error en el procesamiento del pago');
+      if (onPaymentError) onPaymentError(result.error);
+      return;
+    }
+
+    // 🆕 NUEVO: Widget cerrado sin información clara - LÓGICA DAVIPLATA
+    console.log('⚠️ Widget cerrado sin información clara');
+    
+    // Detectar posible flujo DaviPlata (widget se cierra rápidamente sin transacción)
+    const widgetOpenTime = Date.now() - window.widgetOpenTimestamp;
+    const isPossibleDaviPlata = widgetOpenTime < 30000; // Widget abierto menos de 30 segundos
+    
+    if (isPossibleDaviPlata) {
+      console.log('📱 Posible flujo DaviPlata detectado - Activando espera inteligente');
+      setIsDaviPlataFlow(true);
+      setShowDaviPlataWait(true);
+      setDaviPlataCountdown(60);
+      setTransactionReference(reference);
+      setLoading(false);
+    } else {
+      // Widget abierto por más tiempo, probablemente no es DaviPlata
+      console.log('🔄 Iniciando polling preventivo normal');
+      startPolling(reference);
+    }
+  };
+
+  // 🆕 NUEVO: Función para que el usuario confirme que ya tiene el código DaviPlata
+  const handleDaviPlataReady = () => {
+    console.log('📱 Usuario confirmó que tiene código DaviPlata - Iniciando verificación');
+    setShowDaviPlataWait(false);
+    startPolling(transactionReference);
+  };
+
+  // 🆕 NUEVO: Función para cancelar espera DaviPlata
+  const handleCancelDaviPlata = () => {
+    console.log('❌ Usuario canceló flujo DaviPlata');
+    setShowDaviPlataWait(false);
+    setIsDaviPlataFlow(false);
+    setTransactionReference('');
+    toast.info('Pago cancelado. Si ya pagaste, usa el botón "Verificar pago manualmente".');
+  };
+
+  // 🔍 VERIFICACIÓN MANUAL INTELIGENTE Y SEGURA - REEMPLAZAR
+  const showPaymentSuccessCheck = async (reference) => {
+    const userConfirm = window.confirm(
+      '🤔 ¿Tu pago fue procesado exitosamente?\n\n' +
+      '⚠️ IMPORTANTE: Solo confirma si recibiste notificación de pago exitoso.\n' +
+      'Verificaremos en WOMPI antes de crear tu pedido.'
+    );
+
+    if (userConfirm) {
+      // Usar la misma función segura
+      await showManualConfirmation(reference);
+    } else {
+      console.log('❌ Usuario indicó que el pago falló');
+      toast.error('Si el dinero fue debitado, contacta soporte. Tu pedido será procesado automáticamente si el pago fue exitoso.', {
+        duration: 8000
+      });
+      
+      if (onPaymentError) onPaymentError({ status: 'USER_CANCELLED' });
+    }
+  };
+
+  const createOrder = async (paymentData) => {
+    try {
+      console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Error: Token de autenticación no encontrado');
+        setLoading(false);
+        return;
+      }
+
+      const pedidoData = {
+        productos: carrito,
+        total: total,
+        ...deliveryData,
+        payment_reference: paymentData.reference || paymentData.id,
+        payment_status: paymentData.status || 'APPROVED',
+        payment_method: paymentData.payment_method?.type || 'WOMPI',
+        payment_transaction_id: paymentData.id,
+        payment_amount_cents: paymentData.amount_in_cents || (total * 100)
+      };
+
+      const response = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(pedidoData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('🎉 ¡PEDIDO CREADO EXITOSAMENTE!', result);
+        
+        // ✅ LIMPIAR TODO
+        localStorage.removeItem('carrito');
+        setLoading(false);
+        setPollingActive(false);
+        // 🆕 LIMPIAR estados DaviPlata
+        setShowDaviPlataWait(false);
+        setIsDaviPlataFlow(false);
+        
+        toast.success('¡Pedido creado exitosamente! Redirigiendo...', {
+          duration: 3000
+        });
+        
+        // ✅ FORZAR RECARGA PARA LIMPIAR CARRITO
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 2000);
+        
+      } else {
+        const errorData = await response.json();
+        console.error('❌ Error al crear pedido:', errorData);
+        toast.error(errorData.error || 'Error al crear el pedido');
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('❌ Error en createOrder:', error);
+      toast.error('Error al procesar el pedido');
       setLoading(false);
     }
-  }
-};
+  };
+
+  const showManualConfirmation = async (reference) => {
+    const userConfirm = window.confirm(
+      '¿Tu pago fue procesado exitosamente?\n\n' +
+      'Verificaremos el estado real en WOMPI.'
+    );
+
+    if (userConfirm) {
+      console.log('✅ Usuario confirmó pago - Verificando...');
+      setLoading(true);
+      
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/verificar-pago/${reference}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.status === 'APPROVED') {
+            console.log('✅ CONFIRMADO: Pago real en WOMPI');
+            
+            // ✅ LIMPIAR Y REDIRECCIONAR INMEDIATAMENTE
+            localStorage.removeItem('carrito');
+            
+            toast.success('¡Pago confirmado! Tu pedido está en proceso.', {
+              duration: 3000
+            });
+            
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+            
+          } else {
+            toast.error('Pago no confirmado en WOMPI. Si pagaste, espera unos minutos.', {
+              duration: 6000
+            });
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Error verificando pago:', error);
+        toast.error('Error verificando pago.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   // 🔐 CALCULAR SIGNATURE
   const calculateSignature = async (reference, amountInCents) => {
@@ -456,6 +565,9 @@ const showManualConfirmation = async (reference) => {
     try {
       console.log('🚀 INICIANDO PAGO CON POLLING AUTOMÁTICO');
       setLoading(true);
+      // 🆕 LIMPIAR estados DaviPlata al iniciar nuevo pago
+      setShowDaviPlataWait(false);
+      setIsDaviPlataFlow(false);
 
       // 🔑 VALIDAR CLAVES MÁS ESTRICTO
       if (!WOMPI_PUBLIC_KEY || WOMPI_PUBLIC_KEY.includes('undefined') || !WOMPI_PUBLIC_KEY.startsWith('pub_prod_')) {
@@ -484,31 +596,31 @@ const showManualConfirmation = async (reference) => {
       const reference = `SC-000-${timestamp}-${randomString}-${randomNumber}`;
 
       // 💾 NUEVO: GUARDAR CARRITO TEMPORAL ANTES DEL PAGO
-console.log('💾 Guardando carrito temporal...');
-try {
-  const token = localStorage.getItem('token');
-  const carritoResponse = await fetch(`${API_URL}/api/guardar-carrito-temporal`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      referencia: reference,
-      productos: carrito,
-      datos_entrega: deliveryData
-    })
-  });
-  
-  if (carritoResponse.ok) {
-    console.log('✅ Carrito temporal guardado exitosamente');
-  } else {
-    console.log('⚠️ Error guardando carrito temporal, continuando...');
-  }
-} catch (carritoError) {
-  console.log('⚠️ Error en carrito temporal:', carritoError);
-  // Continuar con el pago aunque falle guardar carrito
-}
+      console.log('💾 Guardando carrito temporal...');
+      try {
+        const token = localStorage.getItem('token');
+        const carritoResponse = await fetch(`${API_URL}/api/guardar-carrito-temporal`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            referencia: reference,
+            productos: carrito,
+            datos_entrega: deliveryData
+          })
+        });
+        
+        if (carritoResponse.ok) {
+          console.log('✅ Carrito temporal guardado exitosamente');
+        } else {
+          console.log('⚠️ Error guardando carrito temporal, continuando...');
+        }
+      } catch (carritoError) {
+        console.log('⚠️ Error en carrito temporal:', carritoError);
+        // Continuar con el pago aunque falle guardar carrito
+      }
       
       console.log('🔗 Referencia generada:', reference);
 
@@ -569,6 +681,9 @@ try {
       // 🚀 ABRIR WIDGET CON TIMEOUT EXTENDIDO Y MEJOR MANEJO
       console.log('🎯 Abriendo WOMPI Widget...');
       
+      // 🆕 MARCAR TIEMPO DE APERTURA PARA DETECTAR DAVIPLATA
+      window.widgetOpenTimestamp = Date.now();
+      
       const widgetPromise = new Promise((resolve, reject) => {
         try {
           checkout.open(function(result) {
@@ -596,37 +711,15 @@ try {
       
       console.log('🔍 Procesando resultado del widget:', result);
       
-      if (result && result.transaction) {
-        console.log('✅ Transacción detectada en callback:', result.transaction);
-        
-        // 🎯 USAR ID REAL DE WOMPI, NO NUESTRA REFERENCIA
-        const transactionId = result.transaction.id; // ID real de WOMPI
-        const transactionRef = result.transaction.reference; // Nuestra referencia
-        
-        console.log('🆔 ID real de WOMPI:', transactionId);
-        console.log('🔗 Nuestra referencia:', transactionRef);
-        
-        // Si ya está aprobado, crear pedido inmediatamente
-        if (result.transaction.status === 'APPROVED') {
-          console.log('🎉 ¡PAGO YA APROBADO! Creando pedido inmediatamente...');
-          await createOrder(result.transaction);
-        } else {
-          console.log('⏳ Estado:', result.transaction.status, '- Iniciando polling con ID real');
-          startPolling(transactionId); // Usar ID real, no referencia
-        }
-      } else if (result && result.error) {
-        console.error('❌ Error en widget:', result.error);
-        toast.error('Error en el procesamiento del pago');
-        if (onPaymentError) onPaymentError(result.error);
-      } else {
-        // Widget cerrado sin información clara - iniciar polling preventivo
-        console.log('⚠️ Widget cerrado, iniciando polling preventivo con referencia original');
-        startPolling(reference);
-      }
+      // 🆕 NUEVA LÓGICA: Usar función de manejo de cierre
+      handleWidgetClose(result, reference);
 
     } catch (error) {
       console.error('❌ Error inicializando pago:', error);
       setLoading(false);
+      // 🆕 LIMPIAR estados DaviPlata en caso de error
+      setShowDaviPlataWait(false);
+      setIsDaviPlataFlow(false);
       
       // Mensajes más específicos según el tipo de error
       if (error.message.includes('Clave')) {
@@ -645,6 +738,8 @@ try {
   useEffect(() => {
     return () => {
       setPollingActive(false);
+      setShowDaviPlataWait(false);
+      setIsDaviPlataFlow(false);
     };
   }, []);
 
@@ -653,10 +748,10 @@ try {
       {/* BOTÓN PRINCIPAL */}
       <button
         onClick={initializePayment}
-        disabled={loading || pollingActive}
+        disabled={loading || pollingActive || showDaviPlataWait}
         className={`
           w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-300
-          ${loading || pollingActive 
+          ${loading || pollingActive || showDaviPlataWait
             ? 'bg-gray-400 cursor-not-allowed' 
             : 'bg-green-600 hover:bg-green-700 shadow-lg hover:shadow-xl'
           }
@@ -664,56 +759,97 @@ try {
       >
         {loading && '🔄 Inicializando pago...'}
         {pollingActive && '🔍 Verificando pago automáticamente...'}
-        {!loading && !pollingActive && '💳 Proceder al Pago Seguro con WOMPI'}
+        {showDaviPlataWait && '📱 Esperando regreso de DaviPlata...'}
+        {!loading && !pollingActive && !showDaviPlataWait && '💳 Proceder al Pago Seguro con WOMPI'}
       </button>
 
-      {/* ESTADO DE POLLING */}
+      {/* 🆕 NUEVO: ESTADO DE ESPERA DAVIPLATA */}
+      {showDaviPlataWait && (
+        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <span className="text-2xl">📱</span>
+            <div className="flex-1">
+              <h3 className="font-semibold text-amber-800">¿Usaste DaviPlata?</h3>
+              <p className="text-amber-700 text-sm">
+                Esperando {daviPlataCountdown} segundos para que regreses con tu código
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-3 space-y-2">
+            <button
+              onClick={handleDaviPlataReady}
+              className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 font-medium"
+            >
+              ✅ Ya tengo mi código DaviPlata, verificar pago
+            </button>
+            
+            <button
+              onClick={handleCancelDaviPlata}
+              className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600"
+            >
+              ❌ Cancelar pago
+            </button>
+          </div>
+          
+          <div className="mt-3 p-3 bg-amber-100 rounded-lg">
+            <p className="text-xs text-amber-700">
+              💡 <strong>Si usaste DaviPlata:</strong><br/>
+              1. Abre tu app DaviPlata<br/>
+              2. Ingresa tu código de verificación<br/>
+              3. Regresa aquí y presiona "✅ Ya tengo mi código"
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ESTADO DE POLLING (sin cambios) */}
       {pollingActive && (
-  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-    <div className="flex items-center space-x-2">
-      <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-      <span className="text-blue-700 font-medium">
-        Verificando pago automáticamente... (Intento {pollingAttempts + 1}/120)
-      </span>
-    </div>
-    <p className="text-blue-600 text-sm mt-2">
-      Completa tu pago en Nequi/PSE. El sistema detectará automáticamente cuando se apruebe.
-    </p>
-    
-    {/* VERIFICACIÓN MANUAL DE EMERGENCIA */}
-    {pollingAttempts > 10 && (
-      <button
-        onClick={() => showManualConfirmation(transactionReference)}
-        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
-      >
-        ⚡ Confirmar pago manualmente
-      </button>
-    )}
-    
-    {/* ✅ NUEVO: Enlace a verificación adicional */}
-    <div className="mt-3 text-center">
-      <button
-        onClick={() => window.open('/verificar-pago', '_blank')}
-        className="text-sm text-blue-600 hover:text-blue-800 underline"
-      >
-        🔍 ¿Ya pagaste? Verifica tu pago aquí
-      </button>
-    </div>
-    
-    {/* ✅ NUEVO: Información adicional para tranquilizar al usuario */}
-    <div className="mt-4 p-3 bg-blue-100 rounded-lg">
-      <p className="text-xs text-blue-700">
-        💡 <strong>Tu pago está protegido:</strong><br/>
-        • Si pagaste, recibirás tu pedido automáticamente<br/>
-        • Nuestro sistema verifica pagos cada 3 segundos<br/>
-        • En caso de dudas, contacta soporte
-      </p>
-    </div>
-  </div>
-)}
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            <span className="text-blue-700 font-medium">
+              Verificando pago automáticamente... (Intento {pollingAttempts + 1}/120)
+            </span>
+          </div>
+          <p className="text-blue-600 text-sm mt-2">
+            Completa tu pago en Nequi/PSE/DaviPlata. El sistema detectará automáticamente cuando se apruebe.
+          </p>
+          
+          {/* VERIFICACIÓN MANUAL DE EMERGENCIA */}
+          {pollingAttempts > 10 && (
+            <button
+              onClick={() => showManualConfirmation(transactionReference)}
+              className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+            >
+              ⚡ Confirmar pago manualmente
+            </button>
+          )}
+          
+          {/* ✅ NUEVO: Enlace a verificación adicional */}
+          <div className="mt-3 text-center">
+            <button
+              onClick={() => window.open('/verificar-pago', '_blank')}
+              className="text-sm text-blue-600 hover:text-blue-800 underline"
+            >
+              🔍 ¿Ya pagaste? Verifica tu pago aquí
+            </button>
+          </div>
+          
+          {/* ✅ NUEVO: Información adicional para tranquilizar al usuario */}
+          <div className="mt-4 p-3 bg-blue-100 rounded-lg">
+            <p className="text-xs text-blue-700">
+              💡 <strong>Tu pago está protegido:</strong><br/>
+              • Si pagaste, recibirás tu pedido automáticamente<br/>
+              • Nuestro sistema verifica pagos cada 3 segundos<br/>
+              • En caso de dudas, contacta soporte
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* BOTÓN CANCELAR */}
-      {!loading && !pollingActive && onCancel && (
+      {!loading && !pollingActive && !showDaviPlataWait && onCancel && (
         <button
           onClick={onCancel}
           className="mt-3 w-full py-2 px-4 text-gray-600 hover:text-gray-800 transition-colors"
