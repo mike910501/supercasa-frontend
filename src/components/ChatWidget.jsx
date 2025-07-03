@@ -411,6 +411,7 @@ export default function ChatWidget({ productos = [], agregarAlCarrito, darkMode 
 
       {/* Botón flotante del chat con branding */}
       <button
+        onClick={() => setVisible(!visible)}
         className={`fixed bottom-6 right-3 sm:right-6 text-white px-4 py-3 rounded-full shadow-lg z-50 transition-all duration-300 hover:scale-110 ${
           darkMode 
             ? 'bg-gradient-to-r from-amber-600 to-yellow-700 hover:from-amber-700 hover:to-yellow-800' 
