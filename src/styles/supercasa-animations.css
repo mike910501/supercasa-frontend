@@ -1,0 +1,394 @@
+/* Archivo: src/styles/supercasa-animations.css */
+
+/* ===== ANIMACIONES PARA SUPERCASA LOGO ===== */
+
+/* Efecto shimmer que se desliza por el logo */
+@keyframes shimmer {
+  0% { 
+    transform: translateX(-100%) rotate(45deg); 
+  }
+  100% { 
+    transform: translateX(200%) rotate(45deg); 
+  }
+}
+
+/* Animación de las torres que brillan */
+@keyframes tower-glow {
+  0%, 100% { 
+    opacity: 0.9; 
+    transform: scaleY(1);
+    box-shadow: 0 0 5px rgba(255,255,255,0.3);
+  }
+  50% { 
+    opacity: 1; 
+    transform: scaleY(1.1);
+    box-shadow: 0 0 15px rgba(255,255,255,0.6);
+  }
+}
+
+/* Ondas de pulsación principales */
+@keyframes ripple {
+  0% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: scale(1.4); 
+    opacity: 0; 
+  }
+}
+
+/* Ondas de pulsación secundarias */
+@keyframes ripple-delayed {
+  0% { 
+    transform: scale(1); 
+    opacity: 0.7; 
+  }
+  100% { 
+    transform: scale(1.6); 
+    opacity: 0; 
+  }
+}
+
+/* Animación de entrada del slogan */
+@keyframes fade-in-up {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+/* Pulsación suave del logo completo */
+@keyframes logo-pulse {
+  0%, 100% { 
+    transform: scale(1); 
+    filter: brightness(1);
+  }
+  50% { 
+    transform: scale(1.05); 
+    filter: brightness(1.1);
+  }
+}
+
+/* ===== CLASES UTILITARIAS ===== */
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.animate-tower-glow {
+  animation: tower-glow 2s ease-in-out infinite;
+}
+
+.animate-ripple {
+  animation: ripple 2s ease-out infinite;
+}
+
+.animate-ripple-delayed {
+  animation: ripple-delayed 2s ease-out infinite 1s;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-logo-pulse {
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+
+/* ===== VARIANTES PARA DIFERENTES ESTADOS ===== */
+
+/* Logo en estado de carga */
+.logo-loading .animate-tower-glow {
+  animation-duration: 0.8s;
+}
+
+/* Logo en estado hover */
+.logo-hover:hover {
+  animation: logo-pulse 0.6s ease-out;
+}
+
+/* Logo para favicon (muy pequeño) */
+.logo-favicon {
+  animation: none; /* Sin animaciones en tamaños muy pequeños */
+}
+
+.logo-favicon:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+/* ===== MODO OSCURO ===== */
+
+.dark .animate-tower-glow {
+  filter: brightness(1.2);
+}
+
+.dark .animate-shimmer {
+  opacity: 0.8;
+}
+
+/* ===== ACCESIBILIDAD ===== */
+
+/* Respeta las preferencias de movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-shimmer,
+  .animate-tower-glow,
+  .animate-ripple,
+  .animate-ripple-delayed,
+  .animate-logo-pulse {
+    animation: none !important;
+  }
+  
+  /* Mantiene solo las transiciones suaves */
+  .logo-hover:hover {
+    transform: scale(1.05);
+    transition: transform 0.2s ease;
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+
+/* En móviles, animaciones más sutiles */
+@media (max-width: 768px) {
+  .animate-tower-glow {
+    animation-duration: 3s; /* Más lento en móvil */
+  }
+  
+  .animate-ripple,
+  .animate-ripple-delayed {
+    animation-duration: 3s; /* Más lento para ahorrar batería */
+  }
+}
+
+/* ===== VARIANTES DE TAMAÑO ===== */
+
+/* Small: 40px */
+.logo-small .animate-tower-glow {
+  animation-duration: 2.5s;
+}
+
+/* Medium: 64px (default) */
+.logo-medium .animate-tower-glow {
+  animation-duration: 2s;
+}
+
+/* Large: 96px */
+.logo-large .animate-tower-glow {
+  animation-duration: 1.8s;
+}
+
+/* ===== EFECTOS ADICIONALES ===== */
+
+/* Efecto de aparición para nuevos pedidos */
+@keyframes new-order-ping {
+  0% { 
+    transform: scale(1); 
+    background-color: rgb(251 191 36); 
+  }
+  50% { 
+    transform: scale(1.2); 
+    background-color: rgb(245 158 11); 
+  }
+  100% { 
+    transform: scale(1); 
+    background-color: rgb(251 191 36); 
+  }
+}
+
+.animate-new-order {
+  animation: new-order-ping 0.6s ease-out 3; /* Se repite 3 veces */
+}
+
+/* Efecto de "entrega completada" */
+@keyframes delivery-success {
+  0% { 
+    transform: scale(1) rotate(0deg); 
+  }
+  25% { 
+    transform: scale(1.1) rotate(-5deg); 
+  }
+  50% { 
+    transform: scale(1.2) rotate(5deg); 
+  }
+  75% { 
+    transform: scale(1.1) rotate(-2deg); 
+  }
+  100% { 
+    transform: scale(1) rotate(0deg); 
+  }
+}
+
+.animate-delivery-success {
+  animation: delivery-success 0.8s ease-out;
+}
+
+/* ===== OPTIMIZACIONES DE PERFORMANCE ===== */
+
+/* Asegurar que las animaciones usen GPU */
+.animate-shimmer,
+.animate-tower-glow,
+.animate-ripple,
+.animate-ripple-delayed {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Fuerza aceleración por GPU */
+}
+
+/* Evitar repaints innecesarios */
+.logo-container {
+  contain: layout style paint;
+}
+
+/* ============================================
+   SUPERCASA LOGO ANIMATIONS
+   ============================================ */
+
+/* Keyframes para animaciones */
+@keyframes supercasa-shimmer {
+  0% { 
+    transform: translateX(-100%) rotate(45deg); 
+  }
+  100% { 
+    transform: translateX(200%) rotate(45deg); 
+  }
+}
+
+@keyframes supercasa-tower-glow {
+  0%, 100% { 
+    opacity: 0.9; 
+    transform: scaleY(1);
+    box-shadow: 0 0 5px rgba(255,255,255,0.3);
+  }
+  50% { 
+    opacity: 1; 
+    transform: scaleY(1.1);
+    box-shadow: 0 0 15px rgba(255,255,255,0.6);
+  }
+}
+
+@keyframes supercasa-ripple {
+  0% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: scale(1.4); 
+    opacity: 0; 
+  }
+}
+
+@keyframes supercasa-ripple-delayed {
+  0% { 
+    transform: scale(1); 
+    opacity: 0.7; 
+  }
+  100% { 
+    transform: scale(1.6); 
+    opacity: 0; 
+  }
+}
+
+@keyframes supercasa-fade-in-up {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes supercasa-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* Clases de animación */
+.supercasa-shimmer {
+  animation: supercasa-shimmer 3s ease-in-out infinite;
+}
+
+.supercasa-tower-glow {
+  animation: supercasa-tower-glow 2s ease-in-out infinite;
+}
+
+.supercasa-ripple {
+  animation: supercasa-ripple 2s ease-out infinite;
+}
+
+.supercasa-ripple-delayed {
+  animation: supercasa-ripple-delayed 2s ease-out infinite 1s;
+}
+
+.supercasa-fade-in-up {
+  animation: supercasa-fade-in-up 0.6s ease-out forwards;
+}
+
+.supercasa-logo-pulse {
+  animation: supercasa-pulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   OPTIMIZACIONES DE PERFORMANCE
+   ============================================ */
+
+/* GPU acceleration para mejor performance */
+.supercasa-shimmer,
+.supercasa-tower-glow,
+.supercasa-ripple,
+.supercasa-ripple-delayed,
+.supercasa-logo-pulse {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* ============================================
+   ACCESIBILIDAD - RESPETO A PREFERENCIAS
+   ============================================ */
+
+/* Modo reducir movimiento para accesibilidad */
+@media (prefers-reduced-motion: reduce) {
+  .supercasa-logo-pulse,
+  .supercasa-shimmer,
+  .supercasa-tower-glow,
+  .supercasa-ripple,
+  .supercasa-ripple-delayed {
+    animation: none;
+  }
+  
+  /* Mantener solo transiciones suaves en modo reduce-motion */
+  .supercasa-fade-in-up {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   RESPONSIVE - ANIMACIONES MÁS LENTAS EN MÓVIL
+   ============================================ */
+
+@media (max-width: 768px) {
+  .supercasa-shimmer {
+    animation-duration: 4s;
+  }
+  
+  .supercasa-tower-glow {
+    animation-duration: 2.5s;
+  }
+  
+  .supercasa-ripple,
+  .supercasa-ripple-delayed {
+    animation-duration: 2.5s;
+  }
+}

@@ -4,7 +4,9 @@ import API_URL, { api } from '../config/api';
 import { toast } from 'react-hot-toast';
 import { restoreCartAfterLogin, hasTemporaryCart } from '../utils/authHandler';
 import WompiCheckout from '../components/WompiCheckout';
-import ChatWidget from '../components/ChatWidget'; // 🎯 AGREGAR SOLO ESTA LÍNEA
+import ChatWidget from '../components/ChatWidget';
+import SupercasaLogo from '../components/SupercasaLogo';
+import '../styles/supercasa-animations.css';
 
 // Aplicación principal que maneja autenticación
 export default function App() {
@@ -50,8 +52,18 @@ export default function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 flex items-center justify-center">
+        <div className="text-center">
+          <SupercasaLogo 
+            size="large"
+            showText={true}
+            showSlogan={false}
+            darkMode={false}
+            className="mb-6 animate-pulse"
+          />
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-amber-600 mx-auto"></div>
+          <p className="mt-4 text-lg text-amber-800 font-medium">Cargando Supercasa...</p>
+        </div>
       </div>
     );
   }
@@ -82,7 +94,7 @@ function AuthContainer({ onAuth }) {
   );
 }
 
-// ✅ COMPONENTE DE LOGIN SIN CONTRASEÑAS
+// ✅ COMPONENTE DE LOGIN CON BRANDING SUPERCASA
 function LoginForm({ onLogin, onSwitchToRegister }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -134,7 +146,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
         if (carritoRestaurado) {
           // Ya se muestra el mensaje en restoreCartAfterLogin()
         } else {
-          toast.success(`¡Bienvenido, ${response.user.nombre}!`, {
+          toast.success(`¡Bienvenido a Supercasa, ${response.user.nombre}! 🏗️`, {
             duration: 3000,
             icon: '👋'
           });
@@ -161,16 +173,16 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-amber-200">
         <div className="text-center mb-8">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-xl inline-block mb-4">
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.80a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Supercasa</h2>
-          <p className="text-gray-600">Conjunto Residencial</p>
+          <SupercasaLogo 
+            size="large"
+            showText={true}
+            showSlogan={true}
+            darkMode={false}
+            className="justify-center mb-4"
+          />
         </div>
 
         {/* Alerta de carrito temporal */}
@@ -192,7 +204,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="tu@email.com"
               disabled={isLoading}
             />
@@ -204,7 +216,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
               type="text"
               value={formData.cedula}
               onChange={(e) => setFormData({...formData, cedula: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="12345678"
               disabled={isLoading}
             />
@@ -216,7 +228,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
               type="tel"
               value={formData.telefono}
               onChange={(e) => setFormData({...formData, telefono: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="3001234567"
               disabled={isLoading}
             />
@@ -228,7 +240,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
             className={`w-full py-3 rounded-xl font-medium text-white transition-all ${
               isLoading
                 ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+                : 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transform hover:scale-105'
             }`}
           >
             {isLoading ? (
@@ -237,7 +249,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
                 Verificando datos...
               </div>
             ) : (
-              '🔐 Ingresar'
+              '🏗️ Ingresar a Supercasa'
             )}
           </button>
         </div>
@@ -247,7 +259,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
             ¿No tienes cuenta?{' '}
             <button
               onClick={onSwitchToRegister}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-amber-600 hover:text-amber-700 font-medium"
               disabled={isLoading}
             >
               Regístrate aquí
@@ -259,7 +271,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
   );
 }
 
-// ✅ COMPONENTE DE REGISTRO CON CÉDULA
+// ✅ COMPONENTE DE REGISTRO CON BRANDING SUPERCASA
 function RegisterForm({ onRegister, onSwitchToLogin }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -301,7 +313,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
       toast.dismiss(loadingToast);
 
       if (response.token && response.user) {
-        toast.success(`¡Bienvenido a Supercasa, ${response.user.nombre}!`, {
+        toast.success(`¡Bienvenido a Supercasa, ${response.user.nombre}! 🏗️`, {
           duration: 4000,
           icon: '🎉'
         });
@@ -328,14 +340,16 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-amber-200">
         <div className="text-center mb-6">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 rounded-xl inline-block mb-4">
-            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.80a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-            </svg>
-          </div>
+          <SupercasaLogo 
+            size="large"
+            showText={true}
+            showSlogan={false}
+            darkMode={false}
+            className="justify-center mb-4"
+          />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Registro Supercasa</h2>
           <p className="text-gray-600">Únete a nuestro conjunto residencial</p>
         </div>
@@ -351,7 +365,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                 type="text"
                 value={formData.nombre}
                 onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="Tu nombre completo"
                 disabled={isLoading}
               />
@@ -365,14 +379,14 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="tu@email.com"
                 disabled={isLoading}
               />
             </div>
           </div>
 
-          {/* ✅ NUEVO CAMPO CÉDULA */}
+          {/* Cédula */}
           <div>
             <label className="block text-gray-700 text-sm font-medium mb-2">
               Cédula *
@@ -381,7 +395,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
               type="text"
               value={formData.cedula}
               onChange={(e) => setFormData({...formData, cedula: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               placeholder="12345678"
               disabled={isLoading}
             />
@@ -397,7 +411,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                 type="tel"
                 value={formData.telefono}
                 onChange={(e) => setFormData({...formData, telefono: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="3001234567"
                 disabled={isLoading}
               />
@@ -411,16 +425,18 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                 type="tel"
                 value={formData.telefono_alternativo}
                 onChange={(e) => setFormData({...formData, telefono_alternativo: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 placeholder="Opcional"
                 disabled={isLoading}
               />
             </div>
           </div>
 
-          {/* Información de Ubicación */}
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-800 mb-3">📍 Ubicación en el Conjunto</h3>
+          {/* Información de Ubicación con branding */}
+          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-xl border border-amber-200">
+            <h3 className="text-lg font-semibold text-amber-800 mb-3 flex items-center">
+              🏗️ Ubicación en las 5 Torres
+            </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -430,15 +446,15 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                 <select
                   value={formData.torre}
                   onChange={(e) => setFormData({...formData, torre: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   disabled={isLoading}
                 >
                   <option value="">Selecciona torre</option>
-                  <option value="1">Torre 1</option>
-                  <option value="2">Torre 2</option>
-                  <option value="3">Torre 3</option>
-                  <option value="4">Torre 4</option>
-                  <option value="5">Torre 5</option>
+                  <option value="1">🏗️ Torre 1</option>
+                  <option value="2">🏗️ Torre 2</option>
+                  <option value="3">🏗️ Torre 3</option>
+                  <option value="4">🏗️ Torre 4</option>
+                  <option value="5">🏗️ Torre 5</option>
                 </select>
               </div>
 
@@ -450,7 +466,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                   type="number"
                   value={formData.piso}
                   onChange={(e) => setFormData({...formData, piso: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   placeholder="Ej: 5"
                   min="1"
                   max="30"
@@ -466,7 +482,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                   type="text"
                   value={formData.apartamento}
                   onChange={(e) => setFormData({...formData, apartamento: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   placeholder="Ej: 501, A, B"
                   disabled={isLoading}
                 />
@@ -482,21 +498,21 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
             <textarea
               value={formData.notas_entrega}
               onChange={(e) => setFormData({...formData, notas_entrega: e.target.value})}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               rows="3"
               placeholder="Ej: Llamar al celular antes de subir, timbre no funciona, etc."
               disabled={isLoading}
             />
           </div>
 
-          {/* Botón de registro */}
+          {/* Botón de registro con branding */}
           <button
             onClick={handleSubmit}
             disabled={isLoading}
             className={`w-full py-3 rounded-xl font-medium text-white transition-all ${
               isLoading
                 ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+                : 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transform hover:scale-105'
             }`}
           >
             {isLoading ? (
@@ -505,7 +521,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                 Registrando...
               </div>
             ) : (
-              '🏠 Registrarse en Supercasa'
+              '🏗️ Registrarse en Supercasa'
             )}
           </button>
         </div>
@@ -516,7 +532,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
             ¿Ya tienes cuenta?{' '}
             <button
               onClick={onSwitchToLogin}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-amber-600 hover:text-amber-700 font-medium"
               disabled={isLoading}
             >
               Inicia sesión aquí
@@ -528,7 +544,7 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
   );
 }
 
-// Componente principal de la tienda CON WOMPI
+// ✅ COMPONENTE PRINCIPAL DE LA TIENDA CON BRANDING COMPLETO
 function Store({ user, token, onLogout }) {
   const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
@@ -586,7 +602,7 @@ function Store({ user, token, onLogout }) {
     }
   }, [user]);
 
-  // Cargar productos MIGRADO
+  // Cargar productos
   useEffect(() => {
     obtenerProductos();
   }, []);
@@ -610,12 +626,11 @@ function Store({ user, token, onLogout }) {
     }
   }, []);
 
-  // 🆕 VERIFICAR PEDIDOS RECIENTES AL REGRESAR DE PAGOS PSE
+  // Verificar pedidos recientes al regresar de pagos PSE
   useEffect(() => {
     const verificarPedidoReciente = async () => {
       const carritoActual = JSON.parse(localStorage.getItem('carrito') || '[]');
       
-      // Solo verificar si hay carrito con productos
       if (carritoActual.length > 0) {
         console.log('🔍 Verificando pedidos recientes al cargar Store...');
         
@@ -633,7 +648,6 @@ function Store({ user, token, onLogout }) {
             if (data.found && data.payment_status === 'APPROVED') {
               console.log('🎉 ¡PEDIDO RECIENTE DETECTADO AL REGRESAR!', data);
               
-              // ✅ LIMPIAR CARRITO Y MOSTRAR CONFIRMACIÓN
               setCarrito([]);
               localStorage.removeItem('carrito');
               
@@ -648,7 +662,6 @@ function Store({ user, token, onLogout }) {
                 }
               });
               
-              // Opcional: Mostrar modal adicional de confirmación
               setTimeout(() => {
                 const userConfirm = window.confirm(
                   `✅ ¡PEDIDO CONFIRMADO!\n\n` +
@@ -670,11 +683,10 @@ function Store({ user, token, onLogout }) {
       }
     };
 
-    // Verificar inmediatamente al cargar
     if (token) {
       verificarPedidoReciente();
     }
-  }, [token, navigate]); // Solo cuando el token esté disponible
+  }, [token, navigate]);
 
   // Guardar carrito en localStorage cuando cambie
   useEffect(() => {
@@ -717,7 +729,7 @@ function Store({ user, token, onLogout }) {
       setCarrito([...carrito, { ...producto, cantidad: 1 }]);
     }
     
-    toast.success(`${producto.nombre} agregado al carrito`, {
+    toast.success(`🏗️ ${producto.nombre} agregado al carrito`, {
       duration: 2000,
       icon: '🛒'
     });
@@ -746,7 +758,6 @@ function Store({ user, token, onLogout }) {
   };
 
   const procederAlPago = () => {
-    // Validación de datos de entrega
     if (!deliveryData.torre_entrega) {
       toast.error('Por favor selecciona la torre de entrega');
       return;
@@ -764,20 +775,17 @@ function Store({ user, token, onLogout }) {
     setShowWompiPayment(true);
   };
 
-  // ✅ CALLBACK CORREGIDO - VALIDACIÓN COMPATIBLE CON BACKEND
   const handlePaymentSuccess = async (paymentData) => {
     console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
 
-    // ✅ VALIDACIÓN CORREGIDA - Compatible con respuesta del backend
     if (paymentData.success && paymentData.pedidoId) {
       console.log('✅ ¡Pago y pedido exitosos!');
       
-      toast.success('¡Pago aprobado y pedido creado exitosamente!', {
+      toast.success('🏗️ ¡Pago aprobado y pedido creado exitosamente!', {
         duration: 6000,
         icon: '🎉'
       });
 
-      // ✅ LIMPIAR Y CERRAR TODO
       setCarrito([]);
       localStorage.removeItem('carrito');
       setShowWompiPayment(false);
@@ -793,7 +801,6 @@ function Store({ user, token, onLogout }) {
     }
   };
 
-  // ✅ CALLBACK PARA ERRORES DE PAGO
   const handlePaymentError = (error) => {
     console.error('💳 Error en el pago:', error);
     setShowWompiPayment(false);
@@ -817,180 +824,179 @@ function Store({ user, token, onLogout }) {
   const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
   const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
 
- const processCashPayment = async () => {
-  setIsProcessingCash(true);
-  
-  try {
-    console.log('💵 PROCESANDO PAGO EN EFECTIVO');
+  const processCashPayment = async () => {
+    setIsProcessingCash(true);
     
-    const token = localStorage.getItem('token');
-    if (!token) {
-      toast.error('Debes iniciar sesión para hacer un pedido');
-      return;
-    }
-
-    // 🔍 DEBUG: Verificar datos antes de procesar
-    console.log('🔍 deliveryData:', deliveryData);
-    console.log('🔍 user completo:', user);
-    
-    // ✅ VALIDAR Y COMPLETAR DATOS DE ENTREGA
-    const finalDeliveryData = {
-      torre_entrega: deliveryData.torre_entrega || user.torre || '1',
-      piso_entrega: deliveryData.piso_entrega || user.piso || '1',
-      apartamento_entrega: deliveryData.apartamento_entrega || user.apartamento || '101',
-      telefono_contacto: deliveryData.telefono_contacto || user.telefono || '3000000000',
-      email: deliveryData.email || user.email,
-      nombre: deliveryData.nombre || user.nombre,
-      instrucciones_entrega: deliveryData.instrucciones_entrega || user.notas_entrega || ''
-    };
-
-    console.log('🏠 Datos de entrega final:', finalDeliveryData);
-    
-    // ✅ VALIDACIÓN ESTRICTA ANTES DE ENVIAR
-    if (!finalDeliveryData.torre_entrega || !['1', '2', '3', '4', '5'].includes(String(finalDeliveryData.torre_entrega))) {
-      console.error('❌ Torre inválida:', finalDeliveryData.torre_entrega);
-      toast.error('Torre inválida. Debe ser 1, 2, 3, 4 o 5');
-      return;
-    }
-    
-    const pisoNum = parseInt(finalDeliveryData.piso_entrega);
-    if (!pisoNum || pisoNum < 1 || pisoNum > 30) {
-      console.error('❌ Piso inválido:', finalDeliveryData.piso_entrega, 'Parseado:', pisoNum);
-      toast.error('Piso inválido. Debe estar entre 1 y 30');
-      return;
-    }
-    
-    if (!finalDeliveryData.apartamento_entrega || String(finalDeliveryData.apartamento_entrega).trim() === '') {
-      console.error('❌ Apartamento inválido:', finalDeliveryData.apartamento_entrega);
-      toast.error('El apartamento es obligatorio');
-      return;
-    }
-
-    console.log('✅ Validaciones pasadas - Torre:', finalDeliveryData.torre_entrega, 'Piso:', pisoNum, 'Apt:', finalDeliveryData.apartamento_entrega);
-
-    // Usar los datos validados
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const orderNumber = Math.floor(Math.random() * 9000) + 1000;
-    const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
-    
-    const orderData = {
-      cliente_email: finalDeliveryData.email,
-      telefono_contacto: finalDeliveryData.telefono_contacto,
-      torre_entrega: String(finalDeliveryData.torre_entrega),
-      piso_entrega: String(finalDeliveryData.piso_entrega),
-      apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
-      instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
-      notas_entrega: finalDeliveryData.instrucciones_entrega || '',
-      productos: carrito.map(item => ({
-        id: item.id,
-        nombre: item.nombre,
-        precio: item.precio,
-        cantidad: item.cantidad
-      })),
-      total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
-      metodo_pago: 'EFECTIVO',
-      estado_pago: 'PENDIENTE_EFECTIVO',
-      transaccion_id: `CASH-${reference}`,
-      referencia_pago: reference
-    };
-
-    const response = await fetch(`${API_URL}/orders`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(orderData)
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.success) {
-      console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
+    try {
+      console.log('💵 PROCESANDO PAGO EN EFECTIVO');
       
-      toast.success(`¡Pedido creado exitosamente! 💵 Pago en efectivo al recibir. Entrega en máximo 20 minutos.`, {
-        duration: 8000,
-        icon: '🎉'
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Debes iniciar sesión para hacer un pedido');
+        return;
+      }
+
+      console.log('🔍 deliveryData:', deliveryData);
+      console.log('🔍 user completo:', user);
+      
+      const finalDeliveryData = {
+        torre_entrega: deliveryData.torre_entrega || user.torre || '1',
+        piso_entrega: deliveryData.piso_entrega || user.piso || '1',
+        apartamento_entrega: deliveryData.apartamento_entrega || user.apartamento || '101',
+        telefono_contacto: deliveryData.telefono_contacto || user.telefono || '3000000000',
+        email: deliveryData.email || user.email,
+        nombre: deliveryData.nombre || user.nombre,
+        instrucciones_entrega: deliveryData.instrucciones_entrega || user.notas_entrega || ''
+      };
+
+      console.log('🏠 Datos de entrega final:', finalDeliveryData);
+      
+      if (!finalDeliveryData.torre_entrega || !['1', '2', '3', '4', '5'].includes(String(finalDeliveryData.torre_entrega))) {
+        console.error('❌ Torre inválida:', finalDeliveryData.torre_entrega);
+        toast.error('Torre inválida. Debe ser 1, 2, 3, 4 o 5');
+        return;
+      }
+      
+      const pisoNum = parseInt(finalDeliveryData.piso_entrega);
+      if (!pisoNum || pisoNum < 1 || pisoNum > 30) {
+        console.error('❌ Piso inválido:', finalDeliveryData.piso_entrega, 'Parseado:', pisoNum);
+        toast.error('Piso inválido. Debe estar entre 1 y 30');
+        return;
+      }
+      
+      if (!finalDeliveryData.apartamento_entrega || String(finalDeliveryData.apartamento_entrega).trim() === '') {
+        console.error('❌ Apartamento inválido:', finalDeliveryData.apartamento_entrega);
+        toast.error('El apartamento es obligatorio');
+        return;
+      }
+
+      console.log('✅ Validaciones pasadas - Torre:', finalDeliveryData.torre_entrega, 'Piso:', pisoNum, 'Apt:', finalDeliveryData.apartamento_entrega);
+
+      const timestamp = Date.now();
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const orderNumber = Math.floor(Math.random() * 9000) + 1000;
+      const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
+      
+      const orderData = {
+        cliente_email: finalDeliveryData.email,
+        telefono_contacto: finalDeliveryData.telefono_contacto,
+        torre_entrega: String(finalDeliveryData.torre_entrega),
+        piso_entrega: String(finalDeliveryData.piso_entrega),
+        apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
+        instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
+        notas_entrega: finalDeliveryData.instrucciones_entrega || '',
+        productos: carrito.map(item => ({
+          id: item.id,
+          nombre: item.nombre,
+          precio: item.precio,
+          cantidad: item.cantidad
+        })),
+        total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
+        metodo_pago: 'EFECTIVO',
+        estado_pago: 'PENDIENTE_EFECTIVO',
+        transaccion_id: `CASH-${reference}`,
+        referencia_pago: reference
+      };
+
+      const response = await fetch(`${API_URL}/orders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
       });
-      
-      // Limpiar y cerrar
-      setCarrito([]);
-      localStorage.removeItem('carrito');
-      setCashPaymentModal(false);
-      setShowCart(false);
-      
-    } else {
-      console.error('❌ Error del backend:', result);
-      throw new Error(result.message || result.error || `Error ${response.status}: ${response.statusText}`);
-    }
 
-  } catch (error) {
-    console.error('❌ Error en efectivo:', error);
-    
-    // ✅ NUEVO: Manejo de sesión expirada - MENSAJES AMIGABLES
-    if (error.message && (
-        error.message.includes('sesión ha expirado') || 
-        error.message.includes('inicie sesión') ||
-        error.message.includes('Token inválido') ||
-        error.message.includes('LOGIN_REQUIRED') ||
-        error.message.includes('SESSION_EXPIRED')
-    )) {
-      toast.error('Su sesión ha expirado. Por favor inicie sesión nuevamente.', {
-        duration: 4000,
-        icon: '🔑',
-        style: {
-          background: '#fef3c7',
-          color: '#92400e',
-          border: '1px solid #f59e0b'
-        }
-      });
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
+        
+        toast.success(`🏗️ ¡Pedido creado exitosamente! 💵 Pago en efectivo al recibir. Entrega en máximo 20 minutos.`, {
+          duration: 8000,
+          icon: '🎉'
+        });
+        
+        setCarrito([]);
+        localStorage.removeItem('carrito');
+        setCashPaymentModal(false);
+        setShowCart(false);
+        
+      } else {
+        console.error('❌ Error del backend:', result);
+        throw new Error(result.message || result.error || `Error ${response.status}: ${response.statusText}`);
+      }
+
+    } catch (error) {
+      console.error('❌ Error en efectivo:', error);
       
-      // Cerrar modales y limpiar estado
-      setCashPaymentModal(false);
-      setShowCart(false);
+      if (error.message && (
+          error.message.includes('sesión ha expirado') || 
+          error.message.includes('inicie sesión') ||
+          error.message.includes('Token inválido') ||
+          error.message.includes('LOGIN_REQUIRED') ||
+          error.message.includes('SESSION_EXPIRED')
+      )) {
+        toast.error('Su sesión ha expirado. Por favor inicie sesión nuevamente.', {
+          duration: 4000,
+          icon: '🔑',
+          style: {
+            background: '#fef3c7',
+            color: '#92400e',
+            border: '1px solid #f59e0b'
+          }
+        });
+        
+        setCashPaymentModal(false);
+        setShowCart(false);
+        
+        setTimeout(() => {
+          onLogout();
+        }, 2000);
+        return;
+      }
       
-      // Cerrar sesión automáticamente después de 2 segundos
-      setTimeout(() => {
-        onLogout();
-      }, 2000);
-      return;
+      if (error.message && error.message.includes('Stock insuficiente')) {
+        toast.error(`❌ ${error.message}`, {
+          duration: 6000,
+          style: {
+            background: '#fef2f2',
+            color: '#dc2626',
+            border: '1px solid #fecaca'
+          }
+        });
+      } else if (error.message && error.message.includes('Stock')) {
+        toast.error(`📦 Problema de inventario: ${error.message}`, {
+          duration: 5000
+        });
+      } else {
+        toast.error(`Error al crear el pedido: ${error.message}`);
+      }
+    } finally {
+      setIsProcessingCash(false);
     }
-    
-    // ✅ MANEJO específico de errores de stock
-    if (error.message && error.message.includes('Stock insuficiente')) {
-      toast.error(`❌ ${error.message}`, {
-        duration: 6000,
-        style: {
-          background: '#fef2f2',
-          color: '#dc2626',
-          border: '1px solid #fecaca'
-        }
-      });
-    } else if (error.message && error.message.includes('Stock')) {
-      toast.error(`📦 Problema de inventario: ${error.message}`, {
-        duration: 5000
-      });
-    } else {
-      // Error genérico (como antes)
-      toast.error(`Error al crear el pedido: ${error.message}`);
-    }
-  } finally {
-    setIsProcessingCash(false);
-  }
-};
+  };
 
   if (isLoading) {
     return (
       <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
         darkMode 
           ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
-          : 'bg-gradient-to-br from-blue-50 to-indigo-100'
+          : 'bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100'
       }`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+          <SupercasaLogo 
+            size="large"
+            showText={true}
+            showSlogan={false}
+            darkMode={darkMode}
+            className="mb-6 animate-pulse"
+          />
+          <div className={`animate-spin rounded-full h-16 w-16 border-b-2 mx-auto ${
+            darkMode ? 'border-amber-400' : 'border-amber-600'
+          }`}></div>
           <p className={`mt-4 text-lg transition-colors duration-300 ${
-            darkMode ? 'text-gray-300' : 'text-gray-600'
+            darkMode ? 'text-amber-300' : 'text-amber-800'
           }`}>Cargando productos...</p>
         </div>
       </div>
@@ -1001,31 +1007,39 @@ function Store({ user, token, onLogout }) {
     <div className={`min-h-screen transition-colors duration-300 ${
       darkMode 
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
-        : 'bg-gradient-to-br from-blue-50 to-indigo-100'
+        : 'bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100'
     }`}>
-      {/* ✅ HEADER CORREGIDO CON VALIDACIÓN DE DATOS */}
-      <header className={`shadow-lg sticky top-0 z-40 transition-colors duration-300 ${
-        darkMode ? 'bg-gray-800 border-b border-gray-700' : 'bg-white'
+      {/* ✅ HEADER CON BRANDING SUPERCASA */}
+      <header className={`shadow-lg sticky top-0 z-40 transition-colors duration-300 border-b-2 ${
+        darkMode 
+          ? 'bg-gray-800 border-amber-600' 
+          : 'bg-white border-amber-300'
       }`}>
         <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
-            {/* ✅ LADO IZQUIERDO - Logo y info usuario */}
+            {/* Logo Supercasa - Lado izquierdo */}
             <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 md:p-3 rounded-xl">
-                <svg className="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.80a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-                </svg>
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Supercasa
-                </h1>
-                {/* ✅ VALIDACIÓN DE DATOS CORREGIDA */}
+              <SupercasaLogo 
+                size="medium"
+                showText={true}
+                showSlogan={false}
+                darkMode={darkMode}
+                className="transition-all duration-300 hover:scale-105"
+              />
+              
+              {/* Info del usuario - Solo desktop */}
+              <div className="hidden sm:block ml-2">
+                <p className={`text-xs md:text-sm font-medium transition-colors duration-300 ${
+                  darkMode ? 'text-amber-300' : 'text-amber-600'
+                }`}>
+                  "Tu supermercado en casa, en 20 minutos"
+                </p>
+                
                 <p className={`text-xs md:text-sm transition-colors duration-300 ${
                   darkMode ? 'text-gray-300' : 'text-gray-600'
                 }`}>
                   {user?.torre && user?.piso && user?.apartamento ? (
-                    `Torre ${user.torre}, Piso ${user.piso}, Apt ${user.apartamento}`
+                    `🏗️ Torre ${user.torre}, Piso ${user.piso}, Apt ${user.apartamento}`
                   ) : (
                     `Bienvenido ${user?.nombre || 'Usuario'}`
                   )}
@@ -1033,28 +1047,28 @@ function Store({ user, token, onLogout }) {
               </div>
             </div>
             
-            {/* ✅ LADO DERECHO - Reorganizado con admin estático */}
+            {/* Lado derecho - Controles */}
             <div className="flex items-center space-x-1 md:space-x-3">
-              {/* 👤 Saludo usuario - Solo desktop */}
+              {/* Saludo usuario - Solo desktop */}
               <div className={`hidden lg:flex items-center space-x-2 mr-2 transition-colors duration-300 ${
                 darkMode ? 'text-gray-300' : 'text-gray-600'
               }`}>
                 <span className="text-sm">Hola, {user?.nombre || 'Usuario'}</span>
               </div>
               
-              {/* ⚡ Banner entrega - Solo desktop grande */}
+              {/* Banner entrega - Solo desktop grande */}
               <div className={`hidden xl:flex items-center rounded-lg px-3 py-2 border mr-2 transition-colors duration-300 ${
                 darkMode 
-                  ? 'bg-green-900 border-green-700 text-green-300' 
-                  : 'bg-green-50 border-green-200 text-green-800'
+                  ? 'bg-amber-900 border-amber-700 text-amber-300' 
+                  : 'bg-amber-50 border-amber-200 text-amber-800'
               }`}>
                 <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
                 </svg>
-                <span className="text-sm font-medium">💳 Pago seguro + entrega 20 min</span>
+                <span className="text-sm font-medium">🏗️ Entrega rápida 20 min</span>
               </div>
               
-              {/* 🌙 Toggle modo oscuro */}
+              {/* Toggle modo oscuro */}
               <button
                 onClick={toggleDarkMode}
                 className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
@@ -1075,7 +1089,7 @@ function Store({ user, token, onLogout }) {
                 )}
               </button>
               
-              {/* ✅ 🔧 PANEL ADMIN ESTÁTICO - Mismo tamaño que otros iconos */}
+              {/* Panel Admin */}
               {user?.rol === 'admin' && (
                 <Link
                   to="/admin"
@@ -1091,36 +1105,38 @@ function Store({ user, token, onLogout }) {
                   </svg>
                 </Link>
               )}
-              {/* 📋 Mi Historial */}
-                  <Link
-                    to="/historial"
-                    className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
-                      darkMode 
-                        ? 'bg-green-600 hover:bg-green-700 text-white' 
-                        : 'bg-green-600 hover:bg-green-700 text-white'
-                    }`}
-                    title="Mi Historial"
-                  >
-                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
-                    </svg>
-                  </Link>
-              {/* 🛒 Carrito */}
+
+              {/* Mi Historial */}
+              <Link
+                to="/historial"
+                className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
+                  darkMode 
+                    ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                    : 'bg-amber-600 hover:bg-amber-700 text-white'
+                }`}
+                title="Mi Historial"
+              >
+                <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
+                </svg>
+              </Link>
+
+              {/* Carrito con branding */}
               <button
                 onClick={() => setShowCart(true)}
-                className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white p-2 md:p-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all flex-shrink-0"
+                className="relative bg-gradient-to-r from-amber-500 to-yellow-600 text-white p-2 md:p-3 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all flex-shrink-0 shadow-lg"
               >
                 <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/>
                 </svg>
                 {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 md:h-6 md:w-6 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 md:h-6 md:w-6 flex items-center justify-center animate-pulse">
                     {totalItems}
                   </span>
                 )}
               </button>
               
-              {/* 🚪 Logout */}
+              {/* Logout */}
               <button
                 onClick={onLogout}
                 className={`p-2 md:p-3 rounded-xl transition-all duration-300 flex-shrink-0 ${
@@ -1139,50 +1155,52 @@ function Store({ user, token, onLogout }) {
         </div>
       </header>
 
-      {/* ✅ BANNER MÓVIL ÚNICO */}
+      {/* Banner móvil con branding */}
       <div className={`lg:hidden p-3 text-center transition-colors duration-300 ${
         darkMode 
-          ? 'bg-gradient-to-r from-green-700 to-blue-700 text-white' 
-          : 'bg-gradient-to-r from-green-500 to-blue-500 text-white'
+          ? 'bg-gradient-to-r from-amber-700 to-yellow-700 text-white' 
+          : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white'
       }`}>
         <div className="flex items-center justify-center">
           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
           </svg>
-          <span className="font-medium text-sm">💳 Pago seguro + entrega en máximo 20 minutos</span>
+          <span className="font-medium text-sm">🏗️ Supercasa - Entrega en máximo 20 minutos</span>
         </div>
       </div>
 
-      {/* Filtros y búsqueda */}
+      {/* Filtros y búsqueda con branding */}
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className={`rounded-2xl shadow-lg p-6 mb-6 transition-colors duration-300 ${
-          darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+        <div className={`rounded-2xl shadow-lg p-6 mb-6 transition-colors duration-300 border-2 ${
+          darkMode 
+            ? 'bg-gray-800 border-amber-600' 
+            : 'bg-white border-amber-300'
         }`}>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Buscar productos..."
+                placeholder="🔍 Buscar productos en Supercasa..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                className={`w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-amber-500 transition-colors duration-300 border-2 ${
                   darkMode 
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-transparent' 
-                    : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
-                } border`}
+                    ? 'bg-gray-700 border-amber-600 text-white placeholder-gray-400 focus:border-transparent' 
+                    : 'bg-white border-amber-200 text-gray-900 focus:border-transparent'
+                }`}
               />
             </div>
             
             <select
               value={categoriaSeleccionada}
               onChange={(e) => setCategoriaSeleccionada(e.target.value)}
-              className={`px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+              className={`px-4 py-3 rounded-xl focus:ring-2 focus:ring-amber-500 transition-colors duration-300 border-2 ${
                 darkMode 
-                  ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
-                  : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
-              } border`}
+                  ? 'bg-gray-700 border-amber-600 text-white focus:border-transparent' 
+                  : 'bg-white border-amber-200 text-gray-900 focus:border-transparent'
+              }`}
             >
-              <option value="">Todas las categorías</option>
+              <option value="">📦 Todas las categorías</option>
               {categorias.map(categoria => (
                 <option key={categoria} value={categoria}>{categoria}</option>
               ))}
@@ -1190,11 +1208,13 @@ function Store({ user, token, onLogout }) {
           </div>
         </div>
 
-        {/* Grid de productos */}
+        {/* Grid de productos con branding */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {productosFiltrados.map(producto => (
-            <div key={producto.id} className={`rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105 duration-300 ${
-              darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+            <div key={producto.id} className={`rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105 duration-300 border-2 ${
+              darkMode 
+                ? 'bg-gray-800 border-amber-600/50 hover:border-amber-500' 
+                : 'bg-white border-amber-200 hover:border-amber-400'
             }`}>
               <img
                 src={producto.imagen}
@@ -1206,10 +1226,10 @@ function Store({ user, token, onLogout }) {
                   darkMode ? 'text-white' : 'text-gray-800'
                 }`}>{producto.nombre}</h3>
                 <p className={`text-sm mb-2 transition-colors duration-300 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                  darkMode ? 'text-amber-300' : 'text-amber-600'
                 }`}>{producto.categoria}</p>
                 <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-blue-500">
+                  <span className="text-xl font-bold text-amber-500">
                     ${producto.precio.toLocaleString()}
                   </span>
                   <span className={`text-sm transition-colors duration-300 ${
@@ -1221,9 +1241,9 @@ function Store({ user, token, onLogout }) {
                 <button
                   onClick={() => agregarAlCarrito(producto)}
                   disabled={producto.stock === 0}
-                  className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full mt-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-2 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
                 >
-                  {producto.stock === 0 ? 'Sin stock' : 'Agregar al carrito'}
+                  {producto.stock === 0 ? '❌ Sin stock' : '🏗️ Agregar al carrito'}
                 </button>
               </div>
             </div>
@@ -1233,7 +1253,7 @@ function Store({ user, token, onLogout }) {
         {productosFiltrados.length === 0 && (
           <div className="text-center py-12">
             <div className={`text-6xl mb-4 transition-colors duration-300 ${
-              darkMode ? 'text-gray-600' : 'text-gray-400'
+              darkMode ? 'text-gray-600' : 'text-amber-400'
             }`}>🔍</div>
             <h3 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
               darkMode ? 'text-gray-300' : 'text-gray-600'
@@ -1245,19 +1265,29 @@ function Store({ user, token, onLogout }) {
         )}
       </div>
 
-      {/* Modal del carrito */}
+      {/* Modal del carrito con branding */}
       {showCart && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 ${
-            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 border-2 ${
+            darkMode 
+              ? 'bg-gray-800 border-amber-600' 
+              : 'bg-white border-amber-300'
           }`}>
             <div className={`p-6 border-b transition-colors duration-300 ${
-              darkMode ? 'border-gray-700' : 'border-gray-200'
+              darkMode ? 'border-amber-600' : 'border-amber-300'
             }`}>
               <div className="flex justify-between items-center">
-                <h2 className={`text-2xl font-bold transition-colors duration-300 ${
-                  darkMode ? 'text-white' : 'text-gray-800'
-                }`}>Tu Carrito</h2>
+                <div className="flex items-center space-x-3">
+                  <SupercasaLogo 
+                    size="small"
+                    showText={false}
+                    showSlogan={false}
+                    darkMode={darkMode}
+                  />
+                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-800'
+                  }`}>Tu Carrito Supercasa</h2>
+                </div>
                 <button
                   onClick={() => setShowCart(false)}
                   className={`transition-colors duration-300 ${
@@ -1275,26 +1305,29 @@ function Store({ user, token, onLogout }) {
               {carrito.length === 0 ? (
                 <div className="text-center py-8">
                   <div className={`text-6xl mb-4 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-600' : 'text-gray-400'
+                    darkMode ? 'text-gray-600' : 'text-amber-400'
                   }`}>🛒</div>
                   <p className={`transition-colors duration-300 ${
                     darkMode ? 'text-gray-300' : 'text-gray-600'
                   }`}>Tu carrito está vacío</p>
+                  <p className={`text-sm mt-2 transition-colors duration-300 ${
+                    darkMode ? 'text-amber-300' : 'text-amber-600'
+                  }`}>¡Agrega productos de Supercasa!</p>
                 </div>
               ) : (
                 <>
                   {carrito.map(item => (
                     <div key={item.id} className={`flex items-center justify-between py-4 border-b transition-colors duration-300 ${
-                      darkMode ? 'border-gray-700' : 'border-gray-100'
+                      darkMode ? 'border-gray-700' : 'border-amber-100'
                     }`}>
                       <div className="flex items-center space-x-4">
-                        <img src={item.imagen} alt={item.nombre} className="w-16 h-16 object-cover rounded-lg" />
+                        <img src={item.imagen} alt={item.nombre} className="w-16 h-16 object-cover rounded-lg border-2 border-amber-300" />
                         <div>
                           <h3 className={`font-semibold transition-colors duration-300 ${
                             darkMode ? 'text-white' : 'text-gray-800'
                           }`}>{item.nombre}</h3>
                           <p className={`transition-colors duration-300 ${
-                            darkMode ? 'text-gray-400' : 'text-gray-600'
+                            darkMode ? 'text-amber-400' : 'text-amber-600'
                           }`}>${item.precio.toLocaleString()}</p>
                         </div>
                       </div>
@@ -1312,14 +1345,14 @@ function Store({ user, token, onLogout }) {
                           </svg>
                         </button>
                         <span className={`px-3 py-1 rounded-lg transition-colors duration-300 ${
-                          darkMode ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-800'
+                          darkMode ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'
                         }`}>{item.cantidad}</span>
                         <button
                           onClick={() => agregarAlCarrito(item)}
                           className={`p-1 rounded-lg transition-colors duration-300 ${
                             darkMode 
-                              ? 'bg-blue-900 text-blue-300 hover:bg-blue-800' 
-                              : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                              ? 'bg-amber-700 text-amber-300 hover:bg-amber-600' 
+                              : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
                           }`}
                         >
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -1331,13 +1364,13 @@ function Store({ user, token, onLogout }) {
                   ))}
 
                   <div className={`mt-6 pt-6 border-t transition-colors duration-300 ${
-                    darkMode ? 'border-gray-700' : 'border-gray-200'
+                    darkMode ? 'border-amber-600' : 'border-amber-300'
                   }`}>
                     <div className="flex justify-between items-center mb-4">
                       <span className={`text-xl font-bold transition-colors duration-300 ${
                         darkMode ? 'text-white' : 'text-gray-800'
-                      }`}>Total:</span>
-                      <span className="text-2xl font-bold text-blue-500">${total.toLocaleString()}</span>
+                      }`}>Total Supercasa:</span>
+                      <span className="text-2xl font-bold text-amber-500">${total.toLocaleString()}</span>
                     </div>
                     
                     <div className="space-y-3">
@@ -1346,34 +1379,34 @@ function Store({ user, token, onLogout }) {
                           darkMode ? 'text-white' : 'text-gray-800'
                         }`}>Total: ${total.toLocaleString('es-CO')} COP</p>
                         <p className={`text-sm transition-colors duration-300 ${
-                          darkMode ? 'text-gray-400' : 'text-gray-600'
-                        }`}>Elige tu método de pago:</p>
+                          darkMode ? 'text-amber-400' : 'text-amber-600'
+                        }`}>🏗️ Elige tu método de pago:</p>
                       </div>
 
-                      {/* BOTÓN WOMPI */}
+                      {/* BOTÓN WOMPI con branding */}
                       <button
                         onClick={finalizarCompra}
-                        className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-amber-600 hover:to-yellow-700 transition-colors flex items-center justify-center space-x-2 shadow-lg"
                       >
                         <span className="text-xl">💳</span>
                         <div className="text-left">
-                          <div className="font-semibold">Pago Digital</div>
+                          <div className="font-semibold">Pago Digital Supercasa</div>
                           <div className="text-xs opacity-90">Nequi • PSE • Tarjetas</div>
                         </div>
                         <span className="ml-auto">⚡</span>
                       </button>
 
-                      {/* BOTÓN EFECTIVO */}
+                      {/* BOTÓN EFECTIVO con branding */}
                       <button 
                         onClick={() => setCashPaymentModal(true)}
-                        className="w-full bg-green-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition-colors flex items-center justify-center space-x-2 shadow-lg"
                       >
                         <span className="text-xl">💵</span>
                         <div className="text-left">
                           <div className="font-semibold">Pago en Efectivo</div>
-                          <div className="text-xs opacity-90">Al recibir el pedido</div>
+                          <div className="text-xs opacity-90">Al recibir en tu torre</div>
                         </div>
-                        <span className="ml-auto">🏠</span>
+                        <span className="ml-auto">🏗️</span>
                       </button>
                     </div>
                   </div>
@@ -1384,19 +1417,29 @@ function Store({ user, token, onLogout }) {
         </div>
       )}
 
-      {/* Modal de checkout - datos de entrega */}
+      {/* Modal de checkout con branding */}
       {showCheckout && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 ${
-            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 border-2 ${
+            darkMode 
+              ? 'bg-gray-800 border-amber-600' 
+              : 'bg-white border-amber-300'
           }`}>
             <div className={`p-6 border-b transition-colors duration-300 ${
-              darkMode ? 'border-gray-700' : 'border-gray-200'
+              darkMode ? 'border-amber-600' : 'border-amber-300'
             }`}>
               <div className="flex justify-between items-center">
-                <h2 className={`text-2xl font-bold transition-colors duration-300 ${
-                  darkMode ? 'text-white' : 'text-gray-800'
-                }`}>Confirmar Datos de Entrega</h2>
+                <div className="flex items-center space-x-3">
+                  <SupercasaLogo 
+                    size="small"
+                    showText={false}
+                    showSlogan={false}
+                    darkMode={darkMode}
+                  />
+                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-800'
+                  }`}>Datos de Entrega</h2>
+                </div>
                 <button
                   onClick={() => setShowCheckout(false)}
                   className={`transition-colors duration-300 ${
@@ -1411,45 +1454,45 @@ function Store({ user, token, onLogout }) {
             </div>
 
             <div className="p-6">
-              <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 ${
+              <h3 className={`text-lg font-semibold mb-4 transition-colors duration-300 flex items-center ${
                 darkMode ? 'text-white' : 'text-gray-800'
-              }`}>📍 Datos de Entrega</h3>
+              }`}>🏗️ Entrega en las 5 Torres de Supercasa</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div>
                   <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                    darkMode ? 'text-amber-300' : 'text-amber-700'
                   }`}>Torre</label>
                   <select
                     value={deliveryData.torre_entrega}
                     onChange={(e) => setDeliveryData({...deliveryData, torre_entrega: e.target.value})}
-                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-amber-500 transition-colors duration-300 border-2 ${
                       darkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
-                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
-                    } border`}
+                        ? 'bg-gray-700 border-amber-600 text-white focus:border-transparent' 
+                        : 'bg-white border-amber-200 text-gray-900 focus:border-transparent'
+                    }`}
                   >
-                    <option value="1">Torre 1</option>
-                    <option value="2">Torre 2</option>
-                    <option value="3">Torre 3</option>
-                    <option value="4">Torre 4</option>
-                    <option value="5">Torre 5</option>
+                    <option value="1">🏗️ Torre 1</option>
+                    <option value="2">🏗️ Torre 2</option>
+                    <option value="3">🏗️ Torre 3</option>
+                    <option value="4">🏗️ Torre 4</option>
+                    <option value="5">🏗️ Torre 5</option>
                   </select>
                 </div>
 
                 <div>
                   <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                    darkMode ? 'text-amber-300' : 'text-amber-700'
                   }`}>Piso</label>
                   <input
                     type="number"
                     value={deliveryData.piso_entrega}
                     onChange={(e) => setDeliveryData({...deliveryData, piso_entrega: e.target.value})}
-                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-amber-500 transition-colors duration-300 border-2 ${
                       darkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
-                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
-                    } border`}
+                        ? 'bg-gray-700 border-amber-600 text-white focus:border-transparent' 
+                        : 'bg-white border-amber-200 text-gray-900 focus:border-transparent'
+                    }`}
                     min="1"
                     max="30"
                   />
@@ -1457,48 +1500,48 @@ function Store({ user, token, onLogout }) {
 
                 <div>
                   <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                    darkMode ? 'text-amber-300' : 'text-amber-700'
                   }`}>Apartamento</label>
                   <input
                     type="text"
                     value={deliveryData.apartamento_entrega}
                     onChange={(e) => setDeliveryData({...deliveryData, apartamento_entrega: e.target.value})}
-                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-amber-500 transition-colors duration-300 border-2 ${
                       darkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
-                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
-                    } border`}
+                        ? 'bg-gray-700 border-amber-600 text-white focus:border-transparent' 
+                        : 'bg-white border-amber-200 text-gray-900 focus:border-transparent'
+                    }`}
                   />
                 </div>
 
                 <div>
                   <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                    darkMode ? 'text-amber-300' : 'text-amber-700'
                   }`}>Teléfono</label>
                   <input
                     type="tel"
                     value={deliveryData.telefono_contacto}
                     onChange={(e) => setDeliveryData({...deliveryData, telefono_contacto: e.target.value})}
-                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-amber-500 transition-colors duration-300 border-2 ${
                       darkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent' 
-                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
-                    } border`}
+                        ? 'bg-gray-700 border-amber-600 text-white focus:border-transparent' 
+                        : 'bg-white border-amber-200 text-gray-900 focus:border-transparent'
+                    }`}
                   />
                 </div>
 
                 <div className="md:col-span-2">
                   <label className={`block text-sm font-medium mb-2 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                    darkMode ? 'text-amber-300' : 'text-amber-700'
                   }`}>Instrucciones de Entrega</label>
                   <textarea
                     value={deliveryData.instrucciones_entrega}
                     onChange={(e) => setDeliveryData({...deliveryData, instrucciones_entrega: e.target.value})}
-                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-blue-500 transition-colors duration-300 ${
+                    className={`w-full px-4 py-2 rounded-xl focus:ring-2 focus:ring-amber-500 transition-colors duration-300 border-2 ${
                       darkMode 
-                        ? 'bg-gray-700 border-gray-600 text-white focus:border-transparent placeholder-gray-400' 
-                        : 'bg-white border-gray-200 text-gray-900 focus:border-transparent'
-                    } border`}
+                        ? 'bg-gray-700 border-amber-600 text-white focus:border-transparent placeholder-gray-400' 
+                        : 'bg-white border-amber-200 text-gray-900 focus:border-transparent'
+                    }`}
                     rows="3"
                     placeholder="Ej: Llamar al celular, timbre no funciona"
                   />
@@ -1506,20 +1549,20 @@ function Store({ user, token, onLogout }) {
               </div>
 
               <div className={`border-t pt-6 transition-colors duration-300 ${
-                darkMode ? 'border-gray-700' : 'border-gray-200'
+                darkMode ? 'border-amber-600' : 'border-amber-300'
               }`}>
                 <div className="flex justify-between items-center text-xl font-bold mb-4">
                   <span className={`transition-colors duration-300 ${
                     darkMode ? 'text-white' : 'text-gray-800'
-                  }`}>Total a pagar:</span>
-                  <span className="text-blue-500">${total.toLocaleString()}</span>
+                  }`}>Total Supercasa:</span>
+                  <span className="text-amber-500">${total.toLocaleString()}</span>
                 </div>
 
                 <button
                   onClick={procederAlPago}
-                  className="w-full mt-4 bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 rounded-xl hover:from-green-600 hover:to-blue-700 transition-all font-medium"
+                  className="w-full mt-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-3 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all font-medium shadow-lg"
                 >
-                  💳 Proceder al Pago Seguro con WOMPI
+                  🏗️ Proceder al Pago Seguro con WOMPI
                 </button>
               </div>
             </div>
@@ -1527,19 +1570,29 @@ function Store({ user, token, onLogout }) {
         </div>
       )}
 
-      {/* Modal de pago WOMPI */}
+      {/* Modal de pago WOMPI con branding */}
       {showWompiPayment && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 ${
-            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 border-2 ${
+            darkMode 
+              ? 'bg-gray-800 border-amber-600' 
+              : 'bg-white border-amber-300'
           }`}>
             <div className={`p-6 border-b transition-colors duration-300 ${
-              darkMode ? 'border-gray-700' : 'border-gray-200'
+              darkMode ? 'border-amber-600' : 'border-amber-300'
             }`}>
               <div className="flex justify-between items-center">
-                <h2 className={`text-2xl font-bold transition-colors duration-300 ${
-                  darkMode ? 'text-white' : 'text-gray-800'
-                }`}>💳 Pago Seguro con WOMPI</h2>
+                <div className="flex items-center space-x-3">
+                  <SupercasaLogo 
+                    size="small"
+                    showText={false}
+                    showSlogan={false}
+                    darkMode={darkMode}
+                  />
+                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-800'
+                  }`}>🏗️ Pago Seguro Supercasa</h2>
+                </div>
                 <button
                   onClick={cancelarPago}
                   className={`transition-colors duration-300 ${
@@ -1567,33 +1620,46 @@ function Store({ user, token, onLogout }) {
         </div>
       )}
 
-      {/* MODAL DE PAGO EN EFECTIVO */}
+      {/* MODAL DE PAGO EN EFECTIVO con branding */}
       {cashPaymentModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`rounded-lg p-6 max-w-md w-full transition-colors duration-300 ${
-            darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white'
+          <div className={`rounded-lg p-6 max-w-md w-full transition-colors duration-300 border-2 ${
+            darkMode 
+              ? 'bg-gray-800 border-amber-600' 
+              : 'bg-white border-amber-300'
           }`}>
             <div className="text-center mb-6">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-colors duration-300 ${
-                darkMode ? 'bg-green-900' : 'bg-green-100'
-              }`}>
-                <span className="text-3xl">💵</span>
+              <div className="flex items-center justify-center mb-4">
+                <SupercasaLogo 
+                  size="small"
+                  showText={false}
+                  showSlogan={false}
+                  darkMode={darkMode}
+                  className="mr-3"
+                />
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors duration-300 ${
+                  darkMode ? 'bg-green-900' : 'bg-green-100'
+                }`}>
+                  <span className="text-3xl">💵</span>
+                </div>
               </div>
               <h3 className={`text-xl font-bold mb-2 transition-colors duration-300 ${
                 darkMode ? 'text-white' : 'text-gray-800'
-              }`}>Pago en Efectivo</h3>
+              }`}>🏗️ Pago en Efectivo Supercasa</h3>
               <p className={`transition-colors duration-300 ${
-                darkMode ? 'text-gray-400' : 'text-gray-600'
+                darkMode ? 'text-amber-400' : 'text-amber-600'
               }`}>Confirma tu pedido para pago al recibir</p>
             </div>
 
-            {/* RESUMEN */}
-            <div className={`p-4 rounded-lg mb-6 space-y-2 transition-colors duration-300 ${
-              darkMode ? 'bg-gray-700' : 'bg-gray-50'
+            {/* RESUMEN con branding */}
+            <div className={`p-4 rounded-lg mb-6 space-y-2 transition-colors duration-300 border ${
+              darkMode 
+                ? 'bg-gray-700 border-amber-600' 
+                : 'bg-amber-50 border-amber-200'
             }`}>
               <div className="flex justify-between text-sm">
                 <span className={`transition-colors duration-300 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                  darkMode ? 'text-amber-400' : 'text-amber-600'
                 }`}>Productos:</span>
                 <span className={`font-medium transition-colors duration-300 ${
                   darkMode ? 'text-white' : 'text-gray-800'
@@ -1601,27 +1667,27 @@ function Store({ user, token, onLogout }) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className={`transition-colors duration-300 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                  darkMode ? 'text-amber-400' : 'text-amber-600'
                 }`}>Total:</span>
-                <span className="font-bold text-green-500">${total.toLocaleString('es-CO')} COP</span>
+                <span className="font-bold text-amber-500">${total.toLocaleString('es-CO')} COP</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className={`transition-colors duration-300 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                  darkMode ? 'text-amber-400' : 'text-amber-600'
                 }`}>Entrega:</span>
                 <span className={`font-medium transition-colors duration-300 ${
                   darkMode ? 'text-white' : 'text-gray-800'
                 }`}>
-                  Torre {deliveryData.torre_entrega || user?.torre || '1'}, 
+                  🏗️ Torre {deliveryData.torre_entrega || user?.torre || '1'}, 
                   Piso {deliveryData.piso_entrega || user?.piso || '1'}, 
                   Apt {deliveryData.apartamento_entrega || user?.apartamento || '101'}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className={`transition-colors duration-300 ${
-                  darkMode ? 'text-gray-400' : 'text-gray-600'
+                  darkMode ? 'text-amber-400' : 'text-amber-600'
                 }`}>Tiempo:</span>
-                <span className="font-medium text-blue-500">Máximo 20 minutos</span>
+                <span className="font-medium text-amber-500">Máximo 20 minutos</span>
               </div>
             </div>
 
@@ -1634,14 +1700,14 @@ function Store({ user, token, onLogout }) {
               <p className={`text-sm transition-colors duration-300 ${
                 darkMode ? 'text-orange-300' : 'text-orange-800'
               }`}>
-                <strong>📋 Instrucciones:</strong><br/>
+                <strong>🏗️ Instrucciones Supercasa:</strong><br/>
                 • Ten el dinero exacto preparado<br/>
                 • El repartidor confirmará el pago al entregar<br/>
                 • Recibirás confirmación inmediatamente
               </p>
             </div>
 
-            {/* BOTONES */}
+            {/* BOTONES con branding */}
             <div className="flex space-x-3">
               <button
                 onClick={() => setCashPaymentModal(false)}
@@ -1656,7 +1722,7 @@ function Store({ user, token, onLogout }) {
               <button
                 onClick={processCashPayment}
                 disabled={isProcessingCash}
-                className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg"
               >
                 {isProcessingCash ? (
                   <span className="flex items-center justify-center space-x-2">
@@ -1664,7 +1730,7 @@ function Store({ user, token, onLogout }) {
                     <span>Creando...</span>
                   </span>
                   ) : (
-                  '✅ Confirmar Pedido'
+                  '🏗️ Confirmar Pedido'
                 )}
               </button>
             </div>
@@ -1672,7 +1738,7 @@ function Store({ user, token, onLogout }) {
         </div>
       )}
 
-      {/* 💬 CHAT WIDGET */}
+      {/* Chat Widget con branding */}
       <ChatWidget 
         productos={productos}
         agregarAlCarrito={agregarAlCarrito}
