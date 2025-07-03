@@ -17,9 +17,9 @@ const WompiCheckout = ({
   const [pollingAttempts, setPollingAttempts] = useState(0);
   const [transactionReference, setTransactionReference] = useState('');
   
-  // 🆕 NUEVO: Estados específicos para DaviPlata
+  // 🆕 NUEVO: Estados específicos para DaviPlata - MÁS AGRESIVO
   const [showDaviPlataWait, setShowDaviPlataWait] = useState(false);
-  const [daviPlataCountdown, setDaviPlataCountdown] = useState(60);
+  const [daviPlataCountdown, setDaviPlataCountdown] = useState(120); // ⚡ AUMENTADO A 2 MINUTOS
   const [isDaviPlataFlow, setIsDaviPlataFlow] = useState(false);
 
   // ✅ CONFIGURACIÓN WOMPI PRODUCCIÓN
@@ -299,41 +299,64 @@ const WompiCheckout = ({
       return;
     }
 
-    // 🆕 NUEVO: Widget cerrado sin información clara - LÓGICA DAVIPLATA
+    // 🆕 NUEVO: Widget cerrado sin información clara - LÓGICA DAVIPLATA MÁS AGRESIVA
     console.log('⚠️ Widget cerrado sin información clara');
     
-    // Detectar posible flujo DaviPlata (widget se cierra rápidamente sin transacción)
+    // ⚡ DETECCIÓN MÁS AGRESIVA: Widget cerrado dentro de 60 segundos = posible DaviPlata
     const widgetOpenTime = Date.now() - window.widgetOpenTimestamp;
-    const isPossibleDaviPlata = widgetOpenTime < 30000; // Widget abierto menos de 30 segundos
+    const isPossibleDaviPlata = widgetOpenTime < 60000; // ⚡ AUMENTADO A 60 SEGUNDOS
     
     if (isPossibleDaviPlata) {
-      console.log('📱 Posible flujo DaviPlata detectado - Activando espera inteligente');
+      console.log('📱 DETECCIÓN AGRESIVA: Posible flujo DaviPlata - Activando espera extendida');
       setIsDaviPlataFlow(true);
       setShowDaviPlataWait(true);
-      setDaviPlataCountdown(60);
+      setDaviPlataCountdown(120); // ⚡ 2 MINUTOS DE ESPERA
       setTransactionReference(reference);
       setLoading(false);
     } else {
       // Widget abierto por más tiempo, probablemente no es DaviPlata
-      console.log('🔄 Iniciando polling preventivo normal');
+      console.log('🔄 Iniciando polling preventivo normal (widget abierto > 60s)');
       startPolling(reference);
     }
   };
 
-  // 🆕 NUEVO: Función para que el usuario confirme que ya tiene el código DaviPlata
+  // 🆕 NUEVO: Función ULTRA AGRESIVA para DaviPlata
   const handleDaviPlataReady = () => {
-    console.log('📱 Usuario confirmó que tiene código DaviPlata - Iniciando verificación');
+    console.log('📱 USUARIO CONFIRMÓ PAGO DAVIPLATA - VERIFICACIÓN ULTRA AGRESIVA');
     setShowDaviPlataWait(false);
-    startPolling(transactionReference);
+    
+    // ⚡ VERIFICACIÓN INMEDIATA MÚLTIPLE
+    setTimeout(() => startPolling(transactionReference), 100);
+    
+    // ⚡ VERIFICACIÓN BACKUP cada 2 segundos por 30 segundos
+    let backupAttempts = 0;
+    const backupInterval = setInterval(async () => {
+      backupAttempts++;
+      console.log(`🔄 Verificación backup DaviPlata #${backupAttempts}`);
+      
+      const completed = await checkTransactionStatus(transactionReference);
+      if (completed || backupAttempts >= 15) {
+        clearInterval(backupInterval);
+      }
+    }, 2000);
+    
+    toast.success('🚀 Verificando tu pago DaviPlata cada 2 segundos...', {
+      duration: 4000
+    });
   };
 
-  // 🆕 NUEVO: Función para cancelar espera DaviPlata
+  // 🆕 NUEVO: Función para cancelar espera DaviPlata - MEJORADA
   const handleCancelDaviPlata = () => {
-    console.log('❌ Usuario canceló flujo DaviPlata');
+    console.log('❌ Usuario canceló flujo DaviPlata - LIMPIANDO TODO');
     setShowDaviPlataWait(false);
     setIsDaviPlataFlow(false);
     setTransactionReference('');
-    toast.info('Pago cancelado. Si ya pagaste, usa el botón "Verificar pago manualmente".');
+    setLoading(false);
+    setPollingActive(false);
+    
+    toast.error('❌ Pago cancelado. Si ya pagaste en DaviPlata, usa "Verificar pago manualmente".', {
+      duration: 8000
+    });
   };
 
   // 🔍 VERIFICACIÓN MANUAL INTELIGENTE Y SEGURA - REEMPLAZAR
@@ -684,13 +707,23 @@ const WompiCheckout = ({
       // 🆕 MARCAR TIEMPO DE APERTURA PARA DETECTAR DAVIPLATA
       window.widgetOpenTimestamp = Date.now();
       
+      // ⚡ LOGGING ULTRA VISIBLE PARA DEBUG
+      console.log('🚨🚨🚨 WIDGET ABIERTO - TIMESTAMP:', window.widgetOpenTimestamp);
+      console.log('🚨🚨🚨 REFERENCIA PARA DAVIPLATA:', reference);
+      
       const widgetPromise = new Promise((resolve, reject) => {
         try {
           checkout.open(function(result) {
-            console.log('📱 Widget cerrado con resultado COMPLETO:', JSON.stringify(result, null, 2));
+            const closeTime = Date.now();
+            const openDuration = closeTime - window.widgetOpenTimestamp;
+            
+            console.log('🚨🚨🚨 WIDGET CERRADO - TIMESTAMP:', closeTime);
+            console.log('🚨🚨🚨 DURACIÓN ABIERTO:', openDuration, 'ms');
+            console.log('🚨🚨🚨 RESULTADO COMPLETO:', JSON.stringify(result, null, 2));
             
             // Guardar resultado globalmente para debug
             window.lastWompiResult = result;
+            window.lastWidgetDuration = openDuration;
             
             resolve(result);
           });
@@ -734,14 +767,47 @@ const WompiCheckout = ({
     }
   };
 
-  // 🧹 CLEANUP AL DESMONTAR
+  // 🧹 CLEANUP AL DESMONTAR + DEBUG GLOBAL
   useEffect(() => {
+    // ⚡ FUNCIONES DE DEBUG GLOBALES PARA MÓVIL
+    window.supercasaDebug = {
+      estados: () => {
+        console.log('🚨🚨🚨 ESTADOS ACTUALES:', {
+          loading,
+          pollingActive,
+          showDaviPlataWait,
+          isDaviPlataFlow,
+          transactionReference,
+          daviPlataCountdown
+        });
+        alert(`Estados: loading=${loading}, polling=${pollingActive}, daviplata=${showDaviPlataWait}, ref=${transactionReference}`);
+      },
+      forzarVerificacion: () => {
+        console.log('🚨🚨🚨 FORZANDO VERIFICACIÓN MANUAL');
+        if (transactionReference) {
+          startPolling(transactionReference);
+          alert('Verificación forzada iniciada');
+        } else {
+          alert('No hay referencia de transacción');
+        }
+      },
+      limpiarTodo: () => {
+        console.log('🚨🚨🚨 LIMPIANDO TODOS LOS ESTADOS');
+        setShowDaviPlataWait(false);
+        setIsDaviPlataFlow(false);
+        setPollingActive(false);
+        setLoading(false);
+        alert('Estados limpiados');
+      }
+    };
+    
     return () => {
       setPollingActive(false);
       setShowDaviPlataWait(false);
       setIsDaviPlataFlow(false);
+      delete window.supercasaDebug;
     };
-  }, []);
+  }, [loading, pollingActive, showDaviPlataWait, isDaviPlataFlow, transactionReference]);
 
   return (
     <div className="wompi-checkout">
@@ -763,41 +829,63 @@ const WompiCheckout = ({
         {!loading && !pollingActive && !showDaviPlataWait && '💳 Proceder al Pago Seguro con WOMPI'}
       </button>
 
-      {/* 🆕 NUEVO: ESTADO DE ESPERA DAVIPLATA */}
+      {/* 🆕 NUEVO: ESTADO DE ESPERA DAVIPLATA - VERSIÓN AGRESIVA */}
       {showDaviPlataWait && (
-        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="mt-4 p-4 bg-amber-50 border-2 border-amber-300 rounded-lg">
           <div className="flex items-center space-x-2">
-            <span className="text-2xl">📱</span>
+            <span className="text-3xl animate-pulse">📱</span>
             <div className="flex-1">
-              <h3 className="font-semibold text-amber-800">¿Usaste DaviPlata?</h3>
+              <h3 className="font-bold text-amber-800 text-lg">🚨 DaviPlata Detectado</h3>
               <p className="text-amber-700 text-sm">
-                Esperando {daviPlataCountdown} segundos para que regreses con tu código
+                ⏰ Esperando <strong>{daviPlataCountdown} segundos</strong> para que completes tu pago
               </p>
+              <div className="w-full bg-amber-200 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-amber-600 h-2 rounded-full transition-all duration-1000" 
+                  style={{width: `${(daviPlataCountdown / 120) * 100}%`}}
+                ></div>
+              </div>
             </div>
           </div>
           
-          <div className="mt-3 space-y-2">
+          <div className="mt-4 space-y-2">
             <button
               onClick={handleDaviPlataReady}
-              className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 font-medium"
+              className="w-full px-4 py-3 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 font-bold shadow-lg"
             >
-              ✅ Ya tengo mi código DaviPlata, verificar pago
+              ✅ YA PAGUÉ - VERIFICAR INMEDIATAMENTE
             </button>
             
-            <button
-              onClick={handleCancelDaviPlata}
-              className="w-full px-4 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600"
-            >
-              ❌ Cancelar pago
-            </button>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => startPolling(transactionReference)}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs hover:bg-blue-700 font-medium"
+              >
+                🔍 Verificar Ahora
+              </button>
+              
+              <button
+                onClick={handleCancelDaviPlata}
+                className="px-3 py-2 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600 font-medium"
+              >
+                ❌ Cancelar Todo
+              </button>
+            </div>
           </div>
           
-          <div className="mt-3 p-3 bg-amber-100 rounded-lg">
-            <p className="text-xs text-amber-700">
-              💡 <strong>Si usaste DaviPlata:</strong><br/>
-              1. Abre tu app DaviPlata<br/>
-              2. Ingresa tu código de verificación<br/>
-              3. Regresa aquí y presiona "✅ Ya tengo mi código"
+          <div className="mt-4 p-3 bg-amber-100 border border-amber-200 rounded-lg">
+            <p className="text-xs text-amber-800 leading-relaxed">
+              <strong>📱 PASOS DAVIPLATA:</strong><br/>
+              1️⃣ Abre tu app DaviPlata<br/>
+              2️⃣ Autoriza el pago con tu PIN<br/>
+              3️⃣ Espera confirmación en DaviPlata<br/>
+              4️⃣ ¡Regresa aquí y presiona "YA PAGUÉ"!
+            </p>
+          </div>
+          
+          <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded">
+            <p className="text-xs text-red-700">
+              ⚠️ <strong>IMPORTANTE:</strong> Solo presiona "YA PAGUÉ" si DaviPlata confirmó tu pago exitosamente.
             </p>
           </div>
         </div>
@@ -856,6 +944,13 @@ const WompiCheckout = ({
         >
           Cancelar
         </button>
+      )}
+
+      {/* 🆕 DEBUG: Solo visible en desarrollo */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
+          🔧 Debug móvil: Consola → <code>window.supercasaDebug.estados()</code>
+        </div>
       )}
     </div>
   );
