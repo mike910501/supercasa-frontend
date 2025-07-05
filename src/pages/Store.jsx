@@ -7,6 +7,7 @@ import PaymentComponent from '../components/PaymentComponent';
 import ChatWidget from '../components/ChatWidget';
 import SupercasaLogo from '../components/SupercasaLogo';
 import '../styles/supercasa-animations.css';
+import AutorizacionDatos from '../components/AutorizacionDatos';
 
 // Aplicación principal que maneja autenticación
 export default function App() {
@@ -94,7 +95,7 @@ function AuthContainer({ onAuth }) {
   );
 }
 
-// ✅ COMPONENTE DE LOGIN CON BRANDING SUPERCASA
+// ✅ COMPONENTE DE LOGIN CORREGIDO - SIN POLÍTICA DE DATOS
 function LoginForm({ onLogin, onSwitchToRegister }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -234,6 +235,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
             />
           </div>
 
+          {/* ✅ UN SOLO BOTÓN CORRECTO */}
           <button
             onClick={handleSubmit}
             disabled={isLoading}
@@ -271,7 +273,7 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
   );
 }
 
-// ✅ COMPONENTE DE REGISTRO CON BRANDING SUPERCASA
+// ✅ COMPONENTE DE REGISTRO CORREGIDO CON POLÍTICA DE DATOS
 function RegisterForm({ onRegister, onSwitchToLogin }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -283,12 +285,30 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
     torre: '',
     piso: '',
     apartamento: '',
-    notas_entrega: ''
+    notas_entrega: '',
+    // ✅ CAMPOS PARA POLÍTICA DE DATOS
+    privacy_accepted: false,
+    marketing_accepted: false
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+
+  // ✅ HANDLER PARA AUTORIZACIONES
+  const handleAuthChange = (authData) => {
+    setFormData(prev => ({
+      ...prev,
+      privacy_accepted: authData.main,
+      marketing_accepted: authData.marketing
+    }));
+  };
 
   const handleSubmit = async () => {
-    if (!formData.nombre || !formData.email || !formData.cedula || !formData.telefono || !formData.torre || !formData.piso || !formData.apartamento) {
+    // ✅ VALIDACIÓN ACTUALIZADA
+    if (!formData.nombre || !formData.email || !formData.cedula || !formData.telefono || !formData.torre || !formData.piso || !formData.apartamento || !formData.privacy_accepted) {
+      if (!formData.privacy_accepted) {
+        toast.error('Debes aceptar la política de tratamiento de datos para registrarte');
+        return;
+      }
       toast.error('Por favor completa todos los campos obligatorios');
       return;
     }
@@ -505,14 +525,23 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
             />
           </div>
 
+          {/* ✅ COMPONENTE DE AUTORIZACIÓN DE DATOS */}
+          <AutorizacionDatos
+            darkMode={false}
+            onAuthChange={handleAuthChange}
+            showModal={showPrivacyModal}
+            setShowModal={setShowPrivacyModal}
+            isLoading={isLoading}
+          />
+
           {/* Botón de registro con branding */}
           <button
             onClick={handleSubmit}
-            disabled={isLoading}
+            disabled={!formData.privacy_accepted || isLoading}
             className={`w-full py-3 rounded-xl font-medium text-white transition-all ${
-              isLoading
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+              formData.privacy_accepted && !isLoading
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+                : 'bg-gray-400 cursor-not-allowed'
             }`}
           >
             {isLoading ? (
@@ -520,6 +549,8 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                 Registrando...
               </div>
+            ) : !formData.privacy_accepted ? (
+              '⚠️ Acepta la política de datos para continuar'
             ) : (
               '🏗️ Registrarse en Supercasa'
             )}
