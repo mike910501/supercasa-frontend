@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { X, Check, Shield, AlertCircle, Eye } from 'lucide-react';
 
-// 🏗️ COMPONENTE DE AUTORIZACIÓN ESPECÍFICO PARA SUPERCASA
+// 🏗️ COMPONENTE DE AUTORIZACIÓN ESPECÍFICO PARA SUPERCASA - SIN LUCIDE-REACT
 const AutorizacionDatos = ({ 
   darkMode, 
   onAuthChange, 
@@ -31,7 +30,7 @@ const AutorizacionDatos = ({
           : 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-300'
       }`}>
         <h3 className="font-semibold text-amber-600 mb-3 flex items-center gap-2">
-          <Shield className="w-5 h-5" />
+          <span className="text-lg">🛡️</span>
           🏗️ Autorización SuperCasa - Tratamiento de Datos
         </h3>
         
@@ -90,11 +89,11 @@ const AutorizacionDatos = ({
         {/* INDICADORES VISUALES */}
         <div className="mt-4 flex items-center gap-4 text-xs">
           <div className={`flex items-center gap-1 ${authorized ? 'text-green-600' : 'text-gray-400'}`}>
-            <Check className="w-3 h-3" />
+            <span className="text-base">✅</span>
             <span>Autorización principal {authorized ? '✅' : '⏳'}</span>
           </div>
           <div className={`flex items-center gap-1 ${marketingAuthorized ? 'text-blue-600' : 'text-gray-400'}`}>
-            <Check className="w-3 h-3" />
+            <span className="text-base">✅</span>
             <span>Marketing {marketingAuthorized ? '✅' : '(opcional)'}</span>
           </div>
         </div>
@@ -107,20 +106,20 @@ const AutorizacionDatos = ({
           : 'bg-blue-50 border border-blue-200'
       }`}>
         <div className="flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+          <span className="text-blue-500 text-base">ℹ️</span>
           <div>
             <strong>🏗️ ¿Por qué SuperCasa necesita estos datos?</strong><br/>
             Para garantizar entregas precisas en tu apartamento específico del conjunto residencial (Torre, Piso, Apartamento) y brindarte nuestro servicio de "supermercado en casa" en máximo 20 minutos.
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <Shield className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+          <span className="text-green-500 text-base">🛡️</span>
           <div>
             <strong>🔒 Protección garantizada:</strong> Tus datos están seguros con cifrado de grado militar. SuperCasa nunca venderá tu información a terceros. Solo la usamos para mejorar tu experiencia de compra.
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <Eye className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+          <span className="text-purple-500 text-base">👁️</span>
           <div>
             <strong>📝 Tus derechos:</strong> Puedes acceder, rectificar, actualizar o eliminar tus datos cuando quieras contactando a <span className="text-amber-600">privacidad@supercasa.co</span>
           </div>
@@ -138,7 +137,7 @@ const AutorizacionDatos = ({
   );
 };
 
-// 🏗️ MODAL DE POLÍTICA COMPLETA SUPERCASA
+// 🏗️ MODAL DE POLÍTICA COMPLETA SUPERCASA - SIN LUCIDE-REACT
 const PolicyModal = ({ darkMode, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -163,11 +162,11 @@ const PolicyModal = ({ darkMode, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className={`p-2 rounded-full transition-colors duration-300 ${
+            className={`p-2 rounded-full transition-colors duration-300 text-2xl ${
               darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
             }`}
           >
-            <X className="w-6 h-6" />
+            ❌
           </button>
         </div>
         
@@ -177,7 +176,7 @@ const PolicyModal = ({ darkMode, onClose }) => {
             {/* 1. RESPONSABLE */}
             <section>
               <h3 className="text-lg font-semibold mb-3 text-amber-600 flex items-center gap-2">
-                <Shield className="w-5 h-5" />
+                <span className="text-lg">🛡️</span>
                 1. IDENTIFICACIÓN DEL RESPONSABLE
               </h3>
               <div className={`p-4 rounded-lg transition-colors duration-300 ${
@@ -261,9 +260,9 @@ const PolicyModal = ({ darkMode, onClose }) => {
             {/* FOOTER */}
             <div className="text-center pt-6 border-t border-gray-300">
               <div className="flex items-center justify-center gap-3 text-amber-600">
-                <Shield className="w-5 h-5" />
+                <span className="text-lg">🛡️</span>
                 <span className="font-semibold">🏗️ SuperCasa protege tus datos con la máxima seguridad</span>
-                <Shield className="w-5 h-5" />
+                <span className="text-lg">🛡️</span>
               </div>
             </div>
           </div>
