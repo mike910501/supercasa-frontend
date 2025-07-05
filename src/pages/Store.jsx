@@ -775,31 +775,40 @@ function Store({ user, token, onLogout }) {
     setShowWompiPayment(true);
   };
 
-  const handlePaymentSuccess = async (paymentData) => {
-    console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
+const handlePaymentSuccess = async (paymentData) => {
+  console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
 
-    if (paymentData.success && paymentData.pedidoId) {
-      console.log('✅ ¡Pago y pedido exitosos!');
-      
+  // ✅ MANEJAR TANTO TARJETAS COMO OTROS MÉTODOS
+  if (paymentData.success && (paymentData.pedidoId || paymentData.transactionId)) {
+    console.log('✅ ¡Pago y pedido exitosos!');
+    
+    // ✅ MENSAJE ESPECÍFICO PARA TARJETAS PENDING
+    if (paymentData.metodoPago === 'CARD' && paymentData.status === 'PENDING') {
+      toast.success('💳 ¡Pago con tarjeta procesado exitosamente! El pedido se confirmará automáticamente.', {
+        duration: 6000,
+        icon: '🎉'
+      });
+    } else {
       toast.success('🏗️ ¡Pago aprobado y pedido creado exitosamente!', {
         duration: 6000,
         icon: '🎉'
       });
-
-      setCarrito([]);
-      localStorage.removeItem('carrito');
-      setShowWompiPayment(false);
-      setShowCart(false);
-
-      console.log('🏆 PROCESO COMPLETADO - Pago exitoso procesado completamente');
-
-    } else {
-      console.log('❌ Respuesta inesperada del backend:', paymentData);
-      toast.error('Error: El pago no fue confirmado correctamente.', {
-        duration: 8000
-      });
     }
-  };
+
+    setCarrito([]);
+    localStorage.removeItem('carrito');
+    setShowWompiPayment(false);
+    setShowCart(false);
+
+    console.log('🏆 PROCESO COMPLETADO - Pago exitoso procesado completamente');
+
+  } else {
+    console.log('❌ Respuesta inesperada del backend:', paymentData);
+    toast.error('Error: El pago no fue confirmado correctamente.', {
+      duration: 8000
+    });
+  }
+};
 
   const handlePaymentError = (error) => {
     console.error('💳 Error en el pago:', error);

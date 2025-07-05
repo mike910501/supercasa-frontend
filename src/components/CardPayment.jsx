@@ -124,86 +124,102 @@ const CardPayment = ({
     setErrors(prev => ({ ...prev, [field]: error }));
   };
 
-  // Procesar pago con tarjeta
-  const handlePayment = async () => {
-    // Validar todos los campos
-    const newErrors = {};
-    Object.keys(cardData).forEach(field => {
-      const error = validateField(field, cardData[field]);
-      if (error) newErrors[field] = error;
+// Procesar pago con tarjeta
+const handlePayment = async () => {
+  // Validar todos los campos
+  const newErrors = {};
+  Object.keys(cardData).forEach(field => {
+    const error = validateField(field, cardData[field]);
+    if (error) newErrors[field] = error;
+  });
+
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
+    alert('Por favor corrige los errores en el formulario');
+    return;
+  }
+
+  // 🚨 BLOQUEAR TARJETAS DE PRUEBA EN PRODUCCIÓN
+  const testCards = [
+    '4242424242424242', // Visa test aprobada
+    '4000000000000002', // Visa test rechazada
+    '5555555555554444', // MasterCard test
+    '378282246310005',  // Amex test
+    '6011111111111117', // Discover test
+    '4000000000009995'  // Visa test 3D Secure
+  ];
+  
+  const cleanCardNumber = cardData.number.replace(/\s/g, '');
+  if (testCards.includes(cleanCardNumber)) {
+    alert('⚠️ Esta tarjeta de prueba no es válida para compras reales. Use una tarjeta real.');
+    return;
+  }
+
+  setIsProcessing(true);
+  
+  try {
+    const token = localStorage.getItem('token');
+    
+    // 1. Tokenizar tarjeta
+    const tokenResponse = await fetch('https://supercasa-backend-vvu1.onrender.com/api/tokenizar-tarjeta', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        number: cardData.number.replace(/\s/g, ''),
+        cvc: cardData.cvv,
+        exp_month: cardData.expiryMonth,
+        exp_year: cardData.expiryYear,
+        card_holder: cardData.holderName
+      })
     });
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      alert('Por favor corrige los errores en el formulario');
-      return;
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.json();
+      throw new Error(errorData.error || 'Error al tokenizar la tarjeta');
     }
 
-    setIsProcessing(true);
+    const tokenData = await tokenResponse.json();
     
-    try {
-      const token = localStorage.getItem('token');
-      
-      // 1. Tokenizar tarjeta
-      const tokenResponse = await fetch('https://supercasa-backend-vvu1.onrender.com/api/tokenizar-tarjeta', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          number: cardData.number.replace(/\s/g, ''),
-          cvc: cardData.cvv,
-          exp_month: cardData.expiryMonth,
-          exp_year: `20${cardData.expiryYear}`,
-          card_holder: cardData.holderName
-        })
-      });
+    // 2. Crear transacción con token
+    const paymentResponse = await fetch('https://supercasa-backend-vvu1.onrender.com/api/crear-pago', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        metodoPago: 'CARD',
+        monto: total,
+        productos: carrito,
+        datosEntrega: deliveryData,
+        payment_source_id: tokenData.data.id,
+        installments: 1
+      })
+    });
 
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json();
-        throw new Error(errorData.error || 'Error al tokenizar la tarjeta');
-      }
-
-      const tokenData = await tokenResponse.json();
-      
-      // 2. Crear transacción con token
-      const paymentResponse = await fetch('https://supercasa-backend-vvu1.onrender.com/api/crear-pago', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          metodoPago: 'CARD',
-          monto: total,
-          productos: carrito,
-          datosEntrega: deliveryData,
-          payment_source_id: tokenData.data.id,
-          installments: 1
-        })
-      });
-
-      if (!paymentResponse.ok) {
-        const errorData = await paymentResponse.json();
-        throw new Error(errorData.error || 'Error al procesar el pago');
-      }
-
-      const paymentData = await paymentResponse.json();
-      
-      if (paymentData.success) {
-        onPaymentSuccess(paymentData);
-      } else {
-        throw new Error('Error procesando el pago');
-      }
-      
-    } catch (error) {
-      console.error('Error en pago con tarjeta:', error);
-      onPaymentError(error.message || 'Error al procesar el pago');
-    } finally {
-      setIsProcessing(false);
+    if (!paymentResponse.ok) {
+      const errorData = await paymentResponse.json();
+      throw new Error(errorData.error || 'Error al procesar el pago');
     }
-  };
+
+    const paymentData = await paymentResponse.json();
+    
+    if (paymentData.success) {
+      onPaymentSuccess(paymentData);
+    } else {
+      throw new Error('Error procesando el pago');
+    }
+    
+  } catch (error) {
+    console.error('Error en pago con tarjeta:', error);
+    onPaymentError(error.message || 'Error al procesar el pago');
+  } finally {
+    setIsProcessing(false);
+  }
+};
 
   // Icono de tarjeta
   const getCardIcon = () => {
