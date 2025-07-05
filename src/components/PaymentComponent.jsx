@@ -570,7 +570,13 @@ const PaymentComponent = ({
               Procesando...
             </span>
           ) : (
-            `🚀 Pagar ${metodoPago === 'CARD' ? 'con Tarjeta' : metodoPago}`
+            <>
+              {!metodoPago && '🚀 Selecciona método de pago'}
+              {metodoPago === 'CARD' && '💳 Pagar con Tarjeta'}
+              {metodoPago === 'NEQUI' && '📱 Pagar con Nequi'}
+              {metodoPago === 'DAVIPLATA' && '🏦 Pagar con DaviPlata'}
+              {metodoPago === 'PSE' && '🏛️ Pagar con PSE'}
+            </>
           )}
         </button>
       </div>
