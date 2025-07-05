@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import CardPayment from './CardPayment';
 
 const PaymentComponent = ({ 
   total, 
@@ -15,17 +16,28 @@ const PaymentComponent = ({
   const [banco, setBanco] = useState('');
   const [estadoPago, setEstadoPago] = useState('seleccion'); // 'seleccion', 'procesando', 'esperando', 'completado'
   const [transactionId, setTransactionId] = useState('');
+  const [showCardPayment, setShowCardPayment] = useState(false);
 
   const bancosPSE = [
-    { codigo: '1022', nombre: 'Banco de Bogotá' },
-    { codigo: '1032', nombre: 'Banco Popular' },
-    { codigo: '1052', nombre: 'Banco AV Villas' },
-    { codigo: '1001', nombre: 'Banco de Colombia' },
-    { codigo: '1006', nombre: 'Corpbanca' },
-    { codigo: '1012', nombre: 'Banco GNB Sudameris' },
-    { codigo: '1019', nombre: 'Scotiabank Colpatria' },
-    { codigo: '1507', nombre: 'NEQUI' }
-  ];
+  { codigo: '1040', nombre: 'Banco Agrario' },
+  { codigo: '1052', nombre: 'Banco AV Villas' },
+  { codigo: '1032', nombre: 'Banco Popular' },
+  { codigo: '1022', nombre: 'Banco de Bogotá' },
+  { codigo: '1001', nombre: 'Banco de Colombia (Bancolombia)' },
+  { codigo: '1006', nombre: 'Banco Itaú' },
+  { codigo: '1012', nombre: 'Banco GNB Sudameris' },
+  { codigo: '1019', nombre: 'Scotiabank Colpatria' },
+  { codigo: '1066', nombre: 'Banco Cooperativo Coopcentral' },
+  { codigo: '1051', nombre: 'Banco Davivienda' },
+  { codigo: '1001', nombre: 'Bancolombia' },
+  { codigo: '1013', nombre: 'Banco BBVA' },
+  { codigo: '1009', nombre: 'Citibank' },
+  { codigo: '1370', nombre: 'Banco de las Microfinanzas - Bancamía' },
+  { codigo: '1023', nombre: 'Banco de Occidente' },
+  { codigo: '1062', nombre: 'Banco Falabella' },
+  { codigo: '1303', nombre: 'Banco Pichincha' },
+  { codigo: '1292', nombre: 'Banco Santander' }
+];
 
   const crearPago = async () => {
     if (!metodoPago) {
@@ -33,18 +45,23 @@ const PaymentComponent = ({
       return;
     }
 
-    if (!telefono || telefono.length < 10) {
+   if (metodoPago !== 'CARD' && (!telefono || telefono.length < 10)) {
       alert('Ingresa un teléfono válido (10 dígitos)');
       return;
     }
 
-    if (!cedula || cedula.length < 6) {
+    if (metodoPago !== 'CARD' && (!cedula || cedula.length < 6)) {
       alert('Ingresa una cédula válida');
       return;
     }
 
     if (metodoPago === 'PSE' && !banco) {
       alert('Selecciona un banco para PSE');
+      return;
+    }
+
+    if (metodoPago === 'CARD') {
+      setShowCardPayment(true);
       return;
     }
 
@@ -56,8 +73,6 @@ const PaymentComponent = ({
 
       const token = localStorage.getItem('token');
       
-      //const response = await fetch('http://localhost:3000/api/crear-pago', {
-      // PaymentComponent.jsx - línea ~49 aprox
       const response = await fetch('https://supercasa-backend-vvu1.onrender.com/api/crear-pago', {
         method: 'POST',
         headers: {
@@ -86,17 +101,23 @@ const PaymentComponent = ({
       setTransactionId(resultado.transactionId);
       setEstadoPago('esperando');
 
-      // Para DaviPlata, redirigir a URL específica
+     // Para DaviPlata, redirigir a URL específica
       if (metodoPago === 'DAVIPLATA' && resultado.daviplataUrl) {
         console.log('🔗 Redirigiendo a DaviPlata:', resultado.daviplataUrl);
         setEstadoPago('redirigiendo');
-        // Redirigir después de 2 segundos para que el usuario vea el mensaje
         setTimeout(() => {
           window.location.href = resultado.daviplataUrl;
+        }, 2000);
+      } else if (metodoPago === 'PSE' && resultado.pseUrl) {
+        console.log('🔗 Redirigiendo a PSE:', resultado.pseUrl);
+        setEstadoPago('redirigiendo');
+        setTimeout(() => {
+          window.location.href = resultado.pseUrl;
         }, 2000);
       } else if (metodoPago === 'NEQUI') {
         iniciarVerificacionPago(resultado.transactionId);
       } else if (metodoPago === 'PSE') {
+        console.log('⚠️ PSE sin URL de redirección, usando verificación polling');
         iniciarVerificacionPago(resultado.transactionId);
       }
 
@@ -111,7 +132,7 @@ const PaymentComponent = ({
   const iniciarVerificacionPago = async (txId) => {
     console.log(`🔍 Iniciando verificación para: ${txId}`);
     
-    const maxIntentos = 30; // 5 minutos máximo
+    const maxIntentos = 30;
     let intentos = 0;
 
     const verificar = async () => {
@@ -147,10 +168,9 @@ const PaymentComponent = ({
           return;
         }
 
-        // Continuar verificando si está PENDING
         intentos++;
         if (intentos < maxIntentos) {
-          setTimeout(verificar, 10000); // Verificar cada 10 segundos
+          setTimeout(verificar, 10000);
         } else {
           console.log('⏰ Timeout verificando pago');
           setProcesando(false);
@@ -180,7 +200,24 @@ const PaymentComponent = ({
     onCancel();
   };
 
-// UI de espera para DaviPlata/Nequi
+  // ✅ MOSTRAR INTERFAZ DE TARJETAS (CORREGIDO - FUERA DE OTROS IFs)
+  if (showCardPayment) {
+    return (
+      <CardPayment
+        total={total}
+        carrito={carrito}
+        deliveryData={deliveryData}
+        onPaymentSuccess={onPaymentSuccess}
+        onPaymentError={onPaymentError}
+        onCancel={() => {
+          setShowCardPayment(false);
+          setMetodoPago('');
+        }}
+      />
+    );
+  }
+
+  // UI de espera para DaviPlata/Nequi
   if (estadoPago === 'esperando') {
     return (
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
@@ -257,24 +294,27 @@ const PaymentComponent = ({
       </div>
     );
   }
-  // UI de redirección para DaviPlata
+
+  // UI de redirección para DaviPlata/PSE
   if (estadoPago === 'redirigiendo') {
     return (
       <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
         <div className="text-center">
           <div className="animate-pulse bg-blue-100 rounded-full h-20 w-20 mx-auto mb-4 flex items-center justify-center">
-            <span className="text-3xl">📱</span>
+            <span className="text-3xl">
+              {metodoPago === 'DAVIPLATA' && '📱'}
+              {metodoPago === 'PSE' && '🏦'}
+            </span>
           </div>
-          <h3 className="text-xl font-bold text-blue-600 mb-3">Redirigiendo a DaviPlata...</h3>
+          <h3 className="text-xl font-bold text-blue-600 mb-3">
+            {metodoPago === 'DAVIPLATA' && 'Redirigiendo a DaviPlata...'}
+            {metodoPago === 'PSE' && 'Redirigiendo a tu Banco...'}
+          </h3>
           <div className="bg-blue-50 p-4 rounded-lg mb-4">
             <p className="text-blue-800 mb-2">✅ Transacción creada exitosamente</p>
             <p className="text-sm text-blue-600">
-              Serás redirigido a DaviPlata para completar tu pago de <strong>${total.toLocaleString()}</strong>
-            </p>
-          </div>
-          <div className="bg-yellow-50 p-3 rounded mb-4">
-            <p className="text-xs text-yellow-800">
-              💡 Después de completar el pago en DaviPlata, regresa a esta página para confirmar
+              {metodoPago === 'DAVIPLATA' && `Serás redirigido a DaviPlata para completar tu pago de $${total.toLocaleString()}`}
+              {metodoPago === 'PSE' && `Serás redirigido a tu banco para completar tu pago de $${total.toLocaleString()}`}
             </p>
           </div>
           <p className="text-xs text-gray-500">ID: {transactionId}</p>
@@ -329,13 +369,24 @@ const PaymentComponent = ({
               onChange={(e) => setMetodoPago(e.target.value)}
               className="mr-2"
             />
-            🏦 PSE
+            🏦 PSE - TEST
+          </label>
+          <label className="flex items-center">
+            <input
+              type="radio"
+              name="metodoPago"
+              value="CARD"
+              checked={metodoPago === 'CARD'}
+              onChange={(e) => setMetodoPago(e.target.value)}
+              className="mr-2"
+            />
+            💳 Tarjeta de Crédito/Débito <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">¡Nuevo!</span>
           </label>
         </div>
       </div>
 
       {/* Campos requeridos */}
-      {metodoPago && (
+      {metodoPago && metodoPago !== 'CARD' && (
         <div className="space-y-3 mb-4">
           <div>
             <label className="block text-sm font-medium mb-1">Teléfono:</label>
