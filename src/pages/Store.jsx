@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import API_URL, { api } from '../config/api';
 import { toast } from 'react-hot-toast';
 import { restoreCartAfterLogin, hasTemporaryCart } from '../utils/authHandler';
-import WompiCheckout from '../components/WompiCheckout';
+import PaymentComponent from '../components/PaymentComponent';
 import ChatWidget from '../components/ChatWidget';
 import SupercasaLogo from '../components/SupercasaLogo';
 import '../styles/supercasa-animations.css';
@@ -1607,15 +1607,15 @@ function Store({ user, token, onLogout }) {
             </div>
 
             <div className="p-6">
-              <WompiCheckout
-                total={total}
-                carrito={carrito}
-                deliveryData={deliveryData}
-                onPaymentSuccess={handlePaymentSuccess}
-                onPaymentError={handlePaymentError}
-                onCancel={cancelarPago}
-              />
-            </div>
+  <PaymentComponent
+    total={total}
+    carrito={carrito}
+    deliveryData={deliveryData}
+    onPaymentSuccess={handlePaymentSuccess}
+    onPaymentError={handlePaymentError}
+    onCancel={cancelarPago}
+  />
+</div>
           </div>
         </div>
       )}
