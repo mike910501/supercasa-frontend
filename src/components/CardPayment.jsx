@@ -48,18 +48,29 @@ const CardPayment = ({
     return formatted.substring(0, type === 'amex' ? 17 : 19);
   };
 
-  // Validación Luhn
-  const luhnCheck = (num) => {
-    let arr = (num + '')
-      .split('')
-      .reverse()
-      .map(x => parseInt(x));
-    let lastDigit = arr.splice(0, 1)[0];
-    let sum = arr.reduce((acc, val, i) => 
-      (i % 2 !== 0 ? acc + val : acc + ((val * 2) % 9) || 9), 0);
-    sum += lastDigit;
-    return sum % 10 === 0;
-  };
+ // ✅ FUNCIÓN CORREGIDA (PEGAR ESTA)
+const luhnCheck = (num) => {
+  let sum = 0;
+  let alternate = false;
+  
+  // Recorrer desde el final hacia el inicio
+  for (let i = num.length - 1; i >= 0; i--) {
+    let digit = parseInt(num.charAt(i));
+    
+    if (alternate) {
+      digit *= 2;
+      // Si el resultado es mayor a 9, restar 9
+      if (digit > 9) {
+        digit = digit - 9;
+      }
+    }
+    
+    sum += digit;
+    alternate = !alternate;
+  }
+  
+  return (sum % 10) === 0;
+};
 
   // Validar campos
   const validateField = (field, value) => {
