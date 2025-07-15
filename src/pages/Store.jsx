@@ -8,6 +8,7 @@ import ChatWidget from '../components/ChatWidget';
 import SupercasaLogo from '../components/SupercasaLogo';
 import '../styles/supercasa-animations.css';
 import AutorizacionDatos from '../components/AutorizacionDatos';
+import PromotionalPopup from '../components/PromotionalPopup';
 
 // Aplicación principal que maneja autenticación
 export default function App() {
@@ -727,7 +728,7 @@ function Store({ user, token, onLogout }) {
   const obtenerProductos = async () => {
     setIsLoading(true);
     try {
-      const productos = await api.get('/productos', navigate);
+      const productos = await api.get('/productos-con-descuentos', navigate);
       console.log("Productos cargados desde la base de datos:", productos);
       setProductos(productos);
     } catch (error) {
@@ -1049,6 +1050,8 @@ const handlePaymentSuccess = async (paymentData) => {
         ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900' 
         : 'bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-100'
     }`}>
+      {/* ✅ AGREGAR ESTA LÍNEA */}
+    <PromotionalPopup />
       {/* ✅ HEADER CON BRANDING SUPERCASA */}
       <header className={`shadow-lg sticky top-0 z-40 transition-colors duration-300 border-b-2 ${
         darkMode 
@@ -1248,47 +1251,97 @@ const handlePaymentSuccess = async (paymentData) => {
           </div>
         </div>
 
-        {/* Grid de productos con branding */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {productosFiltrados.map(producto => (
-            <div key={producto.id} className={`rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105 duration-300 border-2 ${
-              darkMode 
-                ? 'bg-gray-800 border-amber-600/50 hover:border-amber-500' 
-                : 'bg-white border-amber-200 hover:border-amber-400'
+       {/* Grid de productos con branding */}
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+  {productosFiltrados.map(producto => {
+    // Calcular precio con descuento
+    const tieneDescuento = producto.descuento_activo && producto.descuento_porcentaje > 0;
+    const precioFinal = tieneDescuento 
+      ? Math.round(producto.precio * (100 - producto.descuento_porcentaje) / 100)
+      : producto.precio;
+
+    return (
+      <div key={producto.id} className={`rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105 duration-300 border-2 relative ${
+        darkMode 
+          ? 'bg-gray-800 border-amber-600/50 hover:border-amber-500' 
+          : 'bg-white border-amber-200 hover:border-amber-400'
+      }`}>
+        {/* Badge de descuento */}
+        {tieneDescuento && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className={`px-2 py-1 rounded-full text-xs font-bold shadow-lg ${
+              producto.descuento_porcentaje >= 20
+                ? 'bg-red-500 text-white'
+                : producto.descuento_porcentaje >= 10
+                ? 'bg-orange-500 text-white'
+                : 'bg-yellow-500 text-black'
             }`}>
-              <img
-                src={producto.imagen}
-                alt={producto.nombre}
-                className="w-full h-48 object-cover"
-              />
-              <div className="p-4">
-                <h3 className={`font-semibold mb-2 transition-colors duration-300 ${
-                  darkMode ? 'text-white' : 'text-gray-800'
-                }`}>{producto.nombre}</h3>
-                <p className={`text-sm mb-2 transition-colors duration-300 ${
-                  darkMode ? 'text-amber-300' : 'text-amber-600'
-                }`}>{producto.categoria}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-amber-500">
+              🏷️ {producto.descuento_porcentaje}% OFF
+            </div>
+          </div>
+        )}
+
+        <img
+          src={producto.imagen}
+          alt={producto.nombre}
+          className="w-full h-48 object-cover"
+        />
+        <div className="p-4">
+          <h3 className={`font-semibold mb-2 transition-colors duration-300 ${
+            darkMode ? 'text-white' : 'text-gray-800'
+          }`}>{producto.nombre}</h3>
+          <p className={`text-sm mb-2 transition-colors duration-300 ${
+            darkMode ? 'text-amber-300' : 'text-amber-600'
+          }`}>{producto.categoria}</p>
+          
+          <div className="flex justify-between items-center">
+            <div className="flex flex-col">
+              {tieneDescuento ? (
+                <>
+                  <span className={`text-sm line-through transition-colors duration-300 ${
+                    darkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
                     ${producto.precio.toLocaleString()}
                   </span>
-                  <span className={`text-sm transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    Stock: {producto.stock}
+                  <span className="text-xl font-bold text-amber-500">
+                    ${precioFinal.toLocaleString()}
                   </span>
-                </div>
-                <button
-                  onClick={() => agregarAlCarrito(producto)}
-                  disabled={producto.stock === 0}
-                  className="w-full mt-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-2 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-                >
-                  {producto.stock === 0 ? '❌ Sin stock' : '🏗️ Agregar al carrito'}
-                </button>
-              </div>
+                  {producto.descuento_badge_texto && (
+                    <span className={`text-xs transition-colors duration-300 ${
+                      darkMode ? 'text-orange-400' : 'text-orange-600'
+                    }`}>
+                      {producto.descuento_badge_texto}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-xl font-bold text-amber-500">
+                  ${producto.precio.toLocaleString()}
+                </span>
+              )}
             </div>
-          ))}
+            <span className={`text-sm transition-colors duration-300 ${
+              darkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              Stock: {producto.stock}
+            </span>
+          </div>
+          
+          <button
+            onClick={() => agregarAlCarrito({
+              ...producto,
+              precio: precioFinal // Usar precio con descuento
+            })}
+            disabled={producto.stock === 0}
+            className="w-full mt-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-2 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+          >
+            {producto.stock === 0 ? '❌ Sin stock' : '🏗️ Agregar al carrito'}
+          </button>
         </div>
+      </div>
+    );
+  })}
+</div>
 
         {productosFiltrados.length === 0 && (
           <div className="text-center py-12">
@@ -1423,31 +1476,45 @@ const handlePaymentSuccess = async (paymentData) => {
                         }`}>🏗️ Elige tu método de pago:</p>
                       </div>
 
-                      {/* BOTÓN WOMPI con branding */}
-                      <button
-                        onClick={finalizarCompra}
-                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-amber-600 hover:to-yellow-700 transition-colors flex items-center justify-center space-x-2 shadow-lg"
-                      >
-                        <span className="text-xl">💳</span>
-                        <div className="text-left">
-                          <div className="font-semibold">Pago Digital Supercasa</div>
-                          <div className="text-xs opacity-90">Nequi • PSE • Tarjetas</div>
-                        </div>
-                        <span className="ml-auto">⚡</span>
-                      </button>
+                        {/* BOTÓN WOMPI - AGREGAR VALIDACIÓN DE MONTO MÍNIMO */}
+  <button
+    onClick={total >= 20000 ? finalizarCompra : () => alert(`Monto mínimo para pagos digitales: $20,000\nTu total: $${total.toLocaleString()}\nTe faltan: $${(20000 - total).toLocaleString()}`)}
+    disabled={total < 20000}
+    className={`w-full py-4 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg ${
+      total >= 20000 
+        ? 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white' 
+        : 'bg-gray-400 cursor-not-allowed text-gray-200'
+    }`}
+  >
+    <span className="text-xl">💳</span>
+    <div className="text-left">
+      <div className="font-semibold">Pago Digital Supercasa</div>
+      <div className="text-xs opacity-90">
+        {total >= 20000 ? 'Nequi • PSE • Tarjetas' : 'Min: 20k • Nequi • PSE • Tarjetas'}
+      </div>
+    </div>
+    <span className="ml-auto">{total >= 20000 ? '⚡' : '⚠️'}</span>
+  </button>
 
-                      {/* BOTÓN EFECTIVO con branding */}
-                      <button 
-                        onClick={() => setCashPaymentModal(true)}
-                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-6 rounded-lg font-semibold hover:from-green-600 hover:to-emerald-700 transition-colors flex items-center justify-center space-x-2 shadow-lg"
-                      >
-                        <span className="text-xl">💵</span>
-                        <div className="text-left">
-                          <div className="font-semibold">Pago en Efectivo</div>
-                          <div className="text-xs opacity-90">Al recibir en tu torre</div>
-                        </div>
-                        <span className="ml-auto">🏗️</span>
-                      </button>
+  {/* BOTÓN EFECTIVO - AGREGAR VALIDACIÓN DE MONTO MÍNIMO */}
+  <button 
+    onClick={total >= 15000 ? () => setCashPaymentModal(true) : () => alert(`Monto mínimo para pago en efectivo: $15,000\nTu total: $${total.toLocaleString()}\nTe faltan: $${(15000 - total).toLocaleString()}`)}
+    disabled={total < 15000}
+    className={`w-full py-4 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg ${
+      total >= 15000 
+        ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white' 
+        : 'bg-gray-400 cursor-not-allowed text-gray-200'
+    }`}
+  >
+    <span className="text-xl">💵</span>
+    <div className="text-left">
+      <div className="font-semibold">Pago en Efectivo</div>
+      <div className="text-xs opacity-90">
+        {total >= 15000 ? 'Al recibir en tu torre' : 'Min: 15k • Al recibir en tu torre'}
+      </div>
+    </div>
+    <span className="ml-auto">{total >= 15000 ? '🏗️' : '⚠️'}</span>
+  </button>
                     </div>
                   </div>
                 </>

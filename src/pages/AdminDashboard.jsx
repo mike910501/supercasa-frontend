@@ -100,6 +100,17 @@ export default function AdminDashboard() {
             >
               👥 Usuarios
             </button>
+
+            <button
+              onClick={() => setActiveSection('promociones')}
+              className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                activeSection === 'promociones'
+                  ? 'bg-blue-600 text-white font-medium'
+                  : 'text-gray-300 hover:bg-gray-700 hover:text-gray-200'
+              }`}
+            >
+              🎁 Promociones
+            </button>
           </nav>
         </aside>
 
@@ -109,6 +120,7 @@ export default function AdminDashboard() {
           {activeSection === 'productos' && <ProductosSection />}
           {activeSection === 'pedidos' && <AdminOrdersManagement />}
           {activeSection === 'usuarios' && <UsuariosSection />}
+          {activeSection === 'promociones' && <PromocionesSection />}
         </main>
       </div>
     </div>
@@ -877,6 +889,877 @@ function UsuariosSection() {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// =====================================================
+// SECCIÓN DE PROMOCIONES - NUEVA
+// =====================================================
+
+// =====================================================
+// REEMPLAZAR LAS FUNCIONES DEMO CON ESTAS FUNCIONALES
+// Copiar desde "function PromocionesSection()" hasta el final
+// =====================================================
+
+function PromocionesSection() {
+  const [subSeccion, setSubSeccion] = useState('codigos');
+  const [estadisticas, setEstadisticas] = useState({
+    totalCodigos: 0,
+    codigosUsados: 0,
+    codigosDisponibles: 0,
+    promocionesActivas: 0,
+    productosEnOferta: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchEstadisticas();
+  }, []);
+
+  const fetchEstadisticas = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/codigos-promocionales/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEstadisticas({
+          totalCodigos: data.total,
+          codigosUsados: data.usados,
+          codigosDisponibles: data.disponibles,
+          promocionesActivas: 1, // temporal
+          productosEnOferta: 0 // temporal
+        });
+      }
+    } catch (error) {
+      console.error('Error obteniendo estadísticas promociones:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-gray-900 min-h-screen">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto"></div>
+          <p className="mt-4 text-gray-300">Cargando promociones...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 bg-gray-900 min-h-screen">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-200">🎁 Sistema de Promociones</h2>
+        <div className="flex items-center space-x-2 text-sm text-gray-400">
+          <span>💡 Gestiona códigos, descuentos y promociones</span>
+        </div>
+      </div>
+
+      {/* Estadísticas reales */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+        <div className="bg-gray-800 border border-purple-700 rounded-lg shadow-xl p-4">
+          <div className="flex items-center">
+            <div className="bg-purple-900 text-purple-400 p-3 rounded-xl">
+              🎫
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-400">Códigos Totales</p>
+              <p className="text-2xl font-bold text-gray-200">{estadisticas.totalCodigos}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 border border-green-700 rounded-lg shadow-xl p-4">
+          <div className="flex items-center">
+            <div className="bg-green-900 text-green-400 p-3 rounded-xl">
+              ✅
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-400">Códigos Usados</p>
+              <p className="text-2xl font-bold text-gray-200">{estadisticas.codigosUsados}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 border border-blue-700 rounded-lg shadow-xl p-4">
+          <div className="flex items-center">
+            <div className="bg-blue-900 text-blue-400 p-3 rounded-xl">
+              🎁
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-400">Disponibles</p>
+              <p className="text-2xl font-bold text-gray-200">{estadisticas.codigosDisponibles}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 border border-amber-700 rounded-lg shadow-xl p-4">
+          <div className="flex items-center">
+            <div className="bg-amber-900 text-amber-400 p-3 rounded-xl">
+              🎉
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-400">Promos Activas</p>
+              <p className="text-2xl font-bold text-gray-200">{estadisticas.promocionesActivas}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800 border border-orange-700 rounded-lg shadow-xl p-4">
+          <div className="flex items-center">
+            <div className="bg-orange-900 text-orange-400 p-3 rounded-xl">
+              🏷️
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-400">Ofertas Productos</p>
+              <p className="text-2xl font-bold text-gray-200">{estadisticas.productosEnOferta}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navegación de subsecciones */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-4 mb-6">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setSubSeccion('codigos')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              subSeccion === 'codigos'
+                ? 'bg-purple-600 text-white font-medium'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            🎫 Códigos Raspa y Gana
+          </button>
+          <button
+            onClick={() => setSubSeccion('popup')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              subSeccion === 'popup'
+                ? 'bg-blue-600 text-white font-medium'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            🎉 Promociones Popup
+          </button>
+          <button
+            onClick={() => setSubSeccion('descuentos')}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              subSeccion === 'descuentos'
+                ? 'bg-orange-600 text-white font-medium'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            🏷️ Descuentos por Producto
+          </button>
+        </div>
+      </div>
+
+      {/* Contenido de subsecciones */}
+      {subSeccion === 'codigos' && <CodigosPromocionesFuncional onUpdate={fetchEstadisticas} />}
+      {subSeccion === 'popup' && <PromocionesPopupFuncional />}
+      {subSeccion === 'descuentos' && <DescuentosProductosFuncional />}
+    </div>
+  );
+}
+
+// =====================================================
+// CÓDIGOS PROMOCIONALES FUNCIONAL
+// =====================================================
+function CodigosPromocionesFuncional({ onUpdate }) {
+  const [generandoCodigos, setGenerandoCodigos] = useState(false);
+  const [codigos, setCodigos] = useState([]);
+  const [mostrarCodigos, setMostrarCodigos] = useState(false);
+  const [cargandoCodigos, setCargandoCodigos] = useState(false);
+  const [filtroEstado, setFiltroEstado] = useState('todos');
+
+  const generarCodigos = async () => {
+    if (!window.confirm('¿Generar 2000 códigos promocionales para volantes?')) {
+      return;
+    }
+
+    setGenerandoCodigos(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/codigos-promocionales/generar`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          cantidad: 2000,
+          descuento: 10
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`✅ ${result.message}\nNuevos: ${result.nuevos}\nDuplicados: ${result.duplicados}`);
+        onUpdate(); // Actualizar estadísticas
+        
+        // Mostrar automáticamente los códigos después de generar
+        if (result.nuevos > 0) {
+          setTimeout(() => {
+            obtenerCodigos();
+            setMostrarCodigos(true);
+          }, 1000);
+        }
+      } else {
+        alert(`❌ Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error generando códigos:', error);
+      alert('❌ Error de conexión al generar códigos');
+    } finally {
+      setGenerandoCodigos(false);
+    }
+  };
+
+  const obtenerCodigos = async () => {
+    setCargandoCodigos(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/codigos-promocionales/lista?estado=${filtroEstado}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setCodigos(result.codigos);
+        console.log(`📄 ${result.total} códigos obtenidos`);
+      } else {
+        alert(`❌ Error obteniendo códigos: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error obteniendo códigos:', error);
+      alert('❌ Error de conexión');
+    } finally {
+      setCargandoCodigos(false);
+    }
+  };
+
+  const descargarCodigos = async (formato) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/codigos-promocionales/lista?estado=${filtroEstado}&formato=${formato}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `codigos_supercasa_${filtroEstado}.${formato}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        alert(`✅ Archivo ${formato.toUpperCase()} descargado exitosamente`);
+      } else {
+        alert('❌ Error descargando archivo');
+      }
+    } catch (error) {
+      console.error('Error descargando:', error);
+      alert('❌ Error de conexión al descargar');
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-gray-200">🎫 Códigos Promocionales Raspa y Gana</h3>
+          <div className="flex gap-3">
+            <button
+              onClick={generarCodigos}
+              disabled={generandoCodigos}
+              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-500"
+            >
+              {generandoCodigos ? '⏳ Generando...' : '➕ Generar 2000 Códigos'}
+            </button>
+            <button
+              onClick={() => {
+                obtenerCodigos();
+                setMostrarCodigos(!mostrarCodigos);
+              }}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              {mostrarCodigos ? '👁️ Ocultar Códigos' : '📄 Ver Códigos'}
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-blue-900 border border-blue-700 rounded-lg p-4">
+          <h4 className="font-bold text-blue-300 mb-2">📋 Para la Imprenta:</h4>
+          <div className="text-blue-200 text-sm space-y-1">
+            <p>• 2000 volantes = 2000 códigos únicos</p>
+            <p>• Formato: SC2025A0001, SC2025A0002, SC2025A0003...</p>
+            <p>• 10% descuento solo en primera compra</p>
+            <p>• Descarga la lista completa para enviar a imprenta</p>
+          </div>
+        </div>
+      </div>
+
+      {mostrarCodigos && (
+        <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-lg font-bold text-gray-200">📄 Lista de Códigos</h4>
+            <div className="flex gap-3 items-center">
+              <select
+                value={filtroEstado}
+                onChange={(e) => setFiltroEstado(e.target.value)}
+                className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-gray-200 text-sm"
+              >
+                <option value="todos">Todos los códigos</option>
+                <option value="disponibles">Solo disponibles</option>
+                <option value="usados">Solo usados</option>
+              </select>
+              <button
+                onClick={obtenerCodigos}
+                disabled={cargandoCodigos}
+                className="bg-amber-600 text-white px-4 py-1 rounded text-sm hover:bg-amber-700 disabled:bg-gray-500"
+              >
+                {cargandoCodigos ? '⏳' : '🔄'} Actualizar
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-green-900 border border-green-700 rounded-lg p-4 mb-4">
+            <h5 className="font-bold text-green-300 mb-2">📥 Descargar para Imprenta:</h5>
+            <div className="flex gap-3">
+              <button
+                onClick={() => descargarCodigos('txt')}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+              >
+                📄 Descargar TXT (Simple)
+              </button>
+              <button
+                onClick={() => descargarCodigos('csv')}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+              >
+                📊 Descargar CSV (Excel)
+              </button>
+            </div>
+            <p className="text-green-200 text-xs mt-2">
+              💡 El archivo TXT contiene solo los códigos (ideal para imprenta)
+            </p>
+          </div>
+
+          {cargandoCodigos ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400 mx-auto"></div>
+              <p className="mt-4 text-gray-300">Cargando códigos...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-400">
+                Mostrando {codigos.length} códigos ({filtroEstado})
+              </div>
+              
+              <div className="bg-gray-700 rounded-lg p-4 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 text-sm">
+                  {codigos.slice(0, 100).map(codigo => (
+                    <div 
+                      key={codigo.codigo} 
+                      className={`p-2 rounded border font-mono ${
+                        codigo.usado 
+                          ? 'bg-red-900 border-red-700 text-red-300' 
+                          : 'bg-green-900 border-green-700 text-green-300'
+                      }`}
+                    >
+                      <div className="font-bold">{codigo.codigo}</div>
+                      <div className="text-xs">
+                        {codigo.usado ? '🔴 Usado' : '🟢 Disponible'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {codigos.length > 100 && (
+                  <div className="text-center mt-4 text-gray-400 text-sm">
+                    ... y {codigos.length - 100} códigos más
+                    <br />
+                    <strong>💡 Descarga el archivo completo arriba</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// =====================================================
+// DESCUENTOS POR PRODUCTO FUNCIONAL
+// =====================================================
+function DescuentosProductosFuncional() {
+  const [productos, setProductos] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProductos();
+  }, []);
+
+  const fetchProductos = async () => {
+    try {
+      const response = await fetch(`${API_URL}/productos-con-descuentos`);
+      const data = await response.json();
+      setProductos(data);
+    } catch (error) {
+      console.error('Error obteniendo productos:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const actualizarDescuento = async (productoId, descuentoData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/productos/${productoId}/descuento`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(descuentoData)
+      });
+
+      if (response.ok) {
+        alert('✅ Descuento actualizado exitosamente');
+        fetchProductos(); // Recargar productos
+      } else {
+        const error = await response.json();
+        alert(`❌ Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error actualizando descuento:', error);
+      alert('❌ Error de conexión');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-400 mx-auto"></div>
+        <p className="mt-4 text-gray-300">Cargando productos...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6">
+        <h3 className="text-lg font-bold text-gray-200 mb-2">🏷️ Descuentos por Producto</h3>
+        <p className="text-gray-400 text-sm">💡 Activa descuentos individuales en productos para que aparezcan con badge de oferta</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {productos.slice(0, 8).map(producto => (
+          <ProductoDescuentoCard 
+            key={producto.id} 
+            producto={producto} 
+            onUpdate={actualizarDescuento}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductoDescuentoCard({ producto, onUpdate }) {
+  const [descuentoActivo, setDescuentoActivo] = useState(producto.descuento_activo || false);
+  const [porcentaje, setPorcentaje] = useState(producto.descuento_porcentaje || 0);
+  const [textoBase, setTextoBase] = useState(producto.descuento_badge_texto || 'Oferta especial');
+
+  const handleGuardar = () => {
+    onUpdate(producto.id, {
+      descuento_activo: descuentoActivo,
+      descuento_porcentaje: descuentoActivo ? porcentaje : 0,
+      descuento_badge_texto: textoBase
+    });
+  };
+
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden">
+      <div className="p-4 border-b border-gray-700">
+        <div className="flex justify-between items-start mb-2">
+          <h4 className="font-medium text-gray-200 text-sm">{producto.nombre}</h4>
+          {descuentoActivo && porcentaje > 0 && (
+            <span className="bg-orange-900 text-orange-300 border border-orange-700 px-2 py-1 text-xs rounded-full">
+              🏷️ {porcentaje}% OFF
+            </span>
+          )}
+        </div>
+        <div className="text-sm text-gray-400">
+          <p>Categoría: {producto.categoria}</p>
+          <p>Precio: ${parseInt(producto.precio).toLocaleString()}</p>
+          {descuentoActivo && porcentaje > 0 && (
+            <p className="text-orange-400 font-medium">
+              Con descuento: ${Math.round(producto.precio * (1 - porcentaje / 100)).toLocaleString()}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="p-4 space-y-3">
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            checked={descuentoActivo}
+            onChange={(e) => setDescuentoActivo(e.target.checked)}
+            className="rounded border-gray-600 bg-gray-700"
+          />
+          <label className="text-sm text-gray-300">Activar descuento</label>
+        </div>
+
+        {descuentoActivo && (
+          <div className="space-y-2">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">% Descuento</label>
+              <input
+                type="number"
+                value={porcentaje}
+                onChange={(e) => setPorcentaje(parseInt(e.target.value) || 0)}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-gray-200"
+                min="0"
+                max="90"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Texto del badge</label>
+              <input
+                type="text"
+                value={textoBase}
+                onChange={(e) => setTextoBase(e.target.value)}
+                className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-gray-200"
+              />
+            </div>
+          </div>
+        )}
+
+        <button 
+          onClick={handleGuardar}
+          className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm"
+        >
+          💾 Guardar cambios
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PromocionesPopupFuncional() {
+  const [promocionActual, setPromocionActual] = useState(null);
+  const [creandoPromocion, setCreandoPromocion] = useState(false);
+  const [desactivandoPromocion, setDesactivandoPromocion] = useState(false);
+  const [formData, setFormData] = useState({
+    titulo: '',
+    descripcion: '',
+    imagen_url: ''
+  });
+
+  useEffect(() => {
+    fetchPromocionActual();
+  }, []);
+
+  const fetchPromocionActual = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/promociones-popup`);
+      const data = await response.json();
+      
+      if (data.activa && data.promocion) {
+        setPromocionActual(data.promocion);
+      } else {
+        setPromocionActual(null);
+      }
+    } catch (error) {
+      console.error('Error obteniendo promoción popup:', error);
+    }
+  };
+
+  const crearPromocion = async (e) => {
+    e.preventDefault();
+    setCreandoPromocion(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/promociones-popup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('✅ Promoción popup creada exitosamente');
+        setFormData({ titulo: '', descripcion: '', imagen_url: '' });
+        fetchPromocionActual();
+      } else {
+        alert(`❌ Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error creando promoción:', error);
+      alert('❌ Error de conexión');
+    } finally {
+      setCreandoPromocion(false);
+    }
+  };
+
+  const desactivarPromocion = async () => {
+    if (!window.confirm('¿Desactivar la promoción popup actual?')) {
+      return;
+    }
+
+    setDesactivandoPromocion(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/admin/promociones-popup/desactivar`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('✅ Promoción desactivada exitosamente');
+        setPromocionActual(null);
+        fetchPromocionActual();
+      } else {
+        alert(`❌ Error: ${result.error || 'Error desactivando promoción'}`);
+      }
+    } catch (error) {
+      console.error('Error desactivando promoción:', error);
+      alert('❌ Error de conexión');
+    } finally {
+      setDesactivandoPromocion(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-gray-200">🎉 Promociones Popup</h3>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              form="promo-form"
+              disabled={creandoPromocion}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-500"
+            >
+              {creandoPromocion ? '⏳ Creando...' : '➕ Nueva Promoción'}
+            </button>
+            
+            {promocionActual && (
+              <button
+                onClick={desactivarPromocion}
+                disabled={desactivandoPromocion}
+                className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-500"
+              >
+                {desactivandoPromocion ? '⏳ Desactivando...' : '❌ Desactivar Actual'}
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="text-gray-400 text-sm">💡 Crea promociones que aparecen cuando el usuario abre la tienda</p>
+        
+        <form id="promo-form" onSubmit={crearPromocion} className="space-y-4 mt-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Título</label>
+            <input
+              type="text"
+              value={formData.titulo}
+              onChange={(e) => setFormData({...formData, titulo: e.target.value})}
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-200"
+              placeholder="Ej: 15% en granos"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Descripción</label>
+            <textarea
+              value={formData.descripcion}
+              onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-200"
+              rows="3"
+              placeholder="Arroz, lentejas, frijoles y más con descuento especial"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">URL de Imagen</label>
+            <input
+              type="url"
+              value={formData.imagen_url}
+              onChange={(e) => setFormData({...formData, imagen_url: e.target.value})}
+              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-200"
+              placeholder="https://ejemplo.com/imagen.jpg"
+            />
+          </div>
+        </form>
+      </div>
+
+      {promocionActual && (
+        <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden">
+          <div className="bg-gradient-to-r from-amber-500 to-yellow-600 p-4 text-center">
+            <h4 className="text-lg font-bold text-white mb-1">{promocionActual.titulo}</h4>
+            <p className="text-sm text-white opacity-90">{promocionActual.descripcion}</p>
+          </div>
+          <div className="p-4">
+            <div className="flex justify-between items-center">
+              <span className="bg-green-900 text-green-300 border border-green-700 px-2 py-1 text-xs rounded-full">
+                ✅ Activa
+              </span>
+              <span className="text-xs text-gray-400">
+                Creada: {new Date(promocionActual.created_at).toLocaleDateString()}
+              </span>
+            </div>
+            {promocionActual.imagen_url && (
+              <div className="mt-3">
+                <p className="text-xs text-gray-400 mb-2">Vista previa de imagen:</p>
+                <img 
+                  src={promocionActual.imagen_url} 
+                  alt="Preview promoción" 
+                  className="w-full h-32 object-cover rounded-lg border border-gray-600"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-green-900 border border-green-700 rounded-lg p-6">
+        <h4 className="font-bold text-green-300 mb-2">✨ Cómo funciona:</h4>
+        <div className="text-green-200 text-sm space-y-1">
+          <p>• Aparece automáticamente cuando el usuario abre la tienda</p>
+          <p>• Se muestra máximo 1 vez cada 24 horas por usuario</p>
+          <p>• Puedes subir tu propia imagen promocional</p>
+          <p>• Control total del mensaje, colores y botón de acción</p>
+          <p>• El botón "Desactivar" elimina la promoción inmediatamente</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DescuentosProductosDemo() {
+  const productosEjemplo = [
+    { id: 1, nombre: 'Arroz Diana 500g', precio: 4500, categoria: 'Granos', descuento: 20 },
+    { id: 2, nombre: 'Leche Alquería 1L', precio: 3200, categoria: 'Lácteos', descuento: 0 },
+    { id: 3, nombre: 'Pan Integral', precio: 2800, categoria: 'Panadería', descuento: 15 },
+    { id: 4, nombre: 'Aceite Gourmet 500ml', precio: 8900, categoria: 'Aceites', descuento: 25 }
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6">
+        <h3 className="text-lg font-bold text-gray-200 mb-4">🏷️ Descuentos por Producto</h3>
+        <p className="text-gray-400 text-sm">💡 Activa descuentos individuales en productos para que aparezcan con badge de oferta</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {productosEjemplo.map(producto => (
+          <div key={producto.id} className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden">
+            <div className="p-4 border-b border-gray-700">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-medium text-gray-200 text-sm">{producto.nombre}</h4>
+                {producto.descuento > 0 && (
+                  <span className="bg-orange-900 text-orange-300 border border-orange-700 px-2 py-1 text-xs rounded-full">
+                    🏷️ {producto.descuento}% OFF
+                  </span>
+                )}
+              </div>
+              <div className="text-sm text-gray-400">
+                <p>Categoría: {producto.categoria}</p>
+                <p>Precio original: ${producto.precio.toLocaleString()}</p>
+                {producto.descuento > 0 && (
+                  <p className="text-orange-400 font-medium">
+                    Precio con descuento: ${Math.round(producto.precio * (1 - producto.descuento / 100)).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={producto.descuento > 0}
+                  readOnly
+                  className="rounded border-gray-600 bg-gray-700"
+                />
+                <label className="text-sm text-gray-300">Activar descuento</label>
+              </div>
+
+              {producto.descuento > 0 && (
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">% Descuento</label>
+                    <input
+                      type="number"
+                      value={producto.descuento}
+                      readOnly
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-gray-200"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1">Texto del badge</label>
+                    <input
+                      type="text"
+                      value="Oferta especial"
+                      readOnly
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm text-gray-200"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button className="w-full bg-orange-600 text-white py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm">
+                💾 Guardar cambios
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-orange-900 border border-orange-700 rounded-lg p-6">
+        <h4 className="font-bold text-orange-300 mb-2">🏷️ Cómo se ve en la tienda:</h4>
+        <div className="text-orange-200 text-sm space-y-1">
+          <p>• Los productos con descuento muestran un badge llamativo</p>
+          <p>• El precio original aparece tachado y el nuevo precio resaltado</p>
+          <p>• El descuento se aplica automáticamente al agregar al carrito</p>
+          <p>• Puedes programar fechas de inicio y fin para ofertas temporales</p>
+        </div>
       </div>
     </div>
   );
