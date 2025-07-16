@@ -9,6 +9,7 @@ import SupercasaLogo from '../components/SupercasaLogo';
 import '../styles/supercasa-animations.css';
 import AutorizacionDatos from '../components/AutorizacionDatos';
 import PromotionalPopup from '../components/PromotionalPopup';
+import PromoCodeInput from '../components/PromoCodeInput';
 
 // Aplicación principal que maneja autenticación
 export default function App() {
@@ -589,7 +590,7 @@ function Store({ user, token, onLogout }) {
   const [isLoading, setIsLoading] = useState(true);
   const [cashPaymentModal, setCashPaymentModal] = useState(false);
   const [isProcessingCash, setIsProcessingCash] = useState(false);
-  
+  const [descuentoAplicado, setDescuentoAplicado] = useState(null);
   // 🌙 MODO OSCURO
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
@@ -862,8 +863,10 @@ const handlePaymentSuccess = async (paymentData) => {
     setShowCheckout(true);
   };
 
-  const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
-  const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
+const subtotal = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
+const descuentoMonto = descuentoAplicado ? descuentoAplicado.monto : 0;
+const total = subtotal - descuentoMonto;
 
   const processCashPayment = async () => {
     setIsProcessingCash(true);
@@ -1459,12 +1462,39 @@ const handlePaymentSuccess = async (paymentData) => {
                   <div className={`mt-6 pt-6 border-t transition-colors duration-300 ${
                     darkMode ? 'border-amber-600' : 'border-amber-300'
                   }`}>
-                    <div className="flex justify-between items-center mb-4">
-                      <span className={`text-xl font-bold transition-colors duration-300 ${
-                        darkMode ? 'text-white' : 'text-gray-800'
-                      }`}>Total Supercasa:</span>
-                      <span className="text-2xl font-bold text-amber-500">${total.toLocaleString()}</span>
-                    </div>
+                    {/* Código promocional */}
+<PromoCodeInput
+  total={subtotal}
+  onDescuentoAplicado={setDescuentoAplicado}
+  codigoActual={descuentoAplicado}
+  darkMode={darkMode}
+/>
+
+{/* Resumen de totales */}
+<div className="space-y-2 mt-4">
+  <div className="flex justify-between text-sm">
+    <span className={`transition-colors duration-300 ${
+      darkMode ? 'text-gray-300' : 'text-gray-600'
+    }`}>Subtotal:</span>
+    <span className={`transition-colors duration-300 ${
+      darkMode ? 'text-white' : 'text-gray-800'
+    }`}>${subtotal.toLocaleString()}</span>
+  </div>
+  
+  {descuentoAplicado && (
+    <div className="flex justify-between text-sm">
+      <span className="text-green-600">Descuento ({descuentoAplicado.codigo}):</span>
+      <span className="text-green-600">-${descuentoAplicado.monto.toLocaleString()}</span>
+    </div>
+  )}
+  
+  <div className={`flex justify-between items-center text-xl font-bold border-t pt-2 transition-colors duration-300 ${
+    darkMode ? 'border-amber-600 text-white' : 'border-amber-300 text-gray-800'
+  }`}>
+    <span>Total Supercasa:</span>
+    <span className="text-amber-500">${total.toLocaleString()}</span>
+  </div>
+</div>
                     
                     <div className="space-y-3">
                       <div className="text-center mb-4">
