@@ -749,24 +749,40 @@ function Store({ user, token, onLogout }) {
 
   const categorias = [...new Set(productos.map(producto => producto.categoria))];
 
-  const agregarAlCarrito = (producto) => {
-    const productoExistente = carrito.find(item => item.id === producto.id);
-    
-    if (productoExistente) {
-      setCarrito(carrito.map(item =>
-        item.id === producto.id
-          ? { ...item, cantidad: item.cantidad + 1 }
-          : item
-      ));
-    } else {
-      setCarrito([...carrito, { ...producto, cantidad: 1 }]);
-    }
-    
-    toast.success(`🏗️ ${producto.nombre} agregado al carrito`, {
-      duration: 2000,
-      icon: '🛒'
-    });
+ const agregarAlCarrito = (producto) => {
+  // 🔄 Calcular precio final con descuento (si aplica)
+  const tieneDescuento = producto.descuento_activo && producto.descuento_porcentaje > 0;
+  const precioFinal = tieneDescuento
+    ? Math.round(producto.precio * (100 - producto.descuento_porcentaje) / 100)
+    : producto.precio;
+
+  // 🛒 Preparar producto para el carrito con info de descuentos
+  const productoParaCarrito = {
+    ...producto,
+    precio: precioFinal, // Precio ya con descuento aplicado
+    // 🆕 Preservar información de descuentos
+    descuento_activo: producto.descuento_activo || false,
+    descuento_porcentaje: producto.descuento_porcentaje || 0,
+    precio_original: producto.precio // Para referencia
   };
+
+  const productoExistente = carrito.find(item => item.id === producto.id);
+  
+  if (productoExistente) {
+    setCarrito(carrito.map(item =>
+      item.id === producto.id
+        ? { ...item, cantidad: item.cantidad + 1 }
+        : item
+    ));
+  } else {
+    setCarrito([...carrito, { ...productoParaCarrito, cantidad: 1 }]);
+  }
+  
+  toast.success(`🏗️ ${producto.nombre} agregado al carrito`, {
+    duration: 2000,
+    icon: '🛒'
+  });
+};
 
   const eliminarDelCarrito = (productoId) => {
     const productoExistente = carrito.find(item => item.id === productoId);
@@ -1464,7 +1480,7 @@ const total = subtotal - descuentoMonto;
                   }`}>
                     {/* Código promocional */}
 <PromoCodeInput
-  total={subtotal}
+  carrito={carrito}
   onDescuentoAplicado={setDescuentoAplicado}
   codigoActual={descuentoAplicado}
   darkMode={darkMode}
