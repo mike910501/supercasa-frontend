@@ -1074,15 +1074,26 @@ function PromocionesSection() {
 // =====================================================
 // CÓDIGOS PROMOCIONALES FUNCIONAL
 // =====================================================
+// 🔧 REEMPLAZA TODA LA FUNCIÓN CodigosPromocionesFuncional con esta:
+
 function CodigosPromocionesFuncional({ onUpdate }) {
   const [generandoCodigos, setGenerandoCodigos] = useState(false);
   const [codigos, setCodigos] = useState([]);
-  const [mostrarCodigos, setMostrarCodigos] = useState(false);
+  const [mostrarCodigos, setMostrarCodigos] = useState(true);
   const [cargandoCodigos, setCargandoCodigos] = useState(false);
   const [filtroEstado, setFiltroEstado] = useState('todos');
+  
+  // 🆕 NUEVOS ESTADOS PARA CONFIGURACIÓN
+const [configGeneracion, setConfigGeneracion] = useState({
+  cantidad: 2000,
+  descuento: 10,
+  tipo: 'bienvenida'
+});
+
+const [eliminandoCodigos, setEliminandoCodigos] = useState(false);
 
   const generarCodigos = async () => {
-    if (!window.confirm('¿Generar 2000 códigos promocionales para volantes?')) {
+    if (!window.confirm(`¿Generar ${configGeneracion.cantidad} códigos promocionales tipo "${configGeneracion.tipo}" con ${configGeneracion.descuento}% descuento?`)) {
       return;
     }
 
@@ -1095,19 +1106,15 @@ function CodigosPromocionesFuncional({ onUpdate }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          cantidad: 2000,
-          descuento: 10
-        })
+        body: JSON.stringify(configGeneracion)
       });
 
       const result = await response.json();
 
       if (response.ok) {
         alert(`✅ ${result.message}\nNuevos: ${result.nuevos}\nDuplicados: ${result.duplicados}`);
-        onUpdate(); // Actualizar estadísticas
+        onUpdate();
         
-        // Mostrar automáticamente los códigos después de generar
         if (result.nuevos > 0) {
           setTimeout(() => {
             obtenerCodigos();
@@ -1181,40 +1188,165 @@ function CodigosPromocionesFuncional({ onUpdate }) {
     }
   };
 
+  const eliminarCodigos = async (tipoEliminacion, opciones = {}) => {
+  let mensaje = '';
+  let bodyData = { tipo_eliminacion: tipoEliminacion };
+  
+  if (tipoEliminacion === 'todos_no_usados') {
+    mensaje = '¿Eliminar TODOS los códigos no usados? Esta acción no se puede deshacer.';
+  } else if (tipoEliminacion === 'por_tipo') {
+    mensaje = `¿Eliminar todos los códigos tipo "${opciones.tipo}" no usados?`;
+    bodyData.tipo = opciones.tipo;
+  }
+  
+  if (!window.confirm(mensaje)) return;
+  
+  setEliminandoCodigos(true);
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/admin/codigos-promocionales/eliminar`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(bodyData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert(`✅ ${result.message}`);
+      onUpdate(); // Actualizar estadísticas
+      if (mostrarCodigos) {
+        obtenerCodigos(); // Actualizar lista
+      }
+    } else {
+      alert(`❌ Error: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('Error eliminando códigos:', error);
+    alert('❌ Error de conexión al eliminar códigos');
+  } finally {
+    setEliminandoCodigos(false);
+  }
+};
+
   return (
     <div className="space-y-6">
       <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-200">🎫 Códigos Promocionales Raspa y Gana</h3>
-          <div className="flex gap-3">
-            <button
-              onClick={generarCodigos}
-              disabled={generandoCodigos}
-              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-500"
-            >
-              {generandoCodigos ? '⏳ Generando...' : '➕ Generar 2000 Códigos'}
-            </button>
-            <button
-              onClick={() => {
-                obtenerCodigos();
-                setMostrarCodigos(!mostrarCodigos);
-              }}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {mostrarCodigos ? '👁️ Ocultar Códigos' : '📄 Ver Códigos'}
-            </button>
+          <h3 className="text-lg font-bold text-gray-200">🎫 Códigos Promocionales</h3>
+          <button
+            onClick={generarCodigos}
+            disabled={generandoCodigos}
+            className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-500"
+          >
+            {generandoCodigos ? '⏳ Generando...' : '➕ Generar Códigos'}
+          </button>
+        </div>
+
+        {/* 🆕 CONFIGURACIÓN DE GENERACIÓN */}
+        <div className="bg-gray-700 border border-gray-600 rounded-lg p-4 mb-4">
+          <h4 className="font-semibold text-gray-200 mb-3">⚙️ Configuración</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Cantidad</label>
+              <input
+                type="number"
+                value={configGeneracion.cantidad}
+                onChange={(e) => setConfigGeneracion({...configGeneracion, cantidad: parseInt(e.target.value) || 2000})}
+                className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-gray-200"
+                min="1"
+                max="10000"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">% Descuento</label>
+              <input
+                type="number"
+                value={configGeneracion.descuento}
+                onChange={(e) => setConfigGeneracion({...configGeneracion, descuento: parseInt(e.target.value) || 10})}
+                className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-gray-200"
+                min="1"
+                max="90"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Tipo de Cupón</label>
+              <select
+                value={configGeneracion.tipo}
+                onChange={(e) => setConfigGeneracion({...configGeneracion, tipo: e.target.value})}
+                className="w-full bg-gray-600 border border-gray-500 rounded px-3 py-2 text-gray-200"
+              >
+                <option value="bienvenida">🎁 Bienvenida (solo primera compra)</option>
+                <option value="general">🎉 General (cualquier usuario)</option>
+                <option value="usuario_unico">👤 Usuario único (una vez por persona)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="mt-3 text-xs text-gray-400">
+            <p><strong>Bienvenida:</strong> Solo usuarios en su primera compra</p>
+            <p><strong>General:</strong> Cualquier usuario puede usar (campañas especiales)</p>
+            <p><strong>Usuario único:</strong> Cada usuario puede usar solo un código promocional</p>
           </div>
         </div>
 
         <div className="bg-blue-900 border border-blue-700 rounded-lg p-4">
           <h4 className="font-bold text-blue-300 mb-2">📋 Para la Imprenta:</h4>
           <div className="text-blue-200 text-sm space-y-1">
-            <p>• 2000 volantes = 2000 códigos únicos</p>
+            <p>• Configura cantidad, descuento y tipo según tu campaña</p>
             <p>• Formato: SC2025A0001, SC2025A0002, SC2025A0003...</p>
-            <p>• 10% descuento solo en primera compra</p>
             <p>• Descarga la lista completa para enviar a imprenta</p>
           </div>
         </div>
+        {/* 🆕 PANEL DE ELIMINACIÓN */}
+<div className="bg-red-900 border border-red-700 rounded-lg p-4 mb-4">
+  <h4 className="font-semibold text-red-300 mb-3">🗑️ Eliminar Códigos</h4>
+  <div className="space-y-3">
+    <div className="flex flex-wrap gap-3">
+      <button
+        onClick={() => eliminarCodigos('por_tipo', { tipo: 'bienvenida' })}
+        disabled={eliminandoCodigos}
+        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-500 text-sm"
+      >
+        🗑️ Eliminar Bienvenida no usados
+      </button>
+      
+      <button
+        onClick={() => eliminarCodigos('por_tipo', { tipo: 'general' })}
+        disabled={eliminandoCodigos}
+        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-500 text-sm"
+      >
+        🗑️ Eliminar General no usados
+      </button>
+      
+      <button
+        onClick={() => eliminarCodigos('por_tipo', { tipo: 'usuario_unico' })}
+        disabled={eliminandoCodigos}
+        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-gray-500 text-sm"
+      >
+        🗑️ Eliminar Usuario único no usados
+      </button>
+      
+      <button
+        onClick={() => eliminarCodigos('todos_no_usados')}
+        disabled={eliminandoCodigos}
+        className="bg-red-800 text-white px-4 py-2 rounded hover:bg-red-900 disabled:bg-gray-500 text-sm font-bold"
+      >
+        🚨 Eliminar TODOS no usados
+      </button>
+    </div>
+    
+    <div className="text-xs text-red-400">
+      <p>⚠️ <strong>Solo se eliminan códigos NO USADOS</strong></p>
+      <p>💡 Los códigos usados se conservan para el historial</p>
+    </div>
+  </div>
+</div>
       </div>
 
       {mostrarCodigos && (
@@ -1307,8 +1439,6 @@ function CodigosPromocionesFuncional({ onUpdate }) {
     </div>
   );
 }
-
-
 // =====================================================
 // DESCUENTOS POR PRODUCTO FUNCIONAL
 // =====================================================

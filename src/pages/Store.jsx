@@ -955,7 +955,9 @@ const total = subtotal - descuentoMonto;
         metodo_pago: 'EFECTIVO',
         estado_pago: 'PENDIENTE_EFECTIVO',
         transaccion_id: `CASH-${reference}`,
-        referencia_pago: reference
+        referencia_pago: reference,
+        codigo_promocional: descuentoAplicado?.codigo || null
+        
       };
 
       const response = await fetch(`${API_URL}/orders`, {
