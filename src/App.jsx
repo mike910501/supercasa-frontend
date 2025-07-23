@@ -1,30 +1,39 @@
-// src/App.jsx
-// TU ESTRUCTURA ORIGINAL + PaymentSuccess + HistorialPedidos
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import StoreApp from './pages/Store'; // Tu Store.jsx actual (con autenticación)
-import AdminDashboard from './pages/AdminDashboard'; // Nuevo dashboard integrado
+import StoreApp from './pages/Store';
+import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
-import ToastProvider from './components/ToastProvider';  // ✅ TU TOASTPROVIDER ORIGINAL
-
-// ✅ IMPORTACIONES
+import ToastProvider from './components/ToastProvider';
 import PaymentSuccess from './pages/PaymentSuccess';
-import HistorialPedidos from './components/HistorialPedidos'; // 🎯 NUEVA IMPORTACIÓN
+import HistorialPedidos from './components/HistorialPedidos';
+
+// PAGINAS PUBLICAS PARA WHATSAPP
+import LandingPage from './pages/LandingPage';
+import QuienesSomos from './pages/QuienesSomos';
+import Contacto from './pages/Contacto';
+import TerminosCondiciones from './pages/TerminosCondiciones';
+import PoliticaPrivacidad from './pages/PoliticaPrivacidad';
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        {/* ✅ TUS RUTAS ORIGINALES - SIN CAMBIOS */}
-        <Route path="/" element={<StoreApp />} />
+        {/* RUTAS PUBLICAS - PARA WHATSAPP */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/quienes-somos" element={<QuienesSomos />} />
+        <Route path="/contacto" element={<Contacto />} />
+        <Route path="/terminos" element={<TerminosCondiciones />} />
+        <Route path="/privacidad" element={<PoliticaPrivacidad />} />
+        
+        {/* TU APLICACION ACTUAL */}
+        <Route path="/app" element={<StoreApp />} />
         <Route path="/store" element={<StoreApp />} />
         
-        {/* ✅ RUTAS NUEVAS */}
+        {/* RUTAS DE LA APLICACION */}
         <Route path="/payment-success" element={<PaymentSuccess />} />
-        <Route path="/historial" element={<HistorialPedidos />} /> {/* 🎯 NUEVA RUTA */}
+        <Route path="/historial" element={<HistorialPedidos />} />
         
-        {/* ✅ TU RUTA ADMIN ORIGINAL - SIN CAMBIOS */}
+        {/* ADMIN */}
         <Route path="/admin" element={
           <ProtectedRoute requireAdmin={true}>
             <AdminDashboard />
@@ -32,14 +41,7 @@ export default function App() {
         } />
       </Routes>
       
-      {/* ✅ TU TOASTPROVIDER ORIGINAL - SIN CAMBIOS */}
       <ToastProvider />
     </Router>
   );
 }
-
-
-
-
-
-
