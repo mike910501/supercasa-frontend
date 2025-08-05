@@ -584,6 +584,9 @@ function Store({ user, token, onLogout }) {
   const [carrito, setCarrito] = useState([]);
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
   const [showCart, setShowCart] = useState(false);
+  const [paquetes, setPaquetes] = useState([]);
+const [showPaquetes, setShowPaquetes] = useState(false);
+const [paquetesLoading, setPaquetesLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showWompiPayment, setShowWompiPayment] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -635,10 +638,11 @@ function Store({ user, token, onLogout }) {
     }
   }, [user]);
 
-  // Cargar productos
-  useEffect(() => {
-    obtenerProductos();
-  }, []);
+// Cargar productos y paquetes
+useEffect(() => {
+  obtenerProductos();
+  obtenerPaquetes();
+}, []);
 
   // Restaurar carrito desde localStorage al cargar
   useEffect(() => {
@@ -740,6 +744,22 @@ function Store({ user, token, onLogout }) {
     }
   };
 
+  const obtenerPaquetes = async () => {
+  setPaquetesLoading(true);
+  try {
+    const response = await fetch(`${API_URL}/paquetes`);
+    const data = await response.json();
+    if (data.success) {
+      setPaquetes(data.paquetes);
+    }
+  } catch (error) {
+    console.error('Error cargando paquetes:', error);
+    toast.error('Error cargando paquetes');
+  } finally {
+    setPaquetesLoading(false);
+  }
+};
+
   // Filtrar productos
   const productosFiltrados = productos.filter(producto => {
     const matchesCategory = categoriaSeleccionada ? producto.categoria === categoriaSeleccionada : true;
@@ -784,19 +804,67 @@ function Store({ user, token, onLogout }) {
   });
 };
 
-  const eliminarDelCarrito = (productoId) => {
-    const productoExistente = carrito.find(item => item.id === productoId);
-    
-    if (productoExistente.cantidad > 1) {
-      setCarrito(carrito.map(item =>
-        item.id === productoId
-          ? { ...item, cantidad: item.cantidad - 1 }
-          : item
-      ));
-    } else {
-      setCarrito(carrito.filter(item => item.id !== productoId));
-    }
+const agregarPaqueteAlCarrito = (paquete) => {
+  // Verificar stock de paquetes disponibles
+  if (paquete.stock_paquetes_disponibles <= 0) {
+    toast.error('Este paquete no está disponible por stock insuficiente');
+    return;
+  }
+
+  // Preparar paquete para el carrito
+  const paqueteParaCarrito = {
+    id: `paquete_${paquete.id}`, // ID único para diferenciar de productos
+    tipo: 'paquete',
+    paquete_id: paquete.id,
+    nombre: paquete.nombre,
+    descripcion: paquete.descripcion,
+    precio: paquete.precio_paquete,
+    precio_original: paquete.precio_individual_total,
+    ahorro_monto: paquete.ahorro_monto,
+    ahorro_porcentaje: paquete.ahorro_porcentaje,
+    productos_incluidos: paquete.productos_incluidos,
+    cantidad: 1,
+    categoria: paquete.categoria,
+    imagen: paquete.imagen
   };
+
+  const paqueteExistente = carrito.find(item => item.id === paqueteParaCarrito.id);
+
+  if (paqueteExistente) {
+    // Verificar si puede agregar más
+    if (paqueteExistente.cantidad >= paquete.stock_paquetes_disponibles) {
+      toast.error(`Solo hay ${paquete.stock_paquetes_disponibles} paquetes disponibles`);
+      return;
+    }
+
+    setCarrito(carrito.map(item =>
+      item.id === paqueteParaCarrito.id
+        ? { ...item, cantidad: item.cantidad + 1 }
+        : item
+    ));
+  } else {
+    setCarrito([...carrito, paqueteParaCarrito]);
+  }
+
+  toast.success(`🎁 ${paquete.nombre} agregado al carrito`, {
+    duration: 2000,
+    icon: '🛒'
+  });
+};
+
+const eliminarDelCarrito = (itemId) => {
+  const itemExistente = carrito.find(item => item.id === itemId);
+
+  if (itemExistente.cantidad > 1) {
+    setCarrito(carrito.map(item =>
+      item.id === itemId
+        ? { ...item, cantidad: item.cantidad - 1 }
+        : item
+    ));
+  } else {
+    setCarrito(carrito.filter(item => item.id !== itemId));
+  }
+};
 
   const finalizarCompra = async () => {
     if (carrito.length === 0) {
@@ -879,6 +947,96 @@ const handlePaymentSuccess = async (paymentData) => {
     setShowCheckout(true);
   };
 
+  // Componente para mostrar paquetes
+const PaqueteCard = ({ paquete, onAgregar }) => {
+  const stockDisponible = paquete.stock_paquetes_disponibles > 0;
+  
+  return (
+    <div className={`bg-white rounded-2xl shadow-lg border-2 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 ${
+      stockDisponible ? 'border-amber-200' : 'border-gray-200 opacity-60'
+    }`}>
+      {/* Badge de ahorro */}
+      <div className="relative">
+        {paquete.imagen && (
+          <img 
+            src={paquete.imagen} 
+            alt={paquete.nombre}
+            className="w-full h-48 object-cover"
+          />
+        )}
+        <div className="absolute top-3 right-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+          ¡Ahorras ${Number(paquete.ahorro_monto || 0).toLocaleString()}!
+        </div>
+        <div className="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+          PAQUETE
+        </div>
+      </div>
+
+      <div className="p-6">
+        <div className="mb-4">
+          <h3 className="text-xl font-bold text-gray-800 mb-2">{paquete.nombre}</h3>
+          {paquete.descripcion && (
+            <p className="text-gray-600 text-sm">{paquete.descripcion}</p>
+          )}
+        </div>
+
+        {/* Precios */}
+        <div className="mb-4 space-y-2">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-500 text-sm">Precio individual:</span>
+            <span className="text-gray-500 line-through text-sm">
+              ${Number(paquete.precio_individual_total || 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-lg font-bold text-gray-800">Precio paquete:</span>
+            <span className="text-2xl font-bold text-amber-600">
+              ${Number(paquete.precio_paquete || 0).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-green-600 font-medium">Tu ahorro:</span>
+            <span className="text-green-600 font-bold">
+              {Number(paquete.ahorro_porcentaje || 0).toFixed(1)}% OFF
+            </span>
+          </div>
+        </div>
+
+        {/* Productos incluidos */}
+        <div className="mb-4">
+          <h4 className="text-sm font-semibold text-gray-700 mb-2">📦 Incluye:</h4>
+          <div className="space-y-1 max-h-24 overflow-y-auto">
+            {paquete.productos_incluidos?.map((prod, index) => (
+              <div key={index} className="flex justify-between text-xs text-gray-600">
+                <span>• {prod.nombre}</span>
+                <span>{prod.cantidad > 1 ? `x${prod.cantidad}` : ''}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stock y botón */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-500">Stock disponible:</span>
+            <span className={`font-medium ${stockDisponible ? 'text-green-600' : 'text-red-600'}`}>
+              {paquete.stock_paquetes_disponibles || 0} paquetes
+            </span>
+          </div>
+
+          <button
+            onClick={() => onAgregar(paquete)}
+            disabled={!stockDisponible}
+            className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-3 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
+          >
+            {stockDisponible ? '🎁 Agregar Paquete' : '❌ Sin Stock'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const subtotal = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
 const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
 const descuentoMonto = descuentoAplicado ? descuentoAplicado.monto : 0;
@@ -945,12 +1103,18 @@ const total = subtotal - descuentoMonto;
         apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
         instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
         notas_entrega: finalDeliveryData.instrucciones_entrega || '',
-        productos: carrito.map(item => ({
-          id: item.id,
-          nombre: item.nombre,
-          precio: item.precio,
-          cantidad: item.cantidad
-        })),
+        productos: carrito.filter(item => item.tipo !== 'paquete').map(item => ({
+  id: item.id,
+  nombre: item.nombre,
+  precio: item.precio,
+  cantidad: item.cantidad
+})),
+paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
+  id: item.paquete_id,
+  nombre: item.nombre,
+  precio: item.precio,
+  cantidad: item.cantidad
+})),
         total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
         metodo_pago: 'EFECTIVO',
         estado_pago: 'PENDIENTE_EFECTIVO',
@@ -1272,97 +1436,162 @@ const total = subtotal - descuentoMonto;
           </div>
         </div>
 
-       {/* Grid de productos con branding */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-  {productosFiltrados.map(producto => {
-    // Calcular precio con descuento
-    const tieneDescuento = producto.descuento_activo && producto.descuento_porcentaje > 0;
-    const precioFinal = tieneDescuento 
-      ? Math.round(producto.precio * (100 - producto.descuento_porcentaje) / 100)
-      : producto.precio;
+{/* Toggle Productos/Paquetes */}
+<div className="mb-8 flex justify-center">
+  <div className="flex bg-gray-100 rounded-xl p-1">
+    <button
+      onClick={() => setShowPaquetes(false)}
+      className={`px-6 py-3 rounded-lg transition-all font-medium ${
+        !showPaquetes 
+          ? 'bg-white text-amber-600 shadow-md' 
+          : 'text-gray-600 hover:text-gray-800'
+      }`}
+    >
+      🛒 Productos
+    </button>
+    <button
+      onClick={() => setShowPaquetes(true)}
+      className={`px-6 py-3 rounded-lg transition-all font-medium ${
+        showPaquetes 
+          ? 'bg-white text-amber-600 shadow-md' 
+          : 'text-gray-600 hover:text-gray-800'
+      }`}
+    >
+      🎁 Paquetes
+    </button>
+  </div>
+</div>
 
-    return (
-      <div key={producto.id} className={`rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all transform hover:scale-105 duration-300 border-2 relative ${
-        darkMode 
-          ? 'bg-gray-800 border-amber-600/50 hover:border-amber-500' 
-          : 'bg-white border-amber-200 hover:border-amber-400'
-      }`}>
-        {/* Badge de descuento */}
-        {tieneDescuento && (
-          <div className="absolute top-2 right-2 z-10">
-            <div className={`px-2 py-1 rounded-full text-xs font-bold shadow-lg ${
-              producto.descuento_porcentaje >= 20
-                ? 'bg-red-500 text-white'
-                : producto.descuento_porcentaje >= 10
-                ? 'bg-orange-500 text-white'
-                : 'bg-yellow-500 text-black'
-            }`}>
-              🏷️ {producto.descuento_porcentaje}% OFF
-            </div>
-          </div>
-        )}
+{/* Contenido condicional - Productos o Paquetes */}
+{!showPaquetes ? (
+  /* Vista de productos existente */
+  <div>
+    {console.log('🛒 Mostrando productos. Total productos:', productos.length)}
+    {console.log('🔍 Productos filtrados:', productosFiltrados.length)}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {productosFiltrados.map(producto => {
+        // Calcular precio con descuento
+        const tieneDescuento = producto.descuento_activo && producto.descuento_porcentaje > 0;
+        const precioFinal = tieneDescuento
+          ? Math.round(producto.precio * (100 - producto.descuento_porcentaje) / 100)
+          : producto.precio;
 
-        <img
-          src={producto.imagen}
-          alt={producto.nombre}
-          className="w-full h-48 object-cover"
-        />
-        <div className="p-4">
-          <h3 className={`font-semibold mb-2 transition-colors duration-300 ${
-            darkMode ? 'text-white' : 'text-gray-800'
-          }`}>{producto.nombre}</h3>
-          <p className={`text-sm mb-2 transition-colors duration-300 ${
-            darkMode ? 'text-amber-300' : 'text-amber-600'
-          }`}>{producto.categoria}</p>
-          
-          <div className="flex justify-between items-center">
-            <div className="flex flex-col">
-              {tieneDescuento ? (
-                <>
-                  <span className={`text-sm line-through transition-colors duration-300 ${
-                    darkMode ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
-                    ${producto.precio.toLocaleString()}
-                  </span>
-                  <span className="text-xl font-bold text-amber-500">
-                    ${precioFinal.toLocaleString()}
-                  </span>
-                  {producto.descuento_badge_texto && (
-                    <span className={`text-xs transition-colors duration-300 ${
-                      darkMode ? 'text-orange-400' : 'text-orange-600'
-                    }`}>
-                      {producto.descuento_badge_texto}
+        return (
+          <div key={producto.id} className={`bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 ${
+            darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+          }`}>
+            {/* Badge de descuento */}
+            {tieneDescuento && (
+              <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg animate-pulse">
+                {producto.descuento_badge_texto || `${producto.descuento_porcentaje}% OFF`}
+              </div>
+            )}
+
+            {/* Imagen del producto */}
+            {producto.imagen && (
+              <div className="relative">
+                <img 
+                  src={producto.imagen} 
+                  alt={producto.nombre}
+                  className="w-full h-48 object-cover"
+                />
+              </div>
+            )}
+
+            <div className="p-6">
+              <h3 className={`text-xl font-bold mb-2 transition-colors duration-300 ${
+                darkMode ? 'text-white' : 'text-gray-800'
+              }`}>
+                {producto.nombre}
+              </h3>
+
+              {producto.descripcion && (
+                <p className={`text-sm mb-3 transition-colors duration-300 ${
+                  darkMode ? 'text-gray-300' : 'text-gray-600'
+                }`}>
+                  {producto.descripcion}
+                </p>
+              )}
+
+              {/* Precios */}
+              <div className="mb-4">
+                <div className="flex items-center space-x-2">
+                  {tieneDescuento && (
+                    <span className="text-gray-500 line-through text-sm">
+                      ${producto.precio.toLocaleString()}
                     </span>
                   )}
-                </>
-              ) : (
-                <span className="text-xl font-bold text-amber-500">
-                  ${producto.precio.toLocaleString()}
+                  <span className={`text-2xl font-bold transition-colors duration-300 ${
+                    tieneDescuento ? 'text-red-600' : (darkMode ? 'text-amber-400' : 'text-amber-600')
+                  }`}>
+                    ${precioFinal.toLocaleString()}
+                  </span>
+                </div>
+                
+                {tieneDescuento && (
+                  <div className="text-green-600 font-medium text-sm">
+                    Ahorras: ${(producto.precio - precioFinal).toLocaleString()}
+                  </div>
+                )}
+              </div>
+
+              {/* Stock */}
+              <div className="mb-4">
+                <span className={`text-sm transition-colors duration-300 ${
+                  darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  Stock: {producto.stock || 0}
                 </span>
-              )}
+              </div>
+
+              {/* Botón agregar */}
+              <button
+                onClick={() => agregarAlCarrito({
+                  ...producto,
+                  precio: precioFinal
+                })}
+                disabled={!producto.stock || producto.stock === 0}
+                className="w-full mt-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-3 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
+              >
+                {producto.stock && producto.stock > 0 ? '🗄️ Agregar al carrito' : '❌ Sin stock'}
+              </button>
             </div>
-            <span className={`text-sm transition-colors duration-300 ${
-              darkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>
-              Stock: {producto.stock}
-            </span>
           </div>
-          
-          <button
-            onClick={() => agregarAlCarrito({
-              ...producto,
-              precio: precioFinal // Usar precio con descuento
-            })}
-            disabled={producto.stock === 0}
-            className="w-full mt-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-2 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-          >
-            {producto.stock === 0 ? '❌ Sin stock' : '🏗️ Agregar al carrito'}
-          </button>
-        </div>
+        );
+      })}
+    </div>
+  </div>
+) : (
+  /* Vista de paquetes */
+  <div>
+    <div className="text-center mb-8">
+      <h2 className="text-3xl font-bold text-gray-800 mb-4">🎁 Paquetes Promocionales</h2>
+      <p className="text-gray-600">Combos especiales con grandes ahorros para tu familia</p>
+    </div>
+
+    {paquetesLoading ? (
+      <div className="flex justify-center items-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
       </div>
-    );
-  })}
-</div>
+    ) : paquetes.length === 0 ? (
+      <div className="text-center py-20">
+        <div className="text-6xl mb-4">🎁</div>
+        <h3 className="text-xl font-semibold text-gray-700 mb-2">No hay paquetes disponibles</h3>
+        <p className="text-gray-500">Próximamente tendremos ofertas especiales</p>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {paquetes.map(paquete => (
+          <PaqueteCard 
+            key={paquete.id} 
+            paquete={paquete} 
+            onAgregar={agregarPaqueteAlCarrito}
+          />
+        ))}
+      </div>
+    )}
+  </div>
+)}
 
         {productosFiltrados.length === 0 && (
           <div className="text-center py-12">

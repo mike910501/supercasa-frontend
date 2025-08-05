@@ -82,7 +82,13 @@ const PaymentComponent = ({
         body: JSON.stringify({
           metodoPago,
           monto: total,
-          productos: carrito,
+          productos: carrito.filter(item => item.tipo !== 'paquete'),
+paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
+  id: item.paquete_id,
+  nombre: item.nombre,
+  precio: item.precio,
+  cantidad: item.cantidad
+})),
           datosEntrega: deliveryData,
           telefono,
           cedula,

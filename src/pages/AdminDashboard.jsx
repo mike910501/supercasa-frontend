@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminOrdersManagement from './AdminOrdersManagement';
 import API_URL from '../config/api';
+import AdminPaquetes from '../components/AdminPaquetes';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('productos');
@@ -111,6 +112,16 @@ export default function AdminDashboard() {
             >
               🎁 Promociones
             </button>
+            <button
+  onClick={() => setActiveSection('paquetes')}
+  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+    activeSection === 'paquetes'
+      ? 'bg-amber-600 text-white'
+      : 'text-gray-300 hover:bg-gray-700'
+  }`}
+>
+  🎁 Gestión de Paquetes
+</button>
           </nav>
         </aside>
 
@@ -121,6 +132,7 @@ export default function AdminDashboard() {
           {activeSection === 'pedidos' && <AdminOrdersManagement />}
           {activeSection === 'usuarios' && <UsuariosSection />}
           {activeSection === 'promociones' && <PromocionesSection />}
+          {activeSection === 'paquetes' && <AdminPaquetes />}
         </main>
       </div>
     </div>
