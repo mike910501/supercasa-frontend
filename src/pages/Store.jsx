@@ -947,7 +947,8 @@ const handlePaymentSuccess = async (paymentData) => {
     setShowCheckout(true);
   };
 
-  // Componente para mostrar paquetes
+// Reemplaza tu componente PaqueteCard actual en Store.jsx con este código mejorado:
+
 const PaqueteCard = ({ paquete, onAgregar }) => {
   const stockDisponible = paquete.stock_paquetes_disponibles > 0;
   
@@ -955,67 +956,110 @@ const PaqueteCard = ({ paquete, onAgregar }) => {
     <div className={`bg-white rounded-2xl shadow-lg border-2 overflow-hidden transition-all duration-300 hover:shadow-2xl hover:scale-105 ${
       stockDisponible ? 'border-amber-200' : 'border-gray-200 opacity-60'
     }`}>
-      {/* Badge de ahorro */}
-      <div className="relative">
-        {paquete.imagen && (
-          <img 
-            src={paquete.imagen} 
-            alt={paquete.nombre}
-            className="w-full h-48 object-cover"
-          />
-        )}
-        <div className="absolute top-3 right-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-          ¡Ahorras ${Number(paquete.ahorro_monto || 0).toLocaleString()}!
-        </div>
-        <div className="absolute top-3 left-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-          PAQUETE
-        </div>
-      </div>
-
+      
+      {/* ✅ HEADER SEPARADO - Sin badge montado sobre título */}
       <div className="p-6">
-        <div className="mb-4">
-          <h3 className="text-xl font-bold text-gray-800 mb-2">{paquete.nombre}</h3>
-          {paquete.descripcion && (
-            <p className="text-gray-600 text-sm">{paquete.descripcion}</p>
-          )}
+        {/* Header con badges separados */}
+        <div className="flex items-center justify-between mb-4">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
+            🎁 PAQUETE
+          </span>
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            ¡Ahorras ${Number(paquete.ahorro_monto || 0).toLocaleString()}!
+          </span>
         </div>
 
-        {/* Precios */}
-        <div className="mb-4 space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-500 text-sm">Precio individual:</span>
-            <span className="text-gray-500 line-through text-sm">
-              ${Number(paquete.precio_individual_total || 0).toLocaleString()}
+        {/* ✅ NOMBRE DEL PAQUETE - Ya no montado */}
+        <h3 className="text-xl font-bold text-gray-800 mb-2 leading-tight">
+          {paquete.nombre}
+        </h3>
+        
+        {paquete.descripcion && (
+          <p className="text-sm text-gray-600 mb-4">
+            {paquete.descripcion}
+          </p>
+        )}
+
+        {/* ✅ PRECIOS CON MEJOR LAYOUT */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm text-gray-500 line-through">
+              Precio individual: ${Number(paquete.precio_individual_total || 0).toLocaleString()}
             </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-bold text-gray-800">Precio paquete:</span>
-            <span className="text-2xl font-bold text-amber-600">
-              ${Number(paquete.precio_paquete || 0).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-green-600 font-medium">Tu ahorro:</span>
-            <span className="text-green-600 font-bold">
-              {Number(paquete.ahorro_porcentaje || 0).toFixed(1)}% OFF
-            </span>
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-sm text-gray-600">Precio paquete:</span>
+              <p className="text-2xl font-bold text-amber-600">
+                ${Number(paquete.precio_paquete || 0).toLocaleString()}
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-sm text-green-600 font-medium">Tu ahorro:</span>
+              <p className="text-lg font-bold text-green-600">
+                {Number(paquete.ahorro_porcentaje || 0).toFixed(1)}% OFF
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* Productos incluidos */}
+        {/* ✅ PRODUCTOS INCLUIDOS CON IMÁGENES REALES PEQUEÑAS ABAJO */}
         <div className="mb-4">
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">📦 Incluye:</h4>
-          <div className="space-y-1 max-h-24 overflow-y-auto">
-            {paquete.productos_incluidos?.map((prod, index) => (
+          <p className="text-sm font-medium text-gray-700 mb-2">🛒 Incluye:</p>
+          
+          {/* Grid de imágenes pequeñas - USANDO IMÁGENES REALES */}
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            {paquete.productos_incluidos?.slice(0, 4).map((producto, index) => (
+              <div key={index} className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center border-2 border-amber-200 overflow-hidden">
+                  {producto.imagen ? (
+                    <img 
+                      src={producto.imagen} 
+                      alt={producto.nombre}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-amber-600 text-lg">🛒</span>
+                  )}
+                </div>
+                <span className="text-xs text-gray-600 mt-1 text-center leading-tight">
+                  {producto.nombre}
+                </span>
+                {producto.cantidad > 1 && (
+                  <span className="text-xs bg-amber-500 text-white rounded-full px-1">
+                    x{producto.cantidad}
+                  </span>
+                )}
+              </div>
+            ))}
+            
+            {/* Mostrar +X si hay más productos */}
+            {paquete.productos_incluidos?.length > 4 && (
+              <div className="flex flex-col items-center">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center border-2 border-amber-300">
+                  <span className="text-amber-600 text-xs font-bold">
+                    +{paquete.productos_incluidos.length - 4}
+                  </span>
+                </div>
+                <span className="text-xs text-gray-600 mt-1 text-center">
+                  más
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Lista detallada compacta */}
+          <div className="space-y-1 max-h-16 overflow-y-auto bg-gray-50 rounded-lg p-2">
+            {paquete.productos_incluidos?.map((producto, index) => (
               <div key={index} className="flex justify-between text-xs text-gray-600">
-                <span>• {prod.nombre}</span>
-                <span>{prod.cantidad > 1 ? `x${prod.cantidad}` : ''}</span>
+                <span>• {producto.nombre}</span>
+                <span>{producto.cantidad > 1 ? `x${producto.cantidad}` : ''}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Stock y botón */}
+        {/* ✅ STOCK Y BOTÓN */}
         <div className="space-y-3">
           <div className="flex justify-between items-center text-sm">
             <span className="text-gray-500">Stock disponible:</span>
@@ -1029,7 +1073,7 @@ const PaqueteCard = ({ paquete, onAgregar }) => {
             disabled={!stockDisponible}
             className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-3 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
           >
-            {stockDisponible ? '🎁 Agregar Paquete' : '❌ Sin Stock'}
+            {stockDisponible ? '🛒 Agregar Paquete' : '❌ Sin Stock'}
           </button>
         </div>
       </div>
@@ -1608,198 +1652,317 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
         )}
       </div>
 
-      {/* Modal del carrito con branding */}
       {showCart && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 border-2 ${
-            darkMode 
-              ? 'bg-gray-800 border-amber-600' 
-              : 'bg-white border-amber-300'
-          }`}>
-            <div className={`p-6 border-b transition-colors duration-300 ${
-              darkMode ? 'border-amber-600' : 'border-amber-300'
+  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div className={`rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transition-colors duration-300 border-2 ${
+      darkMode 
+        ? 'bg-gray-800 border-amber-600' 
+        : 'bg-white border-amber-300'
+    }`}>
+      
+      {/* ✅ HEADER MEJORADO */}
+      <div className={`p-6 border-b transition-colors duration-300 ${
+        darkMode ? 'border-amber-600' : 'border-amber-300'
+      }`}>
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <SupercasaLogo 
+              size="small"
+              showText={false}
+              showSlogan={false}
+              darkMode={darkMode}
+            />
+            <div>
+              <h2 className={`text-2xl font-bold transition-colors duration-300 ${
+                darkMode ? 'text-white' : 'text-gray-800'
+              }`}>Tu Carrito Supercasa</h2>
+              <p className={`text-sm transition-colors duration-300 ${
+                darkMode ? 'text-amber-300' : 'text-amber-600'
+              }`}>🏗️ Entrega en máximo 20 minutos</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowCart(false)}
+            className={`p-2 rounded-xl transition-colors duration-300 ${
+              darkMode ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="p-6">
+        {carrito.length === 0 ? (
+          
+          /* ✅ CARRITO VACÍO MEJORADO */
+          <div className="text-center py-12">
+            <div className={`w-24 h-24 mx-auto rounded-full flex items-center justify-center mb-4 transition-colors duration-300 ${
+              darkMode ? 'bg-amber-900' : 'bg-amber-50'
             }`}>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-3">
-                  <SupercasaLogo 
-                    size="small"
-                    showText={false}
-                    showSlogan={false}
-                    darkMode={darkMode}
-                  />
-                  <h2 className={`text-2xl font-bold transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-800'
-                  }`}>Tu Carrito Supercasa</h2>
+              <span className="text-4xl">🛒</span>
+            </div>
+            <h3 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
+              darkMode ? 'text-white' : 'text-gray-800'
+            }`}>Tu carrito está vacío</h3>
+            <p className={`transition-colors duration-300 ${
+              darkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>¡Agrega productos y paquetes de Supercasa!</p>
+          </div>
+          
+        ) : (
+          <>
+            {/* ✅ ITEMS DEL CARRITO CON DISEÑO TIPO CARD */}
+            <div className="space-y-4 mb-6">
+              {carrito.map(item => (
+                <div key={item.id} className={`rounded-2xl p-4 border-2 transition-all duration-300 hover:shadow-lg ${
+                  darkMode 
+                    ? 'bg-gray-700 border-amber-600' 
+                    : 'bg-amber-50 border-amber-200'
+                }`}>
+                  
+                  {/* Header del item con badge */}
+                  <div className="flex items-center justify-between mb-3">
+                    {item.tipo === 'paquete' && (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-500 text-white">
+                        🎁 PAQUETE
+                      </span>
+                    )}
+                    <div className="flex items-center space-x-2 ml-auto">
+                      <button
+                        onClick={() => eliminarDelCarrito(item.id)}
+                        className={`p-1 rounded-lg transition-colors duration-300 ${
+                          darkMode 
+                            ? 'bg-red-900 text-red-300 hover:bg-red-800' 
+                            : 'bg-red-100 text-red-600 hover:bg-red-200'
+                        }`}
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
+                        </svg>
+                      </button>
+                      <span className={`px-3 py-1 rounded-lg font-medium transition-colors duration-300 ${
+                        darkMode ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'
+                      }`}>{item.cantidad}</span>
+                      <button
+                        onClick={() => item.tipo === 'paquete' ? agregarPaqueteAlCarrito(item) : agregarAlCarrito(item)}
+                        className={`p-1 rounded-lg transition-colors duration-300 ${
+                          darkMode 
+                            ? 'bg-amber-700 text-amber-300 hover:bg-amber-600' 
+                            : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                        }`}
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-4">
+                    
+                    {/* ✅ IMAGEN MEJORADA - Mosaico para paquetes */}
+                    {item.tipo === 'paquete' ? (
+                      <div className="w-16 h-16 relative flex-shrink-0">
+                        {item.productos_incluidos?.slice(0, 4).map((prod, index) => (
+                          <img
+                            key={index}
+                            src={prod.imagen || `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="#f3f4f6"/><text x="16" y="16" text-anchor="middle" dy=".3em" font-size="10">🛒</text></svg>`)}`}
+                            alt={prod.nombre}
+                            className={`absolute w-8 h-8 object-cover rounded-lg border-2 border-white shadow-sm ${
+                              index === 0 ? 'top-0 left-0' :
+                              index === 1 ? 'top-0 right-0' :
+                              index === 2 ? 'bottom-0 left-0' : 'bottom-0 right-0'
+                            }`}
+                          />
+                        ))}
+                        <div className="absolute inset-0 border-2 border-amber-400 rounded-xl pointer-events-none"></div>
+                      </div>
+                    ) : (
+                      <img 
+                        src={item.imagen || `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="#f3f4f6"/><text x="32" y="32" text-anchor="middle" dy=".3em" font-size="16">🛒</text></svg>`)}`} 
+                        alt={item.nombre} 
+                        className="w-16 h-16 object-cover rounded-xl border-2 border-amber-300 flex-shrink-0" 
+                      />
+                    )}
+
+                    {/* Información del item */}
+                    <div className="flex-1">
+                      <h3 className={`font-bold text-lg transition-colors duration-300 ${
+                        darkMode ? 'text-white' : 'text-gray-800'
+                      }`}>{item.nombre}</h3>
+                      
+                      {/* Mostrar productos incluidos en paquetes */}
+                      {item.tipo === 'paquete' && item.productos_incluidos && (
+                        <p className={`text-sm transition-colors duration-300 ${
+                          darkMode ? 'text-amber-300' : 'text-amber-600'
+                        }`}>
+                          Incluye: {item.productos_incluidos.map(p => p.nombre).join(', ')}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between mt-2">
+                        <span className={`text-xl font-bold transition-colors duration-300 ${
+                          darkMode ? 'text-amber-400' : 'text-amber-600'
+                        }`}>
+                          ${item.precio.toLocaleString()}
+                        </span>
+                        <span className={`text-sm transition-colors duration-300 ${
+                          darkMode ? 'text-gray-300' : 'text-gray-600'
+                        }`}>
+                          Subtotal: ${(item.precio * item.cantidad).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setShowCart(false)}
-                  className={`transition-colors duration-300 ${
-                    darkMode ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"/>
-                  </svg>
-                </button>
+              ))}
+            </div>
+
+            {/* ✅ CÓDIGO PROMOCIONAL MEJORADO */}
+            <div className={`rounded-2xl p-4 mb-6 border-2 transition-colors duration-300 ${
+              darkMode 
+                ? 'bg-gray-700 border-purple-600' 
+                : 'bg-purple-50 border-purple-200'
+            }`}>
+              <PromoCodeInput
+                carrito={carrito}
+                onDescuentoAplicado={setDescuentoAplicado}
+                codigoActual={descuentoAplicado}
+                darkMode={darkMode}
+              />
+            </div>
+
+            {/* ✅ RESUMEN DE TOTALES MEJORADO */}
+            <div className={`rounded-2xl p-6 mb-6 border-2 transition-colors duration-300 ${
+              darkMode 
+                ? 'bg-gray-700 border-amber-600' 
+                : 'bg-amber-50 border-amber-200'
+            }`}>
+              <div className="space-y-3">
+                <div className="flex justify-between text-lg">
+                  <span className={`font-medium transition-colors duration-300 ${
+                    darkMode ? 'text-gray-300' : 'text-gray-700'
+                  }`}>Subtotal:</span>
+                  <span className={`font-bold transition-colors duration-300 ${
+                    darkMode ? 'text-white' : 'text-gray-800'
+                  }`}>${subtotal.toLocaleString()}</span>
+                </div>
+                
+                {descuentoAplicado && (
+                  <div className="flex justify-between text-lg">
+                    <span className="text-green-600 font-medium">Descuento ({descuentoAplicado.codigo}):</span>
+                    <span className="text-green-600 font-bold">-${descuentoAplicado.monto.toLocaleString()}</span>
+                  </div>
+                )}
+                
+                <div className={`flex justify-between items-center text-2xl font-bold border-t pt-3 transition-colors duration-300 ${
+                  darkMode ? 'border-amber-600 text-white' : 'border-amber-300 text-gray-800'
+                }`}>
+                  <span>Total Supercasa:</span>
+                  <span className="text-amber-500">${total.toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
-            <div className="p-6">
-              {carrito.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className={`text-6xl mb-4 transition-colors duration-300 ${
-                    darkMode ? 'text-gray-600' : 'text-amber-400'
-                  }`}>🛒</div>
-                  <p className={`transition-colors duration-300 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}>Tu carrito está vacío</p>
-                  <p className={`text-sm mt-2 transition-colors duration-300 ${
-                    darkMode ? 'text-amber-300' : 'text-amber-600'
-                  }`}>¡Agrega productos de Supercasa!</p>
-                </div>
-              ) : (
-                <>
-                  {carrito.map(item => (
-                    <div key={item.id} className={`flex items-center justify-between py-4 border-b transition-colors duration-300 ${
-                      darkMode ? 'border-gray-700' : 'border-amber-100'
-                    }`}>
-                      <div className="flex items-center space-x-4">
-                        <img src={item.imagen} alt={item.nombre} className="w-16 h-16 object-cover rounded-lg border-2 border-amber-300" />
-                        <div>
-                          <h3 className={`font-semibold transition-colors duration-300 ${
-                            darkMode ? 'text-white' : 'text-gray-800'
-                          }`}>{item.nombre}</h3>
-                          <p className={`transition-colors duration-300 ${
-                            darkMode ? 'text-amber-400' : 'text-amber-600'
-                          }`}>${item.precio.toLocaleString()}</p>
-                        </div>
+            {/* ✅ BOTONES DE PAGO REDISEÑADOS CON MENSAJES CLAROS */}
+            <div className="space-y-4">
+              <div className="text-center mb-4">
+                <h3 className={`text-xl font-bold transition-colors duration-300 ${
+                  darkMode ? 'text-white' : 'text-gray-800'
+                }`}>🏗️ Elige tu método de pago</h3>
+                <p className={`text-sm transition-colors duration-300 ${
+                  darkMode ? 'text-amber-300' : 'text-amber-600'
+                }`}>Pago seguro y entrega rápida</p>
+              </div>
+
+              {/* BOTÓN PAGO DIGITAL CON MENSAJE */}
+              <div className={`rounded-2xl border-2 p-1 transition-colors duration-300 ${
+                total >= 20000 
+                  ? 'border-blue-300 bg-blue-50' 
+                  : 'border-gray-300 bg-gray-50'
+              }`}>
+                <button
+                  onClick={total >= 20000 ? finalizarCompra : () => alert(`Monto mínimo para pagos digitales: $20,000\nTu total: $${total.toLocaleString()}\nTe faltan: $${(20000 - total).toLocaleString()}`)}
+                  disabled={total < 20000}
+                  className={`w-full py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-between shadow-lg ${
+                    total >= 20000 
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transform hover:scale-105' 
+                      : 'bg-gray-400 cursor-not-allowed text-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">💳</span>
+                    <div className="text-left">
+                      <div className="font-bold text-lg">Pago Digital Supercasa</div>
+                      <div className="text-sm opacity-90">
+                        Nequi • PSE • Tarjetas de Crédito/Débito
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => eliminarDelCarrito(item.id)}
-                          className={`p-1 rounded-lg transition-colors duration-300 ${
-                            darkMode 
-                              ? 'bg-red-900 text-red-300 hover:bg-red-800' 
-                              : 'bg-red-100 text-red-600 hover:bg-red-200'
-                          }`}
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
-                          </svg>
-                        </button>
-                        <span className={`px-3 py-1 rounded-lg transition-colors duration-300 ${
-                          darkMode ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-800'
-                        }`}>{item.cantidad}</span>
-                        <button
-                          onClick={() => agregarAlCarrito(item)}
-                          className={`p-1 rounded-lg transition-colors duration-300 ${
-                            darkMode 
-                              ? 'bg-amber-700 text-amber-300 hover:bg-amber-600' 
-                              : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                          }`}
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className={`mt-6 pt-6 border-t transition-colors duration-300 ${
-                    darkMode ? 'border-amber-600' : 'border-amber-300'
-                  }`}>
-                    {/* Código promocional */}
-<PromoCodeInput
-  carrito={carrito}
-  onDescuentoAplicado={setDescuentoAplicado}
-  codigoActual={descuentoAplicado}
-  darkMode={darkMode}
-/>
-
-{/* Resumen de totales */}
-<div className="space-y-2 mt-4">
-  <div className="flex justify-between text-sm">
-    <span className={`transition-colors duration-300 ${
-      darkMode ? 'text-gray-300' : 'text-gray-600'
-    }`}>Subtotal:</span>
-    <span className={`transition-colors duration-300 ${
-      darkMode ? 'text-white' : 'text-gray-800'
-    }`}>${subtotal.toLocaleString()}</span>
-  </div>
-  
-  {descuentoAplicado && (
-    <div className="flex justify-between text-sm">
-      <span className="text-green-600">Descuento ({descuentoAplicado.codigo}):</span>
-      <span className="text-green-600">-${descuentoAplicado.monto.toLocaleString()}</span>
-    </div>
-  )}
-  
-  <div className={`flex justify-between items-center text-xl font-bold border-t pt-2 transition-colors duration-300 ${
-    darkMode ? 'border-amber-600 text-white' : 'border-amber-300 text-gray-800'
-  }`}>
-    <span>Total Supercasa:</span>
-    <span className="text-amber-500">${total.toLocaleString()}</span>
-  </div>
-</div>
-                    
-                    <div className="space-y-3">
-                      <div className="text-center mb-4">
-                        <p className={`text-lg font-semibold transition-colors duration-300 ${
-                          darkMode ? 'text-white' : 'text-gray-800'
-                        }`}>Total: ${total.toLocaleString('es-CO')} COP</p>
-                        <p className={`text-sm transition-colors duration-300 ${
-                          darkMode ? 'text-amber-400' : 'text-amber-600'
-                        }`}>🏗️ Elige tu método de pago:</p>
-                      </div>
-
-                        {/* BOTÓN WOMPI - AGREGAR VALIDACIÓN DE MONTO MÍNIMO */}
-  <button
-    onClick={total >= 20000 ? finalizarCompra : () => alert(`Monto mínimo para pagos digitales: $20,000\nTu total: $${total.toLocaleString()}\nTe faltan: $${(20000 - total).toLocaleString()}`)}
-    disabled={total < 20000}
-    className={`w-full py-4 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg ${
-      total >= 20000 
-        ? 'bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white' 
-        : 'bg-gray-400 cursor-not-allowed text-gray-200'
-    }`}
-  >
-    <span className="text-xl">💳</span>
-    <div className="text-left">
-      <div className="font-semibold">Pago Digital Supercasa</div>
-      <div className="text-xs opacity-90">
-        {total >= 20000 ? 'Nequi • PSE • Tarjetas' : 'Min: 20k • Nequi • PSE • Tarjetas'}
-      </div>
-    </div>
-    <span className="ml-auto">{total >= 20000 ? '⚡' : '⚠️'}</span>
-  </button>
-
-  {/* BOTÓN EFECTIVO - AGREGAR VALIDACIÓN DE MONTO MÍNIMO */}
-  <button 
-    onClick={total >= 15000 ? () => setCashPaymentModal(true) : () => alert(`Monto mínimo para pago en efectivo: $15,000\nTu total: $${total.toLocaleString()}\nTe faltan: $${(15000 - total).toLocaleString()}`)}
-    disabled={total < 15000}
-    className={`w-full py-4 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 shadow-lg ${
-      total >= 15000 
-        ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white' 
-        : 'bg-gray-400 cursor-not-allowed text-gray-200'
-    }`}
-  >
-    <span className="text-xl">💵</span>
-    <div className="text-left">
-      <div className="font-semibold">Pago en Efectivo</div>
-      <div className="text-xs opacity-90">
-        {total >= 15000 ? 'Al recibir en tu torre' : 'Min: 15k • Al recibir en tu torre'}
-      </div>
-    </div>
-    <span className="ml-auto">{total >= 15000 ? '🏗️' : '⚠️'}</span>
-  </button>
                     </div>
                   </div>
-                </>
-              )}
+                  <span className="text-2xl">{total >= 20000 ? '⚡' : '⚠️'}</span>
+                </button>
+                
+                <div className={`px-4 py-2 text-center ${
+                  total >= 20000 ? 'text-green-700' : 'text-red-600'
+                }`}>
+                  <p className="text-sm font-medium">
+                    {total >= 20000 
+                      ? '✅ Monto válido para pago digital' 
+                      : `⚠️ Monto mínimo: $20.000 COP (Te faltan: $${(20000 - total).toLocaleString()})`
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* BOTÓN PAGO EFECTIVO CON MENSAJE */}
+              <div className={`rounded-2xl border-2 p-1 transition-colors duration-300 ${
+                total >= 15000 
+                  ? 'border-green-300 bg-green-50' 
+                  : 'border-gray-300 bg-gray-50'
+              }`}>
+                <button 
+                  onClick={total >= 15000 ? () => setCashPaymentModal(true) : () => alert(`Monto mínimo para pago en efectivo: $15,000\nTu total: $${total.toLocaleString()}\nTe faltan: $${(15000 - total).toLocaleString()}`)}
+                  disabled={total < 15000}
+                  className={`w-full py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-between shadow-lg ${
+                    total >= 15000 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white transform hover:scale-105' 
+                      : 'bg-gray-400 cursor-not-allowed text-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">💵</span>
+                    <div className="text-left">
+                      <div className="font-bold text-lg">Pago en Efectivo</div>
+                      <div className="text-sm opacity-90">
+                        Al recibir en tu torre • Dinero exacto
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-2xl">{total >= 15000 ? '🏗️' : '⚠️'}</span>
+                </button>
+                
+                <div className={`px-4 py-2 text-center ${
+                  total >= 15000 ? 'text-green-700' : 'text-red-600'
+                }`}>
+                  <p className="text-sm font-medium">
+                    {total >= 15000 
+                      ? '✅ Monto válido para pago en efectivo' 
+                      : `⚠️ Monto mínimo: $15.000 COP (Te faltan: $${(15000 - total).toLocaleString()})`
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+   
 
       {/* Modal de checkout con branding */}
       {showCheckout && (
