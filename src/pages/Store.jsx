@@ -1590,10 +1590,7 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
 
               {/* Botón agregar */}
               <button
-                onClick={() => agregarAlCarrito({
-                  ...producto,
-                  precio: precioFinal
-                })}
+                onClick={() => agregarAlCarrito(producto)} // ✅ CORRECCIÓN
                 disabled={!producto.stock || producto.stock === 0}
                 className="w-full mt-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white py-3 rounded-xl hover:from-amber-600 hover:to-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl font-semibold"
               >
