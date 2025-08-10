@@ -444,7 +444,26 @@ export default function AdminOrdersManagement() {
                   <div className="space-y-1">
                     <p className="text-sm text-gray-300"><span className="font-medium">Cliente:</span> {pedido.usuario?.nombre}</p>
                     <p className="text-sm text-gray-300"><span className="font-medium">Entrega:</span> Torre {pedido.torre_entrega} - Piso {pedido.piso_entrega} - Apt {pedido.apartamento_entrega}</p>
-                    <p className="text-sm text-gray-300"><span className="font-medium">Total:</span> <span className="font-bold text-blue-400">${pedido.total?.toLocaleString() || '0'}</span></p>
+                    <div className="text-sm text-gray-300">
+  <span className="font-medium">Total:</span>
+  <div className="ml-2 space-y-1">
+    {pedido.costo_envio > 0 ? (
+      <>
+        <div>Productos: <span className="text-gray-400">${pedido.subtotal?.toLocaleString() || '0'}</span></div>
+        <div>Envío: <span className="text-gray-400">$2,000</span></div>
+        <div className="font-bold text-blue-400">Total: ${pedido.total?.toLocaleString() || '0'}</div>
+      </>
+    ) : pedido.costo_envio === 0 && pedido.metodo_pago ? (
+      <>
+        <div>Productos: <span className="text-gray-400">${pedido.subtotal?.toLocaleString() || '0'}</span></div>
+        <div>Envío: <span className="text-green-400">GRATIS</span></div>
+        <div className="font-bold text-blue-400">Total: ${pedido.total?.toLocaleString() || '0'}</div>
+      </>
+    ) : (
+      <span className="font-bold text-blue-400">${pedido.total?.toLocaleString() || '0'}</span>
+    )}
+  </div>
+</div>
                     <p className="text-sm text-gray-300"><span className="font-medium">Hace:</span> {calcularTiempoTranscurrido(pedido.fecha_pedido)}</p>
                     {pedido.payment_reference && (
                       <p className="text-sm text-gray-300"><span className="font-medium">Ref:</span> {pedido.payment_reference}</p>
@@ -561,9 +580,23 @@ export default function AdminOrdersManagement() {
                         Apt {pedido.apartamento_entrega}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-200">
-                      ${pedido.total?.toLocaleString() || '0'}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+  {pedido.costo_envio > 0 ? (
+    <div className="space-y-1">
+      <div className="text-gray-400 text-xs">Productos: ${pedido.subtotal?.toLocaleString() || '0'}</div>
+      <div className="text-gray-400 text-xs">Envío: $2,000</div>
+      <div className="font-bold text-blue-400">${pedido.total?.toLocaleString() || '0'}</div>
+    </div>
+  ) : pedido.costo_envio === 0 && pedido.metodo_pago ? (
+    <div className="space-y-1">
+      <div className="text-gray-400 text-xs">Productos: ${pedido.subtotal?.toLocaleString() || '0'}</div>
+      <div className="text-green-400 text-xs">Envío: GRATIS</div>
+      <div className="font-bold text-blue-400">${pedido.total?.toLocaleString() || '0'}</div>
+    </div>
+  ) : (
+    <div className="font-medium text-gray-200">${pedido.total?.toLocaleString() || '0'}</div>
+  )}
+</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getEstadoColor(pedido.estado)}`}>
                         {pedido.estado}
@@ -811,15 +844,50 @@ export default function AdminOrdersManagement() {
                       </div>
                     ))}
                   </div>
-                  
                   <div className="mt-4 sm:mt-6 bg-gradient-to-r from-blue-900 to-purple-900 border border-blue-700 rounded-xl p-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg sm:text-xl font-bold text-gray-200">Total del Pedido:</span>
-                      <span className="text-xl sm:text-2xl font-bold text-blue-400">
-                        ${pedidoSeleccionado.total?.toLocaleString() || '0'}
-                      </span>
-                    </div>
-                  </div>
+  {pedidoSeleccionado.costo_envio > 0 ? (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="text-gray-300">Subtotal productos:</span>
+        <span className="text-gray-300">${pedidoSeleccionado.subtotal?.toLocaleString() || '0'}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-gray-300">Costo de envío:</span>
+        <span className="text-gray-300">$2,000</span>
+      </div>
+      <div className="border-t border-blue-600 pt-2 flex justify-between items-center">
+        <span className="text-lg sm:text-xl font-bold text-gray-200">Total del Pedido:</span>
+        <span className="text-xl sm:text-2xl font-bold text-blue-400">
+          ${pedidoSeleccionado.total?.toLocaleString() || '0'}
+        </span>
+      </div>
+    </div>
+  ) : pedidoSeleccionado.costo_envio === 0 && pedidoSeleccionado.metodo_pago ? (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <span className="text-gray-300">Subtotal productos:</span>
+        <span className="text-gray-300">${pedidoSeleccionado.subtotal?.toLocaleString() || '0'}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-gray-300">Costo de envío:</span>
+        <span className="text-green-400 font-bold">GRATIS</span>
+      </div>
+      <div className="border-t border-blue-600 pt-2 flex justify-between items-center">
+        <span className="text-lg sm:text-xl font-bold text-gray-200">Total del Pedido:</span>
+        <span className="text-xl sm:text-2xl font-bold text-blue-400">
+          ${pedidoSeleccionado.total?.toLocaleString() || '0'}
+        </span>
+      </div>
+    </div>
+  ) : (
+    <div className="flex justify-between items-center">
+      <span className="text-lg sm:text-xl font-bold text-gray-200">Total del Pedido:</span>
+      <span className="text-xl sm:text-2xl font-bold text-blue-400">
+        ${pedidoSeleccionado.total?.toLocaleString() || '0'}
+      </span>
+    </div>
+  )}
+</div>
                 </div>
               </div>
             </div>
