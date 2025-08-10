@@ -589,6 +589,11 @@ const [showPaquetes, setShowPaquetes] = useState(false);
 const [paquetesLoading, setPaquetesLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showWompiPayment, setShowWompiPayment] = useState(false);
+ 
+const [costoEnvio, setCostoEnvio] = useState(0);
+const [mensajeEnvio, setMensajeEnvio] = useState('');
+const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState('efectivo');
+const [calculandoEnvio, setCalculandoEnvio] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [cashPaymentModal, setCashPaymentModal] = useState(false);
@@ -1085,6 +1090,81 @@ const subtotal = carrito.reduce((acc, item) => acc + item.precio * item.cantidad
 const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
 const descuentoMonto = descuentoAplicado ? descuentoAplicado.monto : 0;
 const total = subtotal - descuentoMonto;
+
+// ===================================
+// 🚚 FUNCIÓN CALCULAR ENVÍO
+// ===================================
+const calcularEnvio = async (metodo) => {
+  if (subtotal <= 0) {
+    setCostoEnvio(0);
+    setMensajeEnvio('');
+    return null;
+  }
+
+  setCalculandoEnvio(true);
+  
+  try {
+    console.log(`🚚 Calculando envío - Subtotal: $${subtotal}, Método: ${metodo}`);
+    
+    const response = await fetch(`${API_URL}/api/calcular-envio`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        subtotal: subtotal,
+        metodoPago: metodo
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      setCostoEnvio(data.costoEnvio);
+      setMensajeEnvio(data.mensaje);
+      setMetodoPagoSeleccionado(metodo);
+      
+      console.log(`✅ Envío calculado: $${data.costoEnvio} - ${data.mensaje}`);
+      return data;
+    } else {
+      toast.error(data.error || 'Error calculando envío');
+      setCostoEnvio(0);
+      setMensajeEnvio('');
+      return null;
+    }
+  } catch (error) {
+    console.error('❌ Error calculando envío:', error);
+    toast.error('Error de conexión calculando envío');
+    setCostoEnvio(0);
+    setMensajeEnvio('');
+    return null;
+  } finally {
+    setCalculandoEnvio(false);
+  }
+};
+// ✅ TOTAL FINAL CON ENVÍO
+const totalConEnvio = total + costoEnvio;
+
+// ===================================
+// 🔄 CALCULAR ENVÍO AUTOMÁTICAMENTE
+// ===================================
+useEffect(() => {
+  const calcularEnvioAutomatico = async () => {
+    if (subtotal >= 5000 && metodoPagoSeleccionado) {
+      await calcularEnvio(metodoPagoSeleccionado);
+    } else if (subtotal < 5000) {
+      setCostoEnvio(0);
+      setMensajeEnvio('');
+    }
+  };
+  
+  calcularEnvioAutomatico();
+}, [subtotal, metodoPagoSeleccionado]); // Se ejecuta cuando cambia el subtotal o método
+
+
+
+// ✅ TOTAL FINAL CON ENVÍO
 
   const processCashPayment = async () => {
     setIsProcessingCash(true);
@@ -1831,38 +1911,76 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
                 darkMode={darkMode}
               />
             </div>
+              {/* ✅ RESUMEN DE TOTALES CON ENVÍO */}
+<div className={`rounded-2xl p-6 mb-6 border-2 transition-colors duration-300 ${
+  darkMode
+    ? 'bg-gray-700 border-gray-600'
+    : 'bg-gray-50 border-gray-200'
+}`}>
+  <div className="space-y-3">
+    {/* Subtotal */}
+    <div className="flex justify-between">
+      <span className={`font-medium transition-colors duration-300 ${
+        darkMode ? 'text-gray-300' : 'text-gray-700'
+      }`}>Subtotal productos:</span>
+      <span className={`font-bold transition-colors duration-300 ${
+        darkMode ? 'text-white' : 'text-gray-800'
+      }`}>${subtotal.toLocaleString()}</span>
+    </div>
 
-            {/* ✅ RESUMEN DE TOTALES MEJORADO */}
-            <div className={`rounded-2xl p-6 mb-6 border-2 transition-colors duration-300 ${
-              darkMode 
-                ? 'bg-gray-700 border-amber-600' 
-                : 'bg-amber-50 border-amber-200'
-            }`}>
-              <div className="space-y-3">
-                <div className="flex justify-between text-lg">
-                  <span className={`font-medium transition-colors duration-300 ${
-                    darkMode ? 'text-gray-300' : 'text-gray-700'
-                  }`}>Subtotal:</span>
-                  <span className={`font-bold transition-colors duration-300 ${
-                    darkMode ? 'text-white' : 'text-gray-800'
-                  }`}>${subtotal.toLocaleString()}</span>
-                </div>
-                
-                {descuentoAplicado && (
-                  <div className="flex justify-between text-lg">
-                    <span className="text-green-600 font-medium">Descuento ({descuentoAplicado.codigo}):</span>
-                    <span className="text-green-600 font-bold">-${descuentoAplicado.monto.toLocaleString()}</span>
-                  </div>
-                )}
-                
-                <div className={`flex justify-between items-center text-2xl font-bold border-t pt-3 transition-colors duration-300 ${
-                  darkMode ? 'border-amber-600 text-white' : 'border-amber-300 text-gray-800'
-                }`}>
-                  <span>Total Supercasa:</span>
-                  <span className="text-amber-500">${total.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
+    {/* Descuento */}
+    {descuentoMonto > 0 && (
+      <div className="flex justify-between text-green-600">
+        <span>🎉 Descuento aplicado:</span>
+        <span className="font-bold">-${descuentoMonto.toLocaleString()}</span>
+      </div>
+    )}
+
+    {/* Envío con línea tachada cuando es gratis */}
+<div className="flex justify-between items-center">
+  <span className={`font-medium transition-colors duration-300 ${
+    darkMode ? 'text-gray-300' : 'text-gray-700'
+  }`}>Costo de envío:</span>
+  
+  <div className="flex flex-col items-end">
+    {/* Precio tachado cuando es gratis */}
+    {costoEnvio === 0 && metodoPagoSeleccionado && (
+      <span className="text-sm text-gray-400 line-through">
+        $2,000
+      </span>
+    )}
+    
+    {/* Precio actual */}
+    <span className={`font-bold transition-colors duration-300 ${
+      costoEnvio === 0 ? 'text-green-600' : darkMode ? 'text-white' : 'text-gray-800'
+    }`}>
+      {calculandoEnvio ? '⏳ Calculando...' : 
+       costoEnvio === 0 ? '🎉 GRATIS' : `$${costoEnvio.toLocaleString()}`}
+    </span>
+  </div>
+</div>
+
+    {/* Mensaje de envío */}
+    {mensajeEnvio && (
+      <div className="text-center">
+        <span className={`text-sm transition-colors duration-300 ${
+          costoEnvio === 0 ? 'text-green-600' : darkMode ? 'text-gray-300' : 'text-gray-600'
+        }`}>
+          {mensajeEnvio}
+        </span>
+      </div>
+    )}
+
+    {/* Total Final */}
+    <div className={`flex justify-between text-xl font-bold pt-3 border-t-2 transition-colors duration-300 ${
+      darkMode ? 'border-amber-600 text-white' : 'border-amber-300 text-gray-800'
+    }`}>
+      <span>Total Supercasa:</span>
+      <span className="text-amber-500">${totalConEnvio.toLocaleString()}</span>
+    </div>
+  </div>
+</div>
+            
 
             {/* ✅ BOTONES DE PAGO REDISEÑADOS CON MENSAJES CLAROS */}
             <div className="space-y-4">
@@ -1874,84 +1992,107 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
                   darkMode ? 'text-amber-300' : 'text-amber-600'
                 }`}>Pago seguro y entrega rápida</p>
               </div>
+               {/* BOTÓN PAGO DIGITAL CON MÍNIMO $20,000 */}
+<div className={`rounded-2xl border-2 p-1 transition-colors duration-300 ${
+  subtotal >= 20000
+    ? 'border-blue-300 bg-blue-50'
+    : 'border-gray-300 bg-gray-50'
+}`}>
+  <button
+    onClick={async () => {
+      if (subtotal >= 20000) {
+        const envioData = await calcularEnvio('digital');
+        if (envioData) {
+          finalizarCompra();
+        }
+      }
+    }}
+    disabled={subtotal < 20000 || calculandoEnvio}
+    className={`w-full py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-between shadow-lg ${
+      subtotal >= 20000 && !calculandoEnvio
+        ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transform hover:scale-105'
+        : 'bg-gray-400 cursor-not-allowed text-gray-200'
+    }`}
+  >
+    <div className="flex flex-col items-start">
+      <div className="flex items-center gap-2">
+        <span>💳 Pagar Digital</span>
+        {calculandoEnvio && <span className="text-sm">⏳</span>}
+      </div>
+      <div className="text-sm font-normal">
+        {subtotal >= 20000 && (
+          <span className="text-blue-300">🎉 Envío gratis incluido</span>
+        )}
+      </div>
+    </div>
+    <span className="text-2xl">{subtotal >= 20000 ? '⚡' : '⚠️'}</span>
+  </button>
 
-              {/* BOTÓN PAGO DIGITAL CON MENSAJE */}
-              <div className={`rounded-2xl border-2 p-1 transition-colors duration-300 ${
-                total >= 20000 
-                  ? 'border-blue-300 bg-blue-50' 
-                  : 'border-gray-300 bg-gray-50'
-              }`}>
-                <button
-                  onClick={total >= 20000 ? finalizarCompra : () => alert(`Monto mínimo para pagos digitales: $20,000\nTu total: $${total.toLocaleString()}\nTe faltan: $${(20000 - total).toLocaleString()}`)}
-                  disabled={total < 20000}
-                  className={`w-full py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-between shadow-lg ${
-                    total >= 20000 
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transform hover:scale-105' 
-                      : 'bg-gray-400 cursor-not-allowed text-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">💳</span>
-                    <div className="text-left">
-                      <div className="font-bold text-lg">Pago Digital Supercasa</div>
-                      <div className="text-sm opacity-90">
-                        Nequi • PSE • Tarjetas de Crédito/Débito
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-2xl">{total >= 20000 ? '⚡' : '⚠️'}</span>
-                </button>
-                
-                <div className={`px-4 py-2 text-center ${
-                  total >= 20000 ? 'text-green-700' : 'text-red-600'
-                }`}>
-                  <p className="text-sm font-medium">
-                    {total >= 20000 
-                      ? '✅ Monto válido para pago digital' 
-                      : `⚠️ Monto mínimo: $20.000 COP (Te faltan: $${(20000 - total).toLocaleString()})`
-                    }
-                  </p>
-                </div>
-              </div>
+  <div className={`px-4 py-2 text-center ${
+    subtotal >= 20000 ? 'text-blue-700' : 'text-red-600'
+  }`}>
+    <p className="text-sm font-medium">
+      {subtotal >= 20000
+        ? '✅ Pago digital con envío gratis'
+        : `⚠️ Mínimo pago digital: $20,000 (Te faltan: $${(20000 - subtotal).toLocaleString()})`
+      }
+    </p>
+  </div>
+</div>
+              
 
-              {/* BOTÓN PAGO EFECTIVO CON MENSAJE */}
-              <div className={`rounded-2xl border-2 p-1 transition-colors duration-300 ${
-                total >= 15000 
-                  ? 'border-green-300 bg-green-50' 
-                  : 'border-gray-300 bg-gray-50'
-              }`}>
-                <button 
-                  onClick={total >= 15000 ? () => setCashPaymentModal(true) : () => alert(`Monto mínimo para pago en efectivo: $15,000\nTu total: $${total.toLocaleString()}\nTe faltan: $${(15000 - total).toLocaleString()}`)}
-                  disabled={total < 15000}
-                  className={`w-full py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-between shadow-lg ${
-                    total >= 15000 
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white transform hover:scale-105' 
-                      : 'bg-gray-400 cursor-not-allowed text-gray-200'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="text-2xl">💵</span>
-                    <div className="text-left">
-                      <div className="font-bold text-lg">Pago en Efectivo</div>
-                      <div className="text-sm opacity-90">
-                        Al recibir en tu torre • Dinero exacto
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-2xl">{total >= 15000 ? '🏗️' : '⚠️'}</span>
-                </button>
-                
-                <div className={`px-4 py-2 text-center ${
-                  total >= 15000 ? 'text-green-700' : 'text-red-600'
-                }`}>
-                  <p className="text-sm font-medium">
-                    {total >= 15000 
-                      ? '✅ Monto válido para pago en efectivo' 
-                      : `⚠️ Monto mínimo: $15.000 COP (Te faltan: $${(15000 - total).toLocaleString()})`
-                    }
-                  </p>
-                </div>
-              </div>
+             {/* BOTÓN PAGO EFECTIVO CON FALTANTE PARA ENVÍO GRATIS */}
+<div className={`rounded-2xl border-2 p-1 transition-colors duration-300 ${
+  subtotal >= 5000
+    ? 'border-green-300 bg-green-50'
+    : 'border-gray-300 bg-gray-50'
+}`}>
+  <button
+    onClick={async () => {
+      const envioData = await calcularEnvio('efectivo');
+      if (envioData && subtotal >= 5000) {
+        setCashPaymentModal(true);
+      }
+    }}
+    disabled={subtotal < 5000 || calculandoEnvio}
+    className={`w-full py-4 px-6 rounded-xl font-bold transition-all flex items-center justify-between shadow-lg ${
+      subtotal >= 5000 && !calculandoEnvio
+        ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white transform hover:scale-105'
+        : 'bg-gray-400 cursor-not-allowed text-gray-200'
+    }`}
+  >
+    <div className="flex flex-col items-start">
+      <div className="flex items-center gap-2">
+        <span>🏗️ Pagar Efectivo</span>
+        {calculandoEnvio && <span className="text-sm">⏳</span>}
+      </div>
+      <div className="text-sm font-normal">
+        {metodoPagoSeleccionado === 'efectivo' && costoEnvio > 0 && (
+          <span>+ ${costoEnvio.toLocaleString()} envío</span>
+        )}
+        {metodoPagoSeleccionado === 'efectivo' && costoEnvio === 0 && (
+          <span className="text-green-300">🎉 Envío gratis</span>
+        )}
+      </div>
+    </div>
+    <span className="text-2xl">{subtotal >= 5000 ? '🏗️' : '⚠️'}</span>
+  </button>
+
+  <div className={`px-4 py-2 text-center ${
+    subtotal >= 5000 ? 
+      (subtotal >= 15000 ? 'text-green-700' : 'text-orange-600') 
+      : 'text-red-600'
+  }`}>
+    <p className="text-sm font-medium">
+      {subtotal < 5000 
+        ? `⚠️ Monto mínimo: $5,000 (Te faltan: $${(5000 - subtotal).toLocaleString()})`
+        : subtotal >= 15000 
+          ? '✅ Envío gratis - Pago efectivo'
+          : `💵 Efectivo + $2,000 envío. Te faltan $${(15000 - subtotal).toLocaleString()} para envío gratis`
+      }
+    </p>
+  </div>
+</div>
             </div>
           </>
         )}
@@ -2152,8 +2293,8 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
 
             <div className="p-6">
   <PaymentComponent
-    total={total}
-    carrito={carrito}
+  total={totalConEnvio}
+  carrito={carrito}
     deliveryData={deliveryData}
     onPaymentSuccess={handlePaymentSuccess}
     onPaymentError={handlePaymentError}
@@ -2213,7 +2354,7 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
                 <span className={`transition-colors duration-300 ${
                   darkMode ? 'text-amber-400' : 'text-amber-600'
                 }`}>Total:</span>
-                <span className="font-bold text-amber-500">${total.toLocaleString('es-CO')} COP</span>
+                <span className="font-bold text-amber-500">${totalConEnvio.toLocaleString('es-CO')} COP</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className={`transition-colors duration-300 ${
