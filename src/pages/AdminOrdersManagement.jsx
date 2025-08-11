@@ -302,24 +302,54 @@ const formatearTiempo = (fecha) => {
                   </p>
                 </div>
                 
-                {/* Total con desglose simple */}
-                <div className="bg-gray-50 rounded-lg p-3">
-                  {pedido.tiene_desglose && pedido.costo_envio > 0 ? (
-  <>
-    <div>Productos: <span className="text-gray-400">${pedido.subtotal?.toLocaleString() || '0'}</span></div>
-    <div>Envío: <span className="text-gray-400">$2,000</span></div>
-    <div className="font-bold text-blue-400">Total: ${pedido.total?.toLocaleString() || '0'}</div>
-  </>
-) : pedido.tiene_desglose && pedido.costo_envio === 0 ? (
-  <>
-    <div>Productos: <span className="text-gray-400">${pedido.subtotal?.toLocaleString() || '0'}</span></div>
-    <div>Envío: <span className="text-green-400">GRATIS</span></div>
-    <div className="font-bold text-blue-400">Total: ${pedido.total?.toLocaleString() || '0'}</div>
-  </>
-) : (
-  <span className="font-bold text-blue-400">${pedido.total?.toLocaleString() || '0'}</span>
-)}
-                </div>
+                {/* Desglose correcto con descuento real */}
+<div className="space-y-1">
+  {(() => {
+    // Calcular subtotal de productos
+    const subtotalProductos = pedido.productos?.reduce((acc, p) => acc + (p.precio * p.cantidad), 0) || 0;
+    
+    // Calcular descuento real si hay código promocional
+    let descuentoReal = 0;
+    if (pedido.codigo_promocional) {
+      // Si hay código, el descuento es la diferencia entre subtotal y total (considerando envío)
+      const envioEstimado = (pedido.metodo_pago === 'efectivo' && subtotalProductos < 15000 && subtotalProductos >= 5000) ? 2000 : 0;
+      descuentoReal = subtotalProductos - (pedido.total - envioEstimado);
+    }
+    
+    // Calcular envío
+    const envio = pedido.total - subtotalProductos + descuentoReal;
+    
+    return (
+      <>
+        {/* Subtotal productos */}
+        <div className="flex justify-between text-xs text-gray-600">
+          <span>Productos:</span>
+          <span>${subtotalProductos.toLocaleString()}</span>
+        </div>
+        
+        {/* Descuento si existe */}
+        {pedido.codigo_promocional && descuentoReal > 0 && (
+          <div className="flex justify-between text-xs text-green-600">
+            <span>Descuento ({pedido.codigo_promocional}):</span>
+            <span>-${descuentoReal.toLocaleString()}</span>
+          </div>
+        )}
+        
+        {/* Envío */}
+        <div className="flex justify-between text-xs text-gray-600">
+          <span>Envío:</span>
+          <span>{envio > 0 ? `$${envio.toLocaleString()}` : 'GRATIS'}</span>
+        </div>
+        
+        {/* Total final */}
+        <div className="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-200">
+          <span>Total:</span>
+          <span>${pedido.total?.toLocaleString()}</span>
+        </div>
+      </>
+    );
+  })()}
+</div>
                 
                 {/* Tiempo */}
                 <div className="flex items-center justify-between text-sm text-gray-500">
