@@ -813,56 +813,80 @@ useEffect(() => {
 };
 
 const calcularPuntosCompra = () => {
-  // Calcular el subtotal actual directamente del carrito
+  // 🚫 NO DAR PUNTOS SI HAY UN CANJE ACTIVO
+  if (canjeAplicado && canjeAplicado.valor_descuento > 0) {
+    console.log('❌ No se generan puntos cuando se usa un canje');
+    return 0;
+  }
+  
   const subtotalActual = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
   
-  // Solo calcular puntos si el subtotal es >= $15,000 (monto mínimo)
   if (subtotalActual < 15000) {
     return 0;
   }
   
-  // Calcular puntos base: 10 puntos por cada $1,000
-  const puntosPorMil = 10;
+  const puntosPorMil = 1; // ✅ CAMBIAR DE 1 A 10
   const puntosBase = Math.floor(subtotalActual / 1000) * puntosPorMil;
-  
-  // Aplicar multiplicador por nivel (si existe)
   const puntosConMultiplicador = Math.floor(puntosBase * multiplicadorPuntos);
   
-  // Bonus por compra grande (>= $50,000)
   let bonusCompraGrande = 0;
-  if (subtotalActual >= 50000) {
-    bonusCompraGrande = 50; // 50 puntos extra
+  if (subtotalActual >= 100000) {
+    bonusCompraGrande = 50; // ✅ CAMBIAR DE 10 A 50
   }
   
-  // Bonus adicional por nivel
   let bonusNivel = 0;
-  if (nivelUsuario === 'PLATA' && subtotalActual >= 30000) {
-    bonusNivel = 20; // 20 puntos extra para PLATA
-  } else if (nivelUsuario === 'ORO' && subtotalActual >= 25000) {
-    bonusNivel = 30; // 30 puntos extra para ORO
+  if (nivelUsuario === 'PLATA' && subtotalActual >= 50000) {
+    bonusNivel = 25; // ✅ CAMBIAR DE 5 A 25
+  } else if (nivelUsuario === 'ORO' && subtotalActual >= 40000) {
+    bonusNivel = 50; // ✅ CAMBIAR DE 10 A 50
   }
   
-  // Calcular total de puntos
   const puntosTotales = puntosConMultiplicador + bonusCompraGrande + bonusNivel;
-  
-  // Log para debug
-  console.log(`💎 Cálculo de puntos:`, {
-    subtotal: subtotalActual,
-    puntosBase: puntosBase,
-    multiplicador: multiplicadorPuntos,
-    puntosConMultiplicador: puntosConMultiplicador,
-    nivel: nivelUsuario,
-    bonusCompraGrande: bonusCompraGrande,
-    bonusNivel: bonusNivel,
-    puntosTotales: puntosTotales
-  });
   
   return puntosTotales;
 };
 
+// 2. NO VOLVER A DESCONTAR PUNTOS EN handlePaymentSuccess - Línea ~1268
+const handlePaymentSuccess = async (paymentData) => {
+  // ... código existente ...
+  const puntosGanados = calcularPuntosCompra();
+  if (puntosGanados > 0 && !canjeAplicado) {
+    // Ganar puntos normalmente
+    await registrarPuntos(paymentData.pedidoId, puntosGanados);
+    setPuntosUsuario(prev => prev + puntosGanados);
+    
+    setTimeout(() => {
+      toast.success(`💎 ¡Ganaste ${puntosGanados} puntos!`, {
+        duration: 5000,
+        style: {
+          background: '#8B5CF6',
+          color: 'white'
+        }
+      });
+    }, 1500);
+    
+  } else if (canjeAplicado) {
+    // ✅ SOLO RECARGAR SALDO, NO DESCONTAR
+    setTimeout(async () => {
+      await cargarPuntosUsuario(); // Solo actualizar vista
+      
+      toast('💎 Descuento aplicado correctamente', {
+        duration: 4000,
+        icon: 'ℹ️',
+        style: {
+          background: '#6366F1',
+          color: 'white'
+        }
+      });
+    }, 2000);
+  }
+  
+  // ... resto del código ...
+};
+
+// Agregar después de useEffect de puntos (línea ~745)
 
 // ========== FUNCIONES DE PUNTOS ==========
-// Cargar puntos del usuario
 const cargarPuntosUsuario = async () => {
   try {
     const response = await fetch(`${API_URL}/api/puntos/usuario`, {
@@ -883,7 +907,6 @@ const cargarPuntosUsuario = async () => {
   }
 };
 
-// Registrar puntos ganados
 const registrarPuntos = async (pedidoId, puntos) => {
   try {
     await fetch(`${API_URL}/api/puntos/registrar`, {
@@ -903,7 +926,6 @@ const registrarPuntos = async (pedidoId, puntos) => {
   }
 };
 
-// Cargar recompensas disponibles
 const cargarRecompensas = async () => {
   try {
     const response = await fetch(`${API_URL}/api/recompensas/disponibles`, {
@@ -922,7 +944,6 @@ const cargarRecompensas = async () => {
   }
 };
 
-// Manejar canje de recompensa
 const handleCanjearRecompensa = async (recompensa) => {
   try {
     const response = await fetch(`${API_URL}/api/canjes/crear`, {
@@ -949,30 +970,19 @@ const handleCanjearRecompensa = async (recompensa) => {
   }
 };
 
-  // Filtrar productos
-  const productosFiltrados = productos.filter(producto => {
-    const matchesCategory = categoriaSeleccionada ? producto.categoria === categoriaSeleccionada : true;
-    const matchesSearch = producto.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const categorias = [...new Set(productos.map(producto => producto.categoria))];
-
- const agregarAlCarrito = (producto) => {
-  // 🔄 Calcular precio final con descuento (si aplica)
+// ========== FUNCIONES DE CARRITO ==========
+const agregarAlCarrito = (producto) => {
   const tieneDescuento = producto.descuento_activo && producto.descuento_porcentaje > 0;
   const precioFinal = tieneDescuento
     ? Math.round(producto.precio * (100 - producto.descuento_porcentaje) / 100)
     : producto.precio;
 
-  // 🛒 Preparar producto para el carrito con info de descuentos
   const productoParaCarrito = {
     ...producto,
-    precio: precioFinal, // Precio ya con descuento aplicado
-    // 🆕 Preservar información de descuentos
+    precio: precioFinal,
     descuento_activo: producto.descuento_activo || false,
     descuento_porcentaje: producto.descuento_porcentaje || 0,
-    precio_original: producto.precio // Para referencia
+    precio_original: producto.precio
   };
 
   const productoExistente = carrito.find(item => item.id === producto.id);
@@ -993,21 +1003,19 @@ const handleCanjearRecompensa = async (recompensa) => {
   });
 
   setTimeout(() => {
-  const puntos = calcularPuntosCompra();
-  setPuntosGanadosCompra(puntos);
-}, 100);
+    const puntos = calcularPuntosCompra();
+    setPuntosGanadosCompra(puntos);
+  }, 100);
 };
 
 const agregarPaqueteAlCarrito = (paquete) => {
-  // Verificar stock de paquetes disponibles
   if (paquete.stock_paquetes_disponibles <= 0) {
     toast.error('Este paquete no está disponible por stock insuficiente');
     return;
   }
 
-  // Preparar paquete para el carrito
   const paqueteParaCarrito = {
-    id: `paquete_${paquete.id}`, // ID único para diferenciar de productos
+    id: `paquete_${paquete.id}`,
     tipo: 'paquete',
     paquete_id: paquete.id,
     nombre: paquete.nombre,
@@ -1025,7 +1033,6 @@ const agregarPaqueteAlCarrito = (paquete) => {
   const paqueteExistente = carrito.find(item => item.id === paqueteParaCarrito.id);
 
   if (paqueteExistente) {
-    // Verificar si puede agregar más
     if (paqueteExistente.cantidad >= paquete.stock_paquetes_disponibles) {
       toast.error(`Solo hay ${paquete.stock_paquetes_disponibles} paquetes disponibles`);
       return;
@@ -1058,77 +1065,253 @@ const eliminarDelCarrito = (itemId) => {
   } else {
     setCarrito(carrito.filter(item => item.id !== itemId));
   }
-  // Forzar recálculo inmediato de puntos
-setTimeout(() => {
-  const puntos = calcularPuntosCompra();
-  setPuntosGanadosCompra(puntos);
-}, 100);
+  
+  setTimeout(() => {
+    const puntos = calcularPuntosCompra();
+    setPuntosGanadosCompra(puntos);
+  }, 100);
 };
 
-  const finalizarCompra = async () => {
-    if (carrito.length === 0) {
-      toast.error('El carrito está vacío');
-      return;
-    }
-    setShowCheckout(true);
-  };
+const finalizarCompra = async () => {
+  if (carrito.length === 0) {
+    toast.error('El carrito está vacío');
+    return;
+  }
+  setShowCheckout(true);
+};
 
-  const procederAlPago = () => {
-    if (!deliveryData.torre_entrega) {
-      toast.error('Por favor selecciona la torre de entrega');
-      return;
-    }
-    if (!deliveryData.piso_entrega) {
-      toast.error('Por favor ingresa el piso de entrega');
-      return;
-    }
-    if (!deliveryData.apartamento_entrega) {
-      toast.error('Por favor ingresa el apartamento de entrega');
-      return;
-    }
+const procederAlPago = () => {
+  if (!deliveryData.torre_entrega) {
+    toast.error('Por favor selecciona la torre de entrega');
+    return;
+  }
+  if (!deliveryData.piso_entrega) {
+    toast.error('Por favor ingresa el piso de entrega');
+    return;
+  }
+  if (!deliveryData.apartamento_entrega) {
+    toast.error('Por favor ingresa el apartamento de entrega');
+    return;
+  }
 
-    setShowCheckout(false);
-    setShowWompiPayment(true);
-  };
+  setShowCheckout(false);
+  setShowWompiPayment(true);
+};
 
-const handlePaymentSuccess = async (paymentData) => {
-  console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
-  const puntosGanados = calcularPuntosCompra();
-  // ✅ MANEJAR TANTO TARJETAS COMO OTROS MÉTODOS
-  if (paymentData.success && (paymentData.pedidoId || paymentData.transactionId)) {
-    await registrarPuntos(paymentData.pedidoId, puntosGanados);
-    toast.success(
-      `🎉 ¡Pago aprobado! Ganaste ${puntosGanados} puntos 💎`, 
-      { duration: 8000 }
-    );
-    setPuntosUsuario(prev => prev + puntosGanados);
-    console.log('✅ ¡Pago y pedido exitosos!');
+// ========== VARIABLES DERIVADAS ==========
+// Agregar antes del processCashPayment:
+const categorias = [...new Set(productos.map(producto => producto.categoria))];
+
+const productosFiltrados = productos.filter(producto => {
+  const matchesCategory = categoriaSeleccionada ? producto.categoria === categoriaSeleccionada : true;
+  const matchesSearch = producto.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+  return matchesCategory && matchesSearch;
+});
+
+const processCashPayment = async () => {
+  setIsProcessingCash(true);
+  
+  try {
+    console.log('💵 PROCESANDO PAGO EN EFECTIVO');
     
-    // ✅ MENSAJE ESPECÍFICO PARA TARJETAS PENDING
-    if (paymentData.metodoPago === 'CARD' && paymentData.status === 'PENDING') {
-      toast.success('💳 ¡Pago con tarjeta procesado exitosamente! El pedido se confirmará automáticamente.', {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Debes iniciar sesión para hacer un pedido');
+      return;
+    }
+
+    console.log('🔍 deliveryData:', deliveryData);
+    console.log('🔍 user completo:', user);
+    
+    const finalDeliveryData = {
+      torre_entrega: deliveryData.torre_entrega || user.torre || '1',
+      piso_entrega: deliveryData.piso_entrega || user.piso || '1',
+      apartamento_entrega: deliveryData.apartamento_entrega || user.apartamento || '101',
+      telefono_contacto: deliveryData.telefono_contacto || user.telefono || '3000000000',
+      email: deliveryData.email || user.email,
+      nombre: deliveryData.nombre || user.nombre,
+      instrucciones_entrega: deliveryData.instrucciones_entrega || user.notas_entrega || ''
+    };
+
+    console.log('🏠 Datos de entrega final:', finalDeliveryData);
+    
+    if (!['1', '2', '3', '4', '5'].includes(String(finalDeliveryData.torre_entrega))) {
+      console.error('❌ Torre inválida:', finalDeliveryData.torre_entrega);
+      toast.error('Torre inválida. Debe ser 1, 2, 3, 4 o 5');
+      return;
+    }
+    
+    const pisoNum = parseInt(finalDeliveryData.piso_entrega);
+    if (!pisoNum || pisoNum < 1 || pisoNum > 30) {
+      console.error('❌ Piso inválido:', finalDeliveryData.piso_entrega, 'Parseado:', pisoNum);
+      toast.error('Piso inválido. Debe estar entre 1 y 30');
+      return;
+    }
+    
+    if (!finalDeliveryData.apartamento_entrega || String(finalDeliveryData.apartamento_entrega).trim() === '') {
+      console.error('❌ Apartamento inválido:', finalDeliveryData.apartamento_entrega);
+      toast.error('El apartamento es obligatorio');
+      return;
+    }
+
+    console.log('✅ Validaciones pasadas - Torre:', finalDeliveryData.torre_entrega, 'Piso:', pisoNum, 'Apt:', finalDeliveryData.apartamento_entrega);
+
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const orderNumber = Math.floor(Math.random() * 9000) + 1000;
+    const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
+    
+    const orderData = {
+      cliente_email: finalDeliveryData.email,
+      telefono_contacto: finalDeliveryData.telefono_contacto,
+      torre_entrega: String(finalDeliveryData.torre_entrega),
+      piso_entrega: String(finalDeliveryData.piso_entrega),
+      apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
+      instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
+      notas_entrega: finalDeliveryData.instrucciones_entrega || '',
+      productos: carrito.filter(item => item.tipo !== 'paquete').map(item => ({
+        id: item.id,
+        nombre: item.nombre,
+        precio: item.precio,
+        cantidad: item.cantidad
+      })),
+      paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
+        id: item.paquete_id,
+        nombre: item.nombre,
+        precio: item.precio,
+        cantidad: item.cantidad
+      })),
+      total: totalConEnvio,
+      metodo_pago: 'EFECTIVO',
+      estado_pago: 'PENDIENTE_EFECTIVO',
+      transaccion_id: `CASH-${reference}`,
+      referencia_pago: reference,
+      codigo_promocional: descuentoAplicado?.codigo || null,
+      codigo_canje: canjeAplicado?.codigo || null
+    };
+
+    const response = await fetch(`${API_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(orderData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
+
+      
+      
+      // 1️⃣ PRIMERO: Mensaje principal de confirmación
+      toast.success(`🏗️ ¡Pedido #${result.pedidoId} creado exitosamente! 💵 Pago en efectivo al recibir.`, {
+        duration: 8000,
+        icon: '🎉',
+        style: {
+          background: '#10B981',
+          color: 'white',
+          fontWeight: 'bold'
+        }
+      });
+      
+      
+      // 2️⃣ SEGUNDO: Calcular y manejar puntos
+      const puntosGanados = calcularPuntosCompra();
+      
+      if (puntosGanados > 0 && !canjeAplicado && result.pedidoId) {
+        // Si ganó puntos (sin canje aplicado)
+        await registrarPuntos(result.pedidoId, puntosGanados);
+        setPuntosUsuario(prev => prev + puntosGanados);
+        
+        setTimeout(() => {
+          toast.success(`💎 ¡Ganaste ${puntosGanados} puntos!`, {
+            duration: 5000,
+            style: {
+              background: '#8B5CF6',
+              color: 'white'
+            }
+          });
+        }, 1500);
+        
+      } else if (canjeAplicado) {
+        // Si usó canje (no gana puntos)
+        setTimeout(async () => {
+          await cargarPuntosUsuario(); // Solo actualizar vista
+          
+          toast('💎 Descuento aplicado correctamente', {
+            duration: 4000,
+            icon: 'ℹ️',
+            style: {
+              background: '#6366F1',
+              color: 'white'
+            }
+          });
+        }, 2000);
+      }
+      
+      // 3️⃣ LIMPIAR CARRITO Y CERRAR MODALES
+      setCarrito([]);
+      localStorage.removeItem('carrito');
+      setCashPaymentModal(false);
+      setShowCart(false);
+      
+      console.log('✅ Proceso completado exitosamente');
+      
+    } else {
+      console.error('❌ Error del backend:', result);
+      throw new Error(result.message || result.error || `Error ${response.status}: ${response.statusText}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error en efectivo:', error);
+    
+    if (error.message && (
+        error.message.includes('sesión ha expirado') || 
+        error.message.includes('inicie sesión') ||
+        error.message.includes('Token inválido') ||
+        error.message.includes('LOGIN_REQUIRED') ||
+        error.message.includes('SESSION_EXPIRED')
+    )) {
+      toast.error('Su sesión ha expirado. Por favor inicie sesión nuevamente.', {
+        duration: 4000,
+        icon: '🔒',
+        style: {
+          background: '#fef3c7',
+          color: '#92400e',
+          border: '1px solid #f59e0b'
+        }
+      });
+      
+      setCashPaymentModal(false);
+      setShowCart(false);
+      
+      setTimeout(() => {
+        onLogout();
+      }, 2000);
+      return;
+    }
+    
+    if (error.message && error.message.includes('Stock insuficiente')) {
+      toast.error(`❌ ${error.message}`, {
         duration: 6000,
-        icon: '🎉'
+        style: {
+          background: '#fef2f2',
+          color: '#dc2626',
+          border: '1px solid #fecaca'
+        }
+      });
+    } else if (error.message && error.message.includes('Stock')) {
+      toast.error(`📦 Problema de inventario: ${error.message}`, {
+        duration: 5000
       });
     } else {
-      toast.success('🏗️ ¡Pago aprobado y pedido creado exitosamente!', {
-        duration: 6000,
-        icon: '🎉'
-      });
+      toast.error(`Error al crear el pedido: ${error.message}`);
     }
-
-    setCarrito([]);
-    localStorage.removeItem('carrito');
-    setShowWompiPayment(false);
-    setShowCart(false);
-
-    console.log('🏆 PROCESO COMPLETADO - Pago exitoso procesado completamente');
-
-  } else {
-    console.log('❌ Respuesta inesperada del backend:', paymentData);
-    toast.error('Error: El pago no fue confirmado correctamente.', {
-      duration: 8000
-    });
+  } finally {
+    setIsProcessingCash(false);
   }
 };
 
@@ -1300,12 +1483,19 @@ const descuentoCanje = canjeAplicado ? canjeAplicado.valor_descuento : 0;
 const total = subtotal - descuentoMonto - descuentoCanje;
 
 
-// 🎯 RECALCULAR PUNTOS CUANDO CAMBIA EL CARRITO
+// 🎯 RECALCULAR PUNTOS EN TIEMPO REAL
 useEffect(() => {
+  // Calcular puntos cada vez que cambia el carrito
   const puntos = calcularPuntosCompra();
   setPuntosGanadosCompra(puntos);
-  console.log('📊 Puntos recalculados:', puntos);
-}, [carrito, multiplicadorPuntos]); // Solo depende del carrito y multiplicador
+  
+  console.log('🔄 Puntos recalculados:', {
+    itemsEnCarrito: carrito.length,
+    subtotal: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
+    puntosCalculados: puntos,
+    canjeAplicado: !!canjeAplicado
+  });
+}, [carrito, multiplicadorPuntos, nivelUsuario, canjeAplicado]); // ← DEPENDENCIAS IMPORTANTES
 
 // ===================================
 // 🚚 FUNCIÓN CALCULAR ENVÍO
@@ -1381,182 +1571,6 @@ if (subtotal >= 15000) {
 }
 
 
-
-// ✅ TOTAL FINAL CON ENVÍO
-
-  const processCashPayment = async () => {
-    setIsProcessingCash(true);
-    
-    try {
-      console.log('💵 PROCESANDO PAGO EN EFECTIVO');
-      
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast.error('Debes iniciar sesión para hacer un pedido');
-        return;
-      }
-
-      console.log('🔍 deliveryData:', deliveryData);
-      console.log('🔍 user completo:', user);
-      
-      const finalDeliveryData = {
-        torre_entrega: deliveryData.torre_entrega || user.torre || '1',
-        piso_entrega: deliveryData.piso_entrega || user.piso || '1',
-        apartamento_entrega: deliveryData.apartamento_entrega || user.apartamento || '101',
-        telefono_contacto: deliveryData.telefono_contacto || user.telefono || '3000000000',
-        email: deliveryData.email || user.email,
-        nombre: deliveryData.nombre || user.nombre,
-        instrucciones_entrega: deliveryData.instrucciones_entrega || user.notas_entrega || ''
-      };
-
-      console.log('🏠 Datos de entrega final:', finalDeliveryData);
-      
-      if (!finalDeliveryData.torre_entrega || !['1', '2', '3', '4', '5'].includes(String(finalDeliveryData.torre_entrega))) {
-        console.error('❌ Torre inválida:', finalDeliveryData.torre_entrega);
-        toast.error('Torre inválida. Debe ser 1, 2, 3, 4 o 5');
-        return;
-      }
-      
-      const pisoNum = parseInt(finalDeliveryData.piso_entrega);
-      if (!pisoNum || pisoNum < 1 || pisoNum > 30) {
-        console.error('❌ Piso inválido:', finalDeliveryData.piso_entrega, 'Parseado:', pisoNum);
-        toast.error('Piso inválido. Debe estar entre 1 y 30');
-        return;
-      }
-      
-      if (!finalDeliveryData.apartamento_entrega || String(finalDeliveryData.apartamento_entrega).trim() === '') {
-        console.error('❌ Apartamento inválido:', finalDeliveryData.apartamento_entrega);
-        toast.error('El apartamento es obligatorio');
-        return;
-      }
-
-      console.log('✅ Validaciones pasadas - Torre:', finalDeliveryData.torre_entrega, 'Piso:', pisoNum, 'Apt:', finalDeliveryData.apartamento_entrega);
-
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const orderNumber = Math.floor(Math.random() * 9000) + 1000;
-      const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
-      
-      const orderData = {
-  cliente_email: finalDeliveryData.email,
-  telefono_contacto: finalDeliveryData.telefono_contacto,
-  torre_entrega: String(finalDeliveryData.torre_entrega),
-  piso_entrega: String(finalDeliveryData.piso_entrega),
-  apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
-  instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
-  notas_entrega: finalDeliveryData.instrucciones_entrega || '',
-  productos: carrito.filter(item => item.tipo !== 'paquete').map(item => ({
-    id: item.id,
-    nombre: item.nombre,
-    precio: item.precio,
-    cantidad: item.cantidad
-  })),
-  paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
-    id: item.paquete_id,
-    nombre: item.nombre,
-    precio: item.precio,
-    cantidad: item.cantidad
-  })),
-  total: totalConEnvio,
-  metodo_pago: 'EFECTIVO',
-  estado_pago: 'PENDIENTE_EFECTIVO',
-  transaccion_id: `CASH-${reference}`,
-  referencia_pago: reference,
-  codigo_promocional: descuentoAplicado?.codigo || null,
-  codigo_canje: canjeAplicado?.codigo || null  // 🎯 AGREGAR ESTA LÍNEA
-};
-
-      const response = await fetch(`${API_URL}/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(orderData)
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
-        // Calcular y registrar puntos para pago en efectivo
-const puntosGanados = calcularPuntosCompra();
-if (puntosGanados > 0 && result.pedidoId) {
-  await registrarPuntos(result.pedidoId, puntosGanados);
-  setPuntosUsuario(prev => prev + puntosGanados);
-  
-  toast.success(`🏗️ ¡Pedido creado! Ganaste ${puntosGanados} puntos 💎`, {
-    duration: 8000,
-    icon: '🎉'
-  });
-} else {
-  toast.success(`🏗️ ¡Pedido creado exitosamente! 💵 Pago en efectivo al recibir.`, {
-    duration: 8000,
-    icon: '🎉'
-  });
-}
-        
-        
-        
-        setCarrito([]);
-        localStorage.removeItem('carrito');
-        setCashPaymentModal(false);
-        setShowCart(false);
-        
-      } else {
-        console.error('❌ Error del backend:', result);
-        throw new Error(result.message || result.error || `Error ${response.status}: ${response.statusText}`);
-      }
-
-    } catch (error) {
-      console.error('❌ Error en efectivo:', error);
-      
-      if (error.message && (
-          error.message.includes('sesión ha expirado') || 
-          error.message.includes('inicie sesión') ||
-          error.message.includes('Token inválido') ||
-          error.message.includes('LOGIN_REQUIRED') ||
-          error.message.includes('SESSION_EXPIRED')
-      )) {
-        toast.error('Su sesión ha expirado. Por favor inicie sesión nuevamente.', {
-          duration: 4000,
-          icon: '🔑',
-          style: {
-            background: '#fef3c7',
-            color: '#92400e',
-            border: '1px solid #f59e0b'
-          }
-        });
-        
-        setCashPaymentModal(false);
-        setShowCart(false);
-        
-        setTimeout(() => {
-          onLogout();
-        }, 2000);
-        return;
-      }
-      
-      if (error.message && error.message.includes('Stock insuficiente')) {
-        toast.error(`❌ ${error.message}`, {
-          duration: 6000,
-          style: {
-            background: '#fef2f2',
-            color: '#dc2626',
-            border: '1px solid #fecaca'
-          }
-        });
-      } else if (error.message && error.message.includes('Stock')) {
-        toast.error(`📦 Problema de inventario: ${error.message}`, {
-          duration: 5000
-        });
-      } else {
-        toast.error(`Error al crear el pedido: ${error.message}`);
-      }
-    } finally {
-      setIsProcessingCash(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -2159,66 +2173,31 @@ if (puntosGanados > 0 && result.pedidoId) {
   onCanjeAplicado={setCanjeAplicado}
   darkMode={darkMode}
 />
-           {/* 💎 PUNTOS A GANAR CON ESTA COMPRA - CORREGIDO */}
+{/* 💎 PUNTOS A GANAR - VERSIÓN SIMPLE */}
 {subtotal >= 15000 ? (
-  <div className={`rounded-xl p-3 mb-4 border-2 ${
+  <div className={`rounded-xl p-4 mb-4 border-2 ${
     darkMode 
       ? 'bg-purple-900 border-purple-700' 
       : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200'
   }`}>
     <div className="flex justify-between items-center">
       <div className="flex items-center gap-2">
-        <span className="text-lg">💎</span>
-        <span className={`font-medium ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
-          Puntos a ganar:
-        </span>
-        {nivelUsuario !== 'BRONCE' && (
-          <span className={`text-xs px-2 py-1 rounded-full ${
-            darkMode ? 'bg-purple-800 text-purple-200' : 'bg-purple-200 text-purple-700'
-          }`}>
-            {nivelUsuario} x{multiplicadorPuntos}
-          </span>
-        )}
-      </div>
-      <div className="text-right">
-        <span className={`font-bold text-lg ${
-          darkMode ? 'text-purple-300' : 'text-purple-600'
+        <span className="text-2xl">💎</span>
+        <span className={`font-medium text-base ${
+          darkMode ? 'text-purple-300' : 'text-purple-700'
         }`}>
-          +{puntosGanadosCompra} puntos
+          Puntos a ganar en esta compra:
         </span>
-        {subtotal >= 50000 && (
-          <p className="text-xs text-green-600">¡+50 bonus incluidos!</p>
-        )}
       </div>
-    </div>
-    
-    {/* Desglose de cálculo CORREGIDO */}
-    <div className={`mt-2 pt-2 border-t text-xs ${
-      darkMode ? 'border-purple-800 text-purple-400' : 'border-purple-300 text-purple-600'
-    }`}>
-      <div className="flex justify-between">
-        <span>Base ($1000 = 10 pts):</span>
-        <span>{Math.floor(subtotal / 1000) * 10} pts</span>
-      </div>
-      {multiplicadorPuntos > 1 && (
-        <div className="flex justify-between">
-          <span>Multiplicador {nivelUsuario}:</span>
-          <span>x{multiplicadorPuntos}</span>
-        </div>
-      )}
-      {subtotal >= 50000 && (
-        <div className="flex justify-between text-green-600">
-          <span>Bonus compra grande:</span>
-          <span>+50 pts</span>
-        </div>
-      )}
-      <div className="flex justify-between pt-1 border-t font-semibold">
-        <span>Total puntos:</span>
-        <span className="text-purple-600">+{puntosGanadosCompra}</span>
-      </div>
+      <span className={`font-bold text-xl flex items-center gap-1 ${
+  darkMode ? 'text-purple-300' : 'text-purple-600'
+}`}>
+  <span className={puntosGanadosCompra > 100 ? 'animate-bounce' : ''}>💎</span>
+  +{puntosGanadosCompra} pts
+</span>
     </div>
   </div>
-) : subtotal > 0 ? (
+) : subtotal > 0 && subtotal < 15000 ? (
   <div className={`rounded-xl p-3 mb-4 border ${
     darkMode 
       ? 'bg-gray-700 border-gray-600' 

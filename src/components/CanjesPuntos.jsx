@@ -139,11 +139,11 @@ const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
   };
 
   const opcionesCanje = [
-    { puntos: 50, valor: 5000 },
-    { puntos: 100, valor: 10000 },
-    { puntos: 200, valor: 22000 },
-    { puntos: 500, valor: 60000 }
-  ];
+  { puntos: 50, valor: 500 },    // 🎯 CAMBIO: $500 en lugar de $5,000
+  { puntos: 100, valor: 1000 },  // 🎯 CAMBIO: $1,000 en lugar de $10,000
+  { puntos: 200, valor: 2200 },  // 🎯 CAMBIO: $2,200 en lugar de $22,000
+  { puntos: 500, valor: 6000 }   // 🎯 CAMBIO: $6,000 en lugar de $60,000
+];
 
   // Si no hay puntos
   if (puntosReales === 0 && !canjeActual) {
