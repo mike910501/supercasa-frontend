@@ -1365,21 +1365,20 @@ const calcularEnvio = async (metodo) => {
 // ✅ TOTAL FINAL CON ENVÍO
 const totalConEnvio = total + costoEnvio;
 
-// ===================================
-// 🔄 CALCULAR ENVÍO AUTOMÁTICAMENTE
-// ===================================
-useEffect(() => {
-  const calcularEnvioAutomatico = async () => {
-    if (subtotal >= 5000 && metodoPagoSeleccionado) {
-      await calcularEnvio(metodoPagoSeleccionado);
-    } else if (subtotal < 5000) {
-      setCostoEnvio(0);
-      setMensajeEnvio('');
-    }
-  };
-  
-  calcularEnvioAutomatico();
-}, [subtotal, metodoPagoSeleccionado]); // Se ejecuta cuando cambia el subtotal o método
+// 🎯 VALORES POR DEFECTO PARA ENVÍO
+if (subtotal >= 15000) {
+  // Envío gratis para compras >= $15,000
+  if (costoEnvio !== 0) {
+    setCostoEnvio(0);
+    setMensajeEnvio('🎉 Envío gratis - Compra mayor a $15,000');
+  }
+} else if (subtotal >= 5000) {
+  // Envío $2,000 para compras entre $5,000 y $14,999
+  if (costoEnvio !== 2000 && metodoPagoSeleccionado === 'efectivo') {
+    setCostoEnvio(2000);
+    setMensajeEnvio('Envío $2,000 - Pago efectivo');
+  }
+}
 
 
 
