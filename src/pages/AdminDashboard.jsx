@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminOrdersManagement from './AdminOrdersManagement';
 import API_URL from '../config/api';
 import AdminPaquetes from '../components/AdminPaquetes';
+import CostControl from '../components/CostControl';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('productos');
@@ -112,6 +113,17 @@ export default function AdminDashboard() {
             >
               🎁 Promociones
             </button>
+            {/* NUEVO BOTÓN AQUÍ 👇 */}
+<button
+  onClick={() => setActiveSection('margenes')}
+  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+    activeSection === 'margenes'
+      ? 'bg-blue-600 text-white font-medium'
+      : 'text-gray-300 hover:bg-gray-700 hover:text-gray-200'
+  }`}
+>
+  💰 Márgenes y Costos
+</button>
             <button
   onClick={() => setActiveSection('paquetes')}
   className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
@@ -132,6 +144,7 @@ export default function AdminDashboard() {
           {activeSection === 'pedidos' && <AdminOrdersManagement />}
           {activeSection === 'usuarios' && <UsuariosSection />}
           {activeSection === 'promociones' && <PromocionesSection />}
+          {activeSection === 'margenes' && <CostControl darkMode={true} />}
           {activeSection === 'paquetes' && <AdminPaquetes />}
         </main>
       </div>

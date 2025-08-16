@@ -10,6 +10,8 @@ import '../styles/supercasa-animations.css';
 import AutorizacionDatos from '../components/AutorizacionDatos';
 import PromotionalPopup from '../components/PromotionalPopup';
 import PromoCodeInput from '../components/PromoCodeInput';
+import PuntosWidget from '../components/PuntosWidget';
+import CanjesPuntos from '../components/CanjesPuntos';
 
 // Aplicación principal que maneja autenticación
 export default function App() {
@@ -599,6 +601,14 @@ const [calculandoEnvio, setCalculandoEnvio] = useState(false);
   const [cashPaymentModal, setCashPaymentModal] = useState(false);
   const [isProcessingCash, setIsProcessingCash] = useState(false);
   const [descuentoAplicado, setDescuentoAplicado] = useState(null);
+  const [canjeAplicado, setCanjeAplicado] = useState(null);
+  const [puntosUsuario, setPuntosUsuario] = useState(0);
+const [nivelUsuario, setNivelUsuario] = useState('BRONCE');
+const [multiplicadorPuntos, setMultiplicadorPuntos] = useState(1.0);
+const [showCanjesModal, setShowCanjesModal] = useState(false);
+const [recompensasDisponibles, setRecompensasDisponibles] = useState([]);
+const [historialPuntos, setHistorialPuntos] = useState([]);
+const [puntosGanadosCompra, setPuntosGanadosCompra] = useState(0);
   // 🌙 MODO OSCURO
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
@@ -730,10 +740,47 @@ useEffect(() => {
     }
   }, [token, navigate]);
 
+  // Cargar puntos y recompensas al iniciar
+useEffect(() => {
+  if (user && token) {
+    cargarPuntosUsuario();
+    cargarRecompensas();
+  }
+}, [user, token]);
+
+
+// Debug: Verificar carga de puntos
+useEffect(() => {
+  console.log('💎 Estado de puntos:', {
+    puntos: puntosUsuario,
+    nivel: nivelUsuario,
+    multiplicador: multiplicadorPuntos,
+    puntosAGanar: puntosGanadosCompra
+  });
+}, [puntosUsuario, nivelUsuario, multiplicadorPuntos, puntosGanadosCompra]);
   // Guardar carrito en localStorage cuando cambie
   useEffect(() => {
     localStorage.setItem('carrito', JSON.stringify(carrito));
   }, [carrito]);
+
+  // Verificar respuesta de endpoints
+useEffect(() => {
+  if (user && token) {
+    console.log('🔍 Verificando endpoints de puntos...');
+    console.log('Usuario:', user.email);
+    console.log('Token existe:', !!token);
+    
+    // Si no se cargan puntos después de 3 segundos, avisar
+    setTimeout(() => {
+      if (puntosUsuario === 0 && nivelUsuario === 'BRONCE') {
+        console.warn('⚠️ Los puntos no se han cargado. Verificar endpoints:');
+        console.warn('- GET /api/puntos/usuario');
+        console.warn('- Verificar que el token se envía correctamente');
+        console.warn('- Revisar la consola Network para ver si hay errores 401/403');
+      }
+    }, 3000);
+  }
+}, [user, token]);
 
   const obtenerProductos = async () => {
     setIsLoading(true);
@@ -762,6 +809,143 @@ useEffect(() => {
     toast.error('Error cargando paquetes');
   } finally {
     setPaquetesLoading(false);
+  }
+};
+
+const calcularPuntosCompra = () => {
+  // Calcular el subtotal actual directamente del carrito
+  const subtotalActual = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+  
+  // Solo calcular puntos si el subtotal es >= $15,000 (monto mínimo)
+  if (subtotalActual < 15000) {
+    return 0;
+  }
+  
+  // Calcular puntos base: 10 puntos por cada $1,000
+  const puntosPorMil = 10;
+  const puntosBase = Math.floor(subtotalActual / 1000) * puntosPorMil;
+  
+  // Aplicar multiplicador por nivel (si existe)
+  const puntosConMultiplicador = Math.floor(puntosBase * multiplicadorPuntos);
+  
+  // Bonus por compra grande (>= $50,000)
+  let bonusCompraGrande = 0;
+  if (subtotalActual >= 50000) {
+    bonusCompraGrande = 50; // 50 puntos extra
+  }
+  
+  // Bonus adicional por nivel
+  let bonusNivel = 0;
+  if (nivelUsuario === 'PLATA' && subtotalActual >= 30000) {
+    bonusNivel = 20; // 20 puntos extra para PLATA
+  } else if (nivelUsuario === 'ORO' && subtotalActual >= 25000) {
+    bonusNivel = 30; // 30 puntos extra para ORO
+  }
+  
+  // Calcular total de puntos
+  const puntosTotales = puntosConMultiplicador + bonusCompraGrande + bonusNivel;
+  
+  // Log para debug
+  console.log(`💎 Cálculo de puntos:`, {
+    subtotal: subtotalActual,
+    puntosBase: puntosBase,
+    multiplicador: multiplicadorPuntos,
+    puntosConMultiplicador: puntosConMultiplicador,
+    nivel: nivelUsuario,
+    bonusCompraGrande: bonusCompraGrande,
+    bonusNivel: bonusNivel,
+    puntosTotales: puntosTotales
+  });
+  
+  return puntosTotales;
+};
+
+
+// ========== FUNCIONES DE PUNTOS ==========
+// Cargar puntos del usuario
+const cargarPuntosUsuario = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/puntos/usuario`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setPuntosUsuario(data.puntos_disponibles || 0);
+      setNivelUsuario(data.nivel || 'BRONCE');
+      setMultiplicadorPuntos(data.multiplicador || 1.0);
+    }
+  } catch (error) {
+    console.error('Error cargando puntos:', error);
+  }
+};
+
+// Registrar puntos ganados
+const registrarPuntos = async (pedidoId, puntos) => {
+  try {
+    await fetch(`${API_URL}/api/puntos/registrar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        pedido_id: pedidoId,
+        puntos: puntos,
+        tipo: 'COMPRA'
+      })
+    });
+  } catch (error) {
+    console.error('Error registrando puntos:', error);
+  }
+};
+
+// Cargar recompensas disponibles
+const cargarRecompensas = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/recompensas/disponibles`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setRecompensasDisponibles(data);
+    }
+  } catch (error) {
+    console.error('Error cargando recompensas:', error);
+  }
+};
+
+// Manejar canje de recompensa
+const handleCanjearRecompensa = async (recompensa) => {
+  try {
+    const response = await fetch(`${API_URL}/api/canjes/crear`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        recompensa_id: recompensa.id,
+        puntos_usados: recompensa.puntos_requeridos
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setCanjeAplicado(data.canje);
+      setPuntosUsuario(prev => prev - recompensa.puntos_requeridos);
+      toast.success(`🎉 Canje exitoso: ${recompensa.nombre}`);
+      setShowCanjesModal(false);
+    }
+  } catch (error) {
+    toast.error('Error al canjear recompensa');
   }
 };
 
@@ -807,6 +991,11 @@ useEffect(() => {
     duration: 2000,
     icon: '🛒'
   });
+
+  setTimeout(() => {
+  const puntos = calcularPuntosCompra();
+  setPuntosGanadosCompra(puntos);
+}, 100);
 };
 
 const agregarPaqueteAlCarrito = (paquete) => {
@@ -869,6 +1058,11 @@ const eliminarDelCarrito = (itemId) => {
   } else {
     setCarrito(carrito.filter(item => item.id !== itemId));
   }
+  // Forzar recálculo inmediato de puntos
+setTimeout(() => {
+  const puntos = calcularPuntosCompra();
+  setPuntosGanadosCompra(puntos);
+}, 100);
 };
 
   const finalizarCompra = async () => {
@@ -899,9 +1093,15 @@ const eliminarDelCarrito = (itemId) => {
 
 const handlePaymentSuccess = async (paymentData) => {
   console.log('💳 PAGO EXITOSO CONFIRMADO:', paymentData);
-
+  const puntosGanados = calcularPuntosCompra();
   // ✅ MANEJAR TANTO TARJETAS COMO OTROS MÉTODOS
   if (paymentData.success && (paymentData.pedidoId || paymentData.transactionId)) {
+    await registrarPuntos(paymentData.pedidoId, puntosGanados);
+    toast.success(
+      `🎉 ¡Pago aprobado! Ganaste ${puntosGanados} puntos 💎`, 
+      { duration: 8000 }
+    );
+    setPuntosUsuario(prev => prev + puntosGanados);
     console.log('✅ ¡Pago y pedido exitosos!');
     
     // ✅ MENSAJE ESPECÍFICO PARA TARJETAS PENDING
@@ -1086,10 +1286,26 @@ const PaqueteCard = ({ paquete, onAgregar }) => {
   );
 };
 
+// Calcular descuento del código promocional
+
+// Cálculo de totales
 const subtotal = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
 const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
-const descuentoMonto = descuentoAplicado ? descuentoAplicado.monto : 0;
-const total = subtotal - descuentoMonto;
+const descuentoMonto = descuentoAplicado ? 
+  (descuentoAplicado.tipo === 'porcentaje' 
+    ? Math.round(subtotal * descuentoAplicado.valor / 100)
+    : descuentoAplicado.valor) 
+  : 0;
+const descuentoCanje = canjeAplicado ? canjeAplicado.valor_descuento : 0;
+const total = subtotal - descuentoMonto - descuentoCanje;
+
+
+// 🎯 RECALCULAR PUNTOS CUANDO CAMBIA EL CARRITO
+useEffect(() => {
+  const puntos = calcularPuntosCompra();
+  setPuntosGanadosCompra(puntos);
+  console.log('📊 Puntos recalculados:', puntos);
+}, [carrito, multiplicadorPuntos]); // Solo depende del carrito y multiplicador
 
 // ===================================
 // 🚚 FUNCIÓN CALCULAR ENVÍO
@@ -1143,6 +1359,9 @@ const calcularEnvio = async (metodo) => {
     setCalculandoEnvio(false);
   }
 };
+
+
+
 // ✅ TOTAL FINAL CON ENVÍO
 const totalConEnvio = total + costoEnvio;
 
@@ -1220,33 +1439,33 @@ useEffect(() => {
       const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
       
       const orderData = {
-        cliente_email: finalDeliveryData.email,
-        telefono_contacto: finalDeliveryData.telefono_contacto,
-        torre_entrega: String(finalDeliveryData.torre_entrega),
-        piso_entrega: String(finalDeliveryData.piso_entrega),
-        apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
-        instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
-        notas_entrega: finalDeliveryData.instrucciones_entrega || '',
-        productos: carrito.filter(item => item.tipo !== 'paquete').map(item => ({
-  id: item.id,
-  nombre: item.nombre,
-  precio: item.precio,
-  cantidad: item.cantidad
-})),
-paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
-  id: item.paquete_id,
-  nombre: item.nombre,
-  precio: item.precio,
-  cantidad: item.cantidad
-})),
-        total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
-        metodo_pago: 'EFECTIVO',
-        estado_pago: 'PENDIENTE_EFECTIVO',
-        transaccion_id: `CASH-${reference}`,
-        referencia_pago: reference,
-        codigo_promocional: descuentoAplicado?.codigo || null
-        
-      };
+  cliente_email: finalDeliveryData.email,
+  telefono_contacto: finalDeliveryData.telefono_contacto,
+  torre_entrega: String(finalDeliveryData.torre_entrega),
+  piso_entrega: String(finalDeliveryData.piso_entrega),
+  apartamento_entrega: String(finalDeliveryData.apartamento_entrega).trim(),
+  instrucciones_entrega: finalDeliveryData.instrucciones_entrega || '',
+  notas_entrega: finalDeliveryData.instrucciones_entrega || '',
+  productos: carrito.filter(item => item.tipo !== 'paquete').map(item => ({
+    id: item.id,
+    nombre: item.nombre,
+    precio: item.precio,
+    cantidad: item.cantidad
+  })),
+  paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
+    id: item.paquete_id,
+    nombre: item.nombre,
+    precio: item.precio,
+    cantidad: item.cantidad
+  })),
+  total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
+  metodo_pago: 'EFECTIVO',
+  estado_pago: 'PENDIENTE_EFECTIVO',
+  transaccion_id: `CASH-${reference}`,
+  referencia_pago: reference,
+  codigo_promocional: descuentoAplicado?.codigo || null,
+  codigo_canje: canjeAplicado?.codigo || null  // 🎯 AGREGAR ESTA LÍNEA
+};
 
       const response = await fetch(`${API_URL}/orders`, {
         method: 'POST',
@@ -1261,11 +1480,24 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
 
       if (response.ok && result.success) {
         console.log('🎉 ¡PEDIDO EN EFECTIVO CREADO!', result);
+        // Calcular y registrar puntos para pago en efectivo
+const puntosGanados = calcularPuntosCompra();
+if (puntosGanados > 0 && result.pedidoId) {
+  await registrarPuntos(result.pedidoId, puntosGanados);
+  setPuntosUsuario(prev => prev + puntosGanados);
+  
+  toast.success(`🏗️ ¡Pedido creado! Ganaste ${puntosGanados} puntos 💎`, {
+    duration: 8000,
+    icon: '🎉'
+  });
+} else {
+  toast.success(`🏗️ ¡Pedido creado exitosamente! 💵 Pago en efectivo al recibir.`, {
+    duration: 8000,
+    icon: '🎉'
+  });
+}
         
-        toast.success(`🏗️ ¡Pedido creado exitosamente! 💵 Pago en efectivo al recibir. Entrega en máximo 20 minutos.`, {
-          duration: 8000,
-          icon: '🎉'
-        });
+        
         
         setCarrito([]);
         localStorage.removeItem('carrito');
@@ -1457,7 +1689,7 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
                   </svg>
                 </Link>
               )}
-
+              
               {/* Mi Historial */}
               <Link
                 to="/historial"
@@ -1466,6 +1698,7 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
                     ? 'bg-amber-600 hover:bg-amber-700 text-white' 
                     : 'bg-amber-600 hover:bg-amber-700 text-white'
                 }`}
+                
                 title="Mi Historial"
               >
                 <svg className="w-4 h-4 md:w-5 md:h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -1749,6 +1982,12 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
               showSlogan={false}
               darkMode={darkMode}
             />
+            <PuntosWidget 
+              puntos={puntosUsuario}
+  nivel={nivelUsuario}
+  onClickCanjes={() => setShowCanjesModal(true)}
+  darkMode={darkMode}
+            />
             <div>
               <h2 className={`text-2xl font-bold transition-colors duration-300 ${
                 darkMode ? 'text-white' : 'text-gray-800'
@@ -1899,18 +2138,106 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
             </div>
 
             {/* ✅ CÓDIGO PROMOCIONAL MEJORADO */}
-            <div className={`rounded-2xl p-4 mb-6 border-2 transition-colors duration-300 ${
-              darkMode 
-                ? 'bg-gray-700 border-purple-600' 
-                : 'bg-purple-50 border-purple-200'
-            }`}>
-              <PromoCodeInput
-                carrito={carrito}
-                onDescuentoAplicado={setDescuentoAplicado}
-                codigoActual={descuentoAplicado}
-                darkMode={darkMode}
-              />
-            </div>
+<div className={`rounded-2xl p-4 mb-6 border-2 transition-colors duration-300 ${
+  darkMode 
+    ? 'bg-gray-700 border-purple-600' 
+    : 'bg-purple-50 border-purple-200'
+}`}>
+  <PromoCodeInput
+    carrito={carrito}
+    onDescuentoAplicado={setDescuentoAplicado}
+    onCanjeAplicado={setCanjeAplicado} // NUEVO
+    codigoActual={descuentoAplicado}
+    canjeActual={canjeAplicado} // NUEVO
+    puntosUsuario={puntosUsuario} // NUEVO
+    darkMode={darkMode}
+  />
+</div>
+
+{/* 🎯 AGREGAR AQUÍ EL COMPONENTE DE CANJE DE PUNTOS */}
+<CanjesPuntos 
+  total={subtotal}
+  onCanjeAplicado={setCanjeAplicado}
+  darkMode={darkMode}
+/>
+           {/* 💎 PUNTOS A GANAR CON ESTA COMPRA - CORREGIDO */}
+{subtotal >= 15000 ? (
+  <div className={`rounded-xl p-3 mb-4 border-2 ${
+    darkMode 
+      ? 'bg-purple-900 border-purple-700' 
+      : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200'
+  }`}>
+    <div className="flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        <span className="text-lg">💎</span>
+        <span className={`font-medium ${darkMode ? 'text-purple-300' : 'text-purple-700'}`}>
+          Puntos a ganar:
+        </span>
+        {nivelUsuario !== 'BRONCE' && (
+          <span className={`text-xs px-2 py-1 rounded-full ${
+            darkMode ? 'bg-purple-800 text-purple-200' : 'bg-purple-200 text-purple-700'
+          }`}>
+            {nivelUsuario} x{multiplicadorPuntos}
+          </span>
+        )}
+      </div>
+      <div className="text-right">
+        <span className={`font-bold text-lg ${
+          darkMode ? 'text-purple-300' : 'text-purple-600'
+        }`}>
+          +{puntosGanadosCompra} puntos
+        </span>
+        {subtotal >= 50000 && (
+          <p className="text-xs text-green-600">¡+50 bonus incluidos!</p>
+        )}
+      </div>
+    </div>
+    
+    {/* Desglose de cálculo CORREGIDO */}
+    <div className={`mt-2 pt-2 border-t text-xs ${
+      darkMode ? 'border-purple-800 text-purple-400' : 'border-purple-300 text-purple-600'
+    }`}>
+      <div className="flex justify-between">
+        <span>Base ($1000 = 10 pts):</span>
+        <span>{Math.floor(subtotal / 1000) * 10} pts</span>
+      </div>
+      {multiplicadorPuntos > 1 && (
+        <div className="flex justify-between">
+          <span>Multiplicador {nivelUsuario}:</span>
+          <span>x{multiplicadorPuntos}</span>
+        </div>
+      )}
+      {subtotal >= 50000 && (
+        <div className="flex justify-between text-green-600">
+          <span>Bonus compra grande:</span>
+          <span>+50 pts</span>
+        </div>
+      )}
+      <div className="flex justify-between pt-1 border-t font-semibold">
+        <span>Total puntos:</span>
+        <span className="text-purple-600">+{puntosGanadosCompra}</span>
+      </div>
+    </div>
+  </div>
+) : subtotal > 0 ? (
+  <div className={`rounded-xl p-3 mb-4 border ${
+    darkMode 
+      ? 'bg-gray-700 border-gray-600' 
+      : 'bg-amber-50 border-amber-200'
+  }`}>
+    <div className="flex items-center gap-2">
+      <span className="text-lg">⚠️</span>
+      <div>
+        <p className={`text-sm ${darkMode ? 'text-amber-300' : 'text-amber-700'}`}>
+          Mínimo $15,000 para ganar puntos
+        </p>
+        <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          Te faltan: ${(15000 - subtotal).toLocaleString()}
+        </p>
+      </div>
+    </div>
+  </div>
+) : null}
               {/* ✅ RESUMEN DE TOTALES CON ENVÍO */}
 <div className={`rounded-2xl p-6 mb-6 border-2 transition-colors duration-300 ${
   darkMode
@@ -1928,13 +2255,21 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
       }`}>${subtotal.toLocaleString()}</span>
     </div>
 
-    {/* Descuento */}
-    {descuentoMonto > 0 && (
-      <div className="flex justify-between text-green-600">
-        <span>🎉 Descuento aplicado:</span>
-        <span className="font-bold">-${descuentoMonto.toLocaleString()}</span>
-      </div>
-    )}
+    {/* Descuento código */}
+{descuentoMonto > 0 && (
+  <div className="flex justify-between text-green-600">
+    <span>🎉 Descuento código:</span>
+    <span className="font-bold">-${descuentoMonto.toLocaleString()}</span>
+  </div>
+)}
+
+{/* Descuento por canje */}
+{descuentoCanje > 0 && (
+  <div className="flex justify-between text-purple-600">
+    <span>💎 Descuento por puntos:</span>
+    <span className="font-bold">-${descuentoCanje.toLocaleString()}</span>
+  </div>
+)}
 
     {/* Envío con línea tachada cuando es gratis */}
 <div className="flex justify-between items-center">
@@ -2429,6 +2764,17 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
         agregarAlCarrito={agregarAlCarrito}
         darkMode={darkMode}
       />
+      {/* Modal de Canjes de Puntos */}
+{showCanjesModal && (
+  <CanjesPuntos
+    puntos={puntosUsuario}
+    nivel={nivelUsuario}
+    recompensas={recompensasDisponibles}
+    onCanjear={handleCanjearRecompensa}
+    onClose={() => setShowCanjesModal(false)}
+    darkMode={darkMode}
+  />
+)}
     </div>
   );
 }
