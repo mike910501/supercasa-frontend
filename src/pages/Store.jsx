@@ -1457,7 +1457,7 @@ if (subtotal >= 15000) {
     precio: item.precio,
     cantidad: item.cantidad
   })),
-  total: carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0),
+  total: totalConEnvio,
   metodo_pago: 'EFECTIVO',
   estado_pago: 'PENDIENTE_EFECTIVO',
   transaccion_id: `CASH-${reference}`,
