@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import API_URL from '../config/api'; // 👈 AGREGAR ESTA LÍNEA
 
 const PuntosWidget = () => {
   const [puntos, setPuntos] = useState(0);
@@ -16,8 +17,8 @@ const PuntosWidget = () => {
           return;
         }
 
-        // ✅ URL COMPLETA CON PUERTO
-        const response = await fetch('http://localhost:3000/api/puntos/mi-saldo', {
+        // 🔧 CORREGIDO: Usando API_URL en lugar de localhost:3000
+        const response = await fetch(`${API_URL}/api/puntos/mi-saldo`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

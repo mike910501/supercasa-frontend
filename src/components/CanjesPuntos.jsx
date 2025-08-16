@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast'; 
+import API_URL from '../config/api';
 
 const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
   const [puntosReales, setPuntosReales] = useState(0); // Puntos REALES en BD
@@ -17,7 +18,7 @@ const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:3000/api/puntos/mi-saldo', {
+      const response = await fetch(`${API_URL}/api/puntos/mi-saldo`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -37,7 +38,8 @@ const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
     setCargando(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/puntos/canjear', {
+      // 🔧 CORREGIDO: Usando API_URL en lugar de localhost:3000
+      const response = await fetch(`${API_URL}/api/puntos/canjear`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,41 +67,41 @@ const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
         setMostrarOpciones(false);
         
         toast.success(
-  `¡${puntosACanjear} puntos canjeados! 💎\nDescuento de $${data.canje.valor_descuento.toLocaleString()} aplicado`, 
-  {
-    duration: 5000,
-    position: 'top-center',
-    style: {
-      background: '#10B981',
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: '16px',
-      padding: '16px',
-      borderRadius: '12px',
-      boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-    },
-    icon: '🎉'
-  }
-);
+          `¡${puntosACanjear} puntos canjeados! 💎\nDescuento de $${data.canje.valor_descuento.toLocaleString()} aplicado`, 
+          {
+            duration: 5000,
+            position: 'top-center',
+            style: {
+              background: '#10B981',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              padding: '16px',
+              borderRadius: '12px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+            },
+            icon: '🎉'
+          }
+        );
         
         console.log('✅ Canje aplicado (puntos NO descontados aún):', canje);
       } else {
         toast.error(data.message || 'Error al realizar el canje', {
-  duration: 4000,
-  position: 'top-center',
-  style: {
-    background: '#EF4444',
-    color: 'white',
-    fontWeight: 'bold'
-  }
-});
+          duration: 4000,
+          position: 'top-center',
+          style: {
+            background: '#EF4444',
+            color: 'white',
+            fontWeight: 'bold'
+          }
+        });
       }
     } catch (error) {
       console.error('Error:', error);
       toast.error('Error al procesar el canje', {
-  duration: 4000,
-  position: 'top-center'
-});
+        duration: 4000,
+        position: 'top-center'
+      });
     } finally {
       setCargando(false);
     }
@@ -112,7 +114,8 @@ const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
       // Cancelar en el backend
       try {
         const token = localStorage.getItem('token');
-        await fetch('http://localhost:3000/api/puntos/cancelar-canje', {
+        // 🔧 CORREGIDO: Usando API_URL en lugar de localhost:3000
+        await fetch(`${API_URL}/api/puntos/cancelar-canje`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
