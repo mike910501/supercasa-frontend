@@ -1237,6 +1237,15 @@ const processCashPayment = async () => {
       hayCodigoCanje: !!orderData.codigo_canje
     });
     // FIN DEL CONSOLE.LOG
+    console.log('📤 ENVIANDO PEDIDO:', {
+      subtotal: subtotalLocal,
+      descuento_cupon: descuentoMontoLocal,
+      descuento_canje: descuentoCanjeLocal,
+      costo_envio: costoEnvioLocal,
+      total_calculado: totalConEnvioLocal,
+      codigo_promocional: orderData.codigo_promocional,
+      codigo_canje: orderData.codigo_canje
+    });
     
     const response = await fetch(`${API_URL}/orders`, {
       method: 'POST',

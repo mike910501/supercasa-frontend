@@ -51,8 +51,7 @@ export default function AdminOrdersManagement() {
     return () => clearInterval(interval);
   }, [autoUpdate, showModal]);
 
-  // Función para obtener pedidos
-  const obtenerPedidos = async (initialLoad = false) => {
+const obtenerPedidos = async (initialLoad = false) => {
     if (initialLoad) {
       setIsLoading(true);
     } else {
@@ -75,6 +74,13 @@ export default function AdminOrdersManagement() {
       }
       
       setPedidos(nuevosPedidos);
+      
+      // DEBUG TEMPORAL - AQUÍ SÍ EXISTE nuevosPedidos
+      const pedido335 = nuevosPedidos.find(p => p.id === 335);
+      if (pedido335) {
+        console.log('📦 PEDIDO 335:', pedido335);
+      }
+      
       setUltimaActualizacion(new Date());
     } catch (error) {
       if (initialLoad) {
@@ -87,6 +93,52 @@ export default function AdminOrdersManagement() {
         setIsUpdating(false);
       }
     }
+  };
+
+ 
+      
+    
+
+ const calcularDesglose = (pedido) => {
+    // Calcular subtotal de productos
+    const subtotalProductos = pedido.productos?.reduce((acc, p) => 
+      acc + (p.precio * p.cantidad), 0) || 0;
+    
+    // Obtener descuentos del backend
+    const descuentoCupon = pedido.descuento_cupon || 0;
+    const descuentoCanje = pedido.descuento_canje || 0;
+    
+    // Calcular costo de envío basado en método de pago y subtotal
+    let costoEnvio = 0;
+    const subtotalConDescuentos = subtotalProductos - descuentoCupon - descuentoCanje;
+    
+    if (pedido.metodo_pago === 'EFECTIVO' || !pedido.payment_reference) {
+      // Pago en efectivo
+      if (subtotalConDescuentos >= 15000) {
+        costoEnvio = 0; // Gratis
+      } else if (subtotalConDescuentos >= 5000) {
+        costoEnvio = 2000;
+      } else {
+        costoEnvio = 5000;
+      }
+    } else {
+      // Pago digital
+      costoEnvio = subtotalConDescuentos >= 20000 ? 0 : 2000;
+    }
+    
+    // Si el backend ya envía costo_envio, usarlo
+    if (pedido.costo_envio !== undefined && pedido.costo_envio !== null) {
+      costoEnvio = pedido.costo_envio;
+    }
+    
+    return {
+      subtotal: subtotalProductos,
+      descuentoCupon,
+      descuentoCanje,
+      costoEnvio,
+      total: pedido.total || (subtotalProductos - descuentoCupon - descuentoCanje + costoEnvio),
+      tieneDescuentos: (descuentoCupon + descuentoCanje) > 0
+    };
   };
 
   // Filtrar pedidos
@@ -272,118 +324,129 @@ const formatearTiempo = (fecha) => {
         {/* Grid de Cards Minimalistas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {pedidosFiltrados.map((pedido) => (
-            <div key={pedido.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              
-              {/* Header del Card */}
-              <div className="p-4 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{getMetodoPagoIcon(pedido)}</span>
-                    <span className="font-bold text-gray-900">#{pedido.id}</span>
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getEstadoStyle(pedido.estado)}`}>
-                    {pedido.estado}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Contenido del Card */}
-              <div className="p-4 space-y-3">
-                {/* Cliente */}
-                <div>
-                  <p className="font-medium text-gray-900 truncate">{pedido.usuario?.nombre}</p>
-                  <p className="text-sm text-gray-500">{pedido.telefono_contacto}</p>
-                </div>
-                
-                {/* Dirección */}
-                <div>
-                  <p className="text-sm text-gray-600">
-                    Torre {pedido.torre_entrega} • Piso {pedido.piso_entrega} • Apt {pedido.apartamento_entrega}
-                  </p>
-                </div>
-                
-                {/* Desglose correcto con descuento real */}
-<div className="space-y-1">
-  {(() => {
-    // Calcular subtotal de productos
-    const subtotalProductos = pedido.productos?.reduce((acc, p) => acc + (p.precio * p.cantidad), 0) || 0;
+  <div key={pedido.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
     
-    // Calcular descuento real si hay código promocional
-    let descuentoReal = 0;
-    if (pedido.codigo_promocional) {
-      // Si hay código, el descuento es la diferencia entre subtotal y total (considerando envío)
-      const envioEstimado = (pedido.metodo_pago === 'efectivo' && subtotalProductos < 15000 && subtotalProductos >= 5000) ? 2000 : 0;
-      descuentoReal = subtotalProductos - (pedido.total - envioEstimado);
-    }
+    {/* Header del Card */}
+    <div className="p-4 border-b border-gray-100">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{getMetodoPagoIcon(pedido)}</span>
+          <span className="font-bold text-gray-900">#{pedido.id}</span>
+        </div>
+        <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getEstadoStyle(pedido.estado)}`}>
+          {pedido.estado}
+        </span>
+      </div>
+    </div>
     
-    // Calcular envío
-    const envio = pedido.total - subtotalProductos + descuentoReal;
-    
-    return (
-      <>
-        {/* Subtotal productos */}
+    {/* Contenido del Card */}
+    <div className="p-4 space-y-3">
+      {/* Cliente */}
+      <div>
+        <p className="font-medium text-gray-900 truncate">{pedido.usuario?.nombre}</p>
+        <p className="text-sm text-gray-500">{pedido.telefono_contacto}</p>
+      </div>
+      
+      {/* Dirección */}
+      <div className="pb-2 border-b border-gray-100">
+        <p className="text-sm text-gray-600">
+          Torre {pedido.torre_entrega} • Piso {pedido.piso_entrega} • Apt {pedido.apartamento_entrega}
+        </p>
+      </div>
+      
+      {/* Desglose de precios */}
+      <div className="space-y-1.5">
+        {/* Subtotal */}
         <div className="flex justify-between text-xs text-gray-600">
           <span>Productos:</span>
-          <span>${subtotalProductos.toLocaleString()}</span>
+          <span className="font-medium">
+            ${pedido.productos?.reduce((acc, p) => 
+              acc + (p.precio * p.cantidad), 0).toLocaleString() || 0}
+          </span>
         </div>
         
-        {/* Descuento si existe */}
-        {pedido.codigo_promocional && descuentoReal > 0 && (
+        {/* Descuento cupón */}
+        {pedido.codigo_promocional && (
           <div className="flex justify-between text-xs text-green-600">
-            <span>Descuento ({pedido.codigo_promocional}):</span>
-            <span>-${descuentoReal.toLocaleString()}</span>
+            <span className="truncate max-w-[120px]" title={pedido.codigo_promocional}>
+              {pedido.codigo_promocional}:
+            </span>
+            <span className="font-medium">
+              -${(() => {
+                const subtotal = pedido.productos?.reduce((acc, p) => 
+                  acc + (p.precio * p.cantidad), 0) || 0;
+                const descuento = pedido.descuento_monto || 
+                  pedido.descuento_cupon || Math.floor(subtotal * 0.1);
+                return descuento.toLocaleString();
+              })()}
+            </span>
+          </div>
+        )}
+        
+        {/* Descuento canje */}
+        {pedido.codigo_canje && pedido.descuento_canje > 0 && (
+          <div className="flex justify-between text-xs text-purple-600">
+            <span>💎 Puntos:</span>
+            <span className="font-medium">-${pedido.descuento_canje.toLocaleString()}</span>
           </div>
         )}
         
         {/* Envío */}
         <div className="flex justify-between text-xs text-gray-600">
           <span>Envío:</span>
-          <span>{envio > 0 ? `$${envio.toLocaleString()}` : 'GRATIS'}</span>
+          <span className={`font-medium ${
+            pedido.costo_envio === 0 || !pedido.costo_envio ? 'text-green-600' : ''
+          }`}>
+            {pedido.costo_envio > 0 ? `$${pedido.costo_envio.toLocaleString()}` : 'GRATIS'}
+          </span>
         </div>
+      </div>
+      
+      {/* Total con fondo destacado */}
+      <div className="bg-gray-50 -mx-4 px-4 py-2 rounded">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-bold text-gray-900">Total:</span>
+          <span className="text-lg font-bold text-green-600">
+            ${pedido.total?.toLocaleString()}
+          </span>
+        </div>
+      </div>
+      
+      {/* Footer info */}
+      <div className="flex items-center justify-between text-xs text-gray-500 pt-2">
+        <span className="flex items-center gap-1">
+          🕐 {formatearTiempo(pedido.fecha_pedido)}
+        </span>
+        <span>{pedido.productos?.length || 0} items</span>
+      </div>
+    </div>
+    
+    {/* Acciones */}
+    <div className="p-3 bg-gray-50 rounded-b-lg border-t border-gray-100">
+      <div className="flex gap-2">
+        <button
+          onClick={() => {
+            setPedidoSeleccionado(pedido);
+            setActiveTab('resumen');
+            setShowModal(true);
+          }}
+          className="flex-1 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+        >
+          Ver detalles
+        </button>
         
-        {/* Total final */}
-        <div className="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-200">
-          <span>Total:</span>
-          <span>${pedido.total?.toLocaleString()}</span>
-        </div>
-      </>
-    );
-  })()}
-</div>
-                
-                {/* Tiempo */}
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>🕐 {formatearTiempo(pedido.fecha_pedido)}</span>
-                  <span>{pedido.productos?.length || 0} items</span>
-                </div>
-              </div>
-              
-              {/* Acciones */}
-              <div className="p-4 bg-gray-50 rounded-b-lg border-t border-gray-100">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setPedidoSeleccionado(pedido);
-                      setActiveTab('resumen');
-                      setShowModal(true);
-                    }}
-                    className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                  >
-                    Ver detalles
-                  </button>
-                  
-                  {(pedido.estado === 'pendiente' || pedido.estado === 'Pendiente') && (
-                    <button
-                      onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
-                      className="px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      ✓
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+        {(pedido.estado === 'pendiente' || pedido.estado === 'Pendiente') && (
+          <button
+            onClick={() => cambiarEstadoPedido(pedido.id, 'entregado')}
+            className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            ✓
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+))}
         </div>
 
         {/* Mensaje cuando no hay pedidos */}
@@ -509,50 +572,64 @@ const formatearTiempo = (fecha) => {
                     </div>
 
                     {/* Total */}
-                    <div className="space-y-3">
-                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                        💰 Total del pedido
-                      </h3>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        {pedidoSeleccionado.tiene_desglose && pedidoSeleccionado.costo_envio > 0 ? (
-  <div className="space-y-2">
-    <div className="flex justify-between text-sm">
-      <span>Productos:</span>
-      <span>${pedidoSeleccionado.subtotal?.toLocaleString() || '0'}</span>
-    </div>
-    <div className="flex justify-between text-sm">
-      <span>Envío:</span>
-      <span>$2,000</span>
-    </div>
-    <div className="flex justify-between text-lg font-bold pt-2 border-t border-blue-300">
-      <span>Total:</span>
-      <span>${pedidoSeleccionado.total?.toLocaleString() || '0'}</span>
+<div className="space-y-3">
+  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+    💰 Desglose del pedido
+  </h3>
+  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div className="space-y-2">
+      {/* Subtotal productos */}
+      <div className="flex justify-between text-sm">
+        <span>Productos:</span>
+        <span className="font-medium">
+          ${pedidoSeleccionado.productos?.reduce((acc, p) => 
+            acc + (p.precio * p.cantidad), 0).toLocaleString() || 0}
+        </span>
+      </div>
+      
+      {/* Descuento código promocional */}
+      {pedidoSeleccionado.codigo_promocional && (
+        <div className="flex justify-between text-sm text-green-600">
+          <span>Descuento ({pedidoSeleccionado.codigo_promocional}):</span>
+          <span className="font-medium">
+            -${(() => {
+              const subtotal = pedidoSeleccionado.productos?.reduce((acc, p) => 
+                acc + (p.precio * p.cantidad), 0) || 0;
+              const descuento = pedidoSeleccionado.descuento_monto || 
+                pedidoSeleccionado.descuento_cupon || Math.floor(subtotal * 0.1);
+              return descuento.toLocaleString();
+            })()}
+          </span>
+        </div>
+      )}
+      
+      {/* Descuento canje */}
+      {pedidoSeleccionado.codigo_canje && pedidoSeleccionado.descuento_canje > 0 && (
+        <div className="flex justify-between text-sm text-purple-600">
+          <span>Canje de puntos:</span>
+          <span className="font-medium">-${pedidoSeleccionado.descuento_canje.toLocaleString()}</span>
+        </div>
+      )}
+      
+      {/* Envío */}
+      <div className="flex justify-between text-sm">
+        <span>Envío:</span>
+        <span className={pedidoSeleccionado.costo_envio === 0 ? 'text-green-600 font-medium' : ''}>
+          {pedidoSeleccionado.costo_envio > 0 ? 
+            `$${pedidoSeleccionado.costo_envio.toLocaleString()}` : 'GRATIS'}
+        </span>
+      </div>
+      
+      {/* Total final */}
+      <div className="flex justify-between text-lg font-bold pt-2 border-t border-blue-300">
+        <span>Total pagado:</span>
+        <span className="text-blue-600">
+          ${pedidoSeleccionado.total?.toLocaleString()}
+        </span>
+      </div>
     </div>
   </div>
-) : pedidoSeleccionado.tiene_desglose && pedidoSeleccionado.costo_envio === 0 ? (
-  <div className="space-y-2">
-    <div className="flex justify-between text-sm">
-      <span>Productos:</span>
-      <span>${pedidoSeleccionado.subtotal?.toLocaleString() || '0'}</span>
-    </div>
-    <div className="flex justify-between text-sm text-green-600">
-      <span>Envío:</span>
-      <span className="font-medium">GRATIS</span>
-    </div>
-    <div className="flex justify-between text-lg font-bold pt-2 border-t border-blue-300">
-      <span>Total:</span>
-      <span>${pedidoSeleccionado.total?.toLocaleString() || '0'}</span>
-    </div>
-  </div>
-) : (
-  <div className="text-center">
-    <span className="text-2xl font-bold text-blue-600">
-      ${pedidoSeleccionado.total?.toLocaleString() || '0'}
-    </span>
-  </div>
-)}
-                      </div>
-                    </div>
+</div>
                   </div>
 
                   {/* Resumen de Productos */}
