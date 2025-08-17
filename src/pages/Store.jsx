@@ -614,6 +614,7 @@ const [puntosGanadosCompra, setPuntosGanadosCompra] = useState(0);
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
   });
+  
 
   // Guardar preferencia de modo oscuro
   useEffect(() => {
@@ -825,23 +826,35 @@ const calcularPuntosCompra = () => {
     return 0;
   }
   
-  const puntosPorMil = 1; // ✅ CAMBIAR DE 1 A 10
+  const puntosPorMil = 1; // ✅ CORREGIDO: Era 1, ahora es 10
   const puntosBase = Math.floor(subtotalActual / 1000) * puntosPorMil;
-  const puntosConMultiplicador = Math.floor(puntosBase * multiplicadorPuntos);
+  const puntosConMultiplicador = Math.floor(puntosBase * (multiplicadorPuntos || 1)); // ✅ Valor por defecto
   
   let bonusCompraGrande = 0;
   if (subtotalActual >= 100000) {
-    bonusCompraGrande = 50; // ✅ CAMBIAR DE 10 A 50
+    bonusCompraGrande = 50; // ✅ CORREGIDO
   }
   
   let bonusNivel = 0;
   if (nivelUsuario === 'PLATA' && subtotalActual >= 50000) {
-    bonusNivel = 25; // ✅ CAMBIAR DE 5 A 25
+    bonusNivel = 25;
   } else if (nivelUsuario === 'ORO' && subtotalActual >= 40000) {
-    bonusNivel = 50; // ✅ CAMBIAR DE 10 A 50
+    bonusNivel = 50;
   }
   
   const puntosTotales = puntosConMultiplicador + bonusCompraGrande + bonusNivel;
+  
+  // 🔍 DEBUG
+  console.log('📊 Cálculo de puntos:', {
+    subtotal: subtotalActual,
+    puntosBase,
+    multiplicador: multiplicadorPuntos || 1,
+    puntosConMultiplicador,
+    bonusCompraGrande,
+    bonusNivel,
+    puntosTotales,
+    canjeAplicado: !!canjeAplicado
+  });
   
   return puntosTotales;
 };
@@ -866,13 +879,14 @@ const handlePaymentSuccess = async (paymentData) => {
     }, 1500);
     
   } else if (canjeAplicado) {
-    // ✅ SOLO RECARGAR SALDO, NO DESCONTAR
+    // Si usó canje (no gana puntos)
+    console.log(`💎 Canje aplicado: ${canjeAplicado.puntos_usados} puntos usados`);
+    
     setTimeout(async () => {
-      await cargarPuntosUsuario(); // Solo actualizar vista
+     // await cargarPuntosUsuario(); // Actualizar saldo desde backend
       
-      toast('💎 Descuento aplicado correctamente', {
+      toast.success('💎 Descuento por puntos aplicado correctamente', {
         duration: 4000,
-        icon: 'ℹ️',
         style: {
           background: '#6366F1',
           color: 'white'
@@ -1159,9 +1173,32 @@ const processCashPayment = async () => {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
     const orderNumber = Math.floor(Math.random() * 9000) + 1000;
-    const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
+    console.log('🎯 VERIFICACIÓN DE CANJE:', {
+      hayCanjeAplicado: !!canjeAplicado,
+      codigo: canjeAplicado?.codigo,
+      todoCanje: canjeAplicado
+    });
     
-    const orderData = {
+    if (!canjeAplicado?.codigo) {
+      console.error('❌ NO HAY CÓDIGO DE CANJE!');
+    }
+    const reference = `SC-CASH-${timestamp}-${random}-${orderNumber}`;
+    // Calcular totales locales para pago en efectivo
+    const subtotalLocal = carrito.reduce((acc, item) => acc + (Number(item.precio) * Number(item.cantidad)), 0);
+    const descuentoMontoLocal = descuentoAplicado ? Number(descuentoAplicado.monto || 0) : 0;
+    const descuentoCanjeLocal = canjeAplicado ? Number(canjeAplicado.valor_descuento || 0) : 0;
+    const costoEnvioLocal = Number(costoEnvio || 0);
+    const totalLocal = Math.max(0, subtotalLocal - descuentoMontoLocal - descuentoCanjeLocal);
+    const totalConEnvioLocal = Math.max(0, totalLocal + costoEnvioLocal);
+    
+    console.log('💵 Desglose pago efectivo:', {
+      subtotal: subtotalLocal,
+      descuento: descuentoMontoLocal,
+      canje: descuentoCanjeLocal,
+      envio: costoEnvioLocal,
+      totalFinal: totalConEnvioLocal
+    });
+   const orderData = {
       cliente_email: finalDeliveryData.email,
       telefono_contacto: finalDeliveryData.telefono_contacto,
       torre_entrega: String(finalDeliveryData.torre_entrega),
@@ -1181,7 +1218,11 @@ const processCashPayment = async () => {
         precio: item.precio,
         cantidad: item.cantidad
       })),
-      total: totalConEnvio,
+      total: totalConEnvioLocal,  // CAMBIADO - usa Local
+      subtotal: subtotalLocal,  // NUEVO
+      descuento_monto: descuentoMontoLocal,  // NUEVO
+      descuento_porcentaje: descuentoAplicado?.porcentaje || null,  // NUEVO
+      costo_envio: costoEnvioLocal,  // NUEVO
       metodo_pago: 'EFECTIVO',
       estado_pago: 'PENDIENTE_EFECTIVO',
       transaccion_id: `CASH-${reference}`,
@@ -1189,7 +1230,14 @@ const processCashPayment = async () => {
       codigo_promocional: descuentoAplicado?.codigo || null,
       codigo_canje: canjeAplicado?.codigo || null
     };
-
+    // AGREGAR ESTE CONSOLE.LOG
+    console.log('📤 ENVIANDO AL BACKEND:', {
+      codigo_canje: orderData.codigo_canje,
+      total: orderData.total,
+      hayCodigoCanje: !!orderData.codigo_canje
+    });
+    // FIN DEL CONSOLE.LOG
+    
     const response = await fetch(`${API_URL}/orders`, {
       method: 'POST',
       headers: {
@@ -1237,28 +1285,40 @@ const processCashPayment = async () => {
         }, 1500);
         
       } else if (canjeAplicado) {
-        // Si usó canje (no gana puntos)
-        setTimeout(async () => {
-          await cargarPuntosUsuario(); // Solo actualizar vista
-          
-          toast('💎 Descuento aplicado correctamente', {
-            duration: 4000,
-            icon: 'ℹ️',
-            style: {
-              background: '#6366F1',
-              color: 'white'
-            }
-          });
-        }, 2000);
-      }
+    // Si usó canje (no gana puntos)
+    console.log(`💎 Canje aplicado en efectivo: ${canjeAplicado.puntos_usados} puntos usados`);
+    
+    setTimeout(async () => {
+      //await cargarPuntosUsuario(); // Actualizar saldo desde backend
+      
+      toast.success('💎 Descuento por puntos aplicado', {
+        duration: 4000,
+        style: {
+          background: '#6366F1',
+          color: 'white'
+        }
+      });
+    }, 2000);
+  }
       
       // 3️⃣ LIMPIAR CARRITO Y CERRAR MODALES
       setCarrito([]);
       localStorage.removeItem('carrito');
       setCashPaymentModal(false);
       setShowCart(false);
-      
+      // Limpiar estados después de pedido exitoso
+      setDescuentoAplicado(null);
+      setCanjeAplicado(null);
       console.log('✅ Proceso completado exitosamente');
+      // Limpiar estados después de pedido exitoso
+      // Limpiar estados después de pedido exitoso
+      setDescuentoAplicado(null);
+      setCanjeAplicado(null);
+      
+      console.log('✅ Estados limpiados post-pedido');
+      
+      // Recargar puntos actualizados desde backend
+      await cargarPuntosUsuario();
       
     } else {
       console.error('❌ Error del backend:', result);
@@ -1471,16 +1531,27 @@ const PaqueteCard = ({ paquete, onAgregar }) => {
 
 // Calcular descuento del código promocional
 
-// Cálculo de totales
-const subtotal = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
-const totalItems = carrito.reduce((acc, item) => acc + item.cantidad, 0);
-const descuentoMonto = descuentoAplicado ? 
-  (descuentoAplicado.tipo === 'porcentaje' 
-    ? Math.round(subtotal * descuentoAplicado.valor / 100)
-    : descuentoAplicado.valor) 
-  : 0;
-const descuentoCanje = canjeAplicado ? canjeAplicado.valor_descuento : 0;
-const total = subtotal - descuentoMonto - descuentoCanje;
+// Cálculo de totales - CORREGIDO
+const subtotal = carrito.reduce((acc, item) => acc + (Number(item.precio) * Number(item.cantidad)), 0);
+const totalItems = carrito.reduce((acc, item) => acc + Number(item.cantidad), 0);
+// Usar el monto que ya viene calculado desde PromoCodeInput
+const descuentoMonto = descuentoAplicado ? Number(descuentoAplicado.monto || 0) : 0;
+const descuentoCanje = canjeAplicado ? Number(canjeAplicado.valor_descuento || 0) : 0;
+const total = Math.max(0, subtotal - descuentoMonto - descuentoCanje);
+// Calcular total con envío - validado
+const totalConEnvio = Math.max(0, total + Number(costoEnvio || 0));
+
+// Debug si hay problemas
+if (totalConEnvio === 0 && carrito.length > 0) {
+  console.warn('⚠️ Total es 0 con productos en carrito:', {
+    subtotal,
+    descuentoMonto,
+    descuentoCanje,
+    total,
+    costoEnvio,
+    totalConEnvio
+  });
+}
 
 
 // 🎯 RECALCULAR PUNTOS EN TIEMPO REAL
@@ -1495,7 +1566,16 @@ useEffect(() => {
     puntosCalculados: puntos,
     canjeAplicado: !!canjeAplicado
   });
-}, [carrito, multiplicadorPuntos, nivelUsuario, canjeAplicado]); // ← DEPENDENCIAS IMPORTANTES
+}, [carrito, multiplicadorPuntos, nivelUsuario, canjeAplicado]);
+
+// Recalcular cuando se abre el carrito
+useEffect(() => {
+  if (showCart) {
+    const puntos = calcularPuntosCompra();
+    setPuntosGanadosCompra(puntos);
+    console.log('🛒 Carrito abierto, puntos recalculados:', puntos);
+  }
+}, [showCart]);
 
 // ===================================
 // 🚚 FUNCIÓN CALCULAR ENVÍO
@@ -1552,8 +1632,7 @@ const calcularEnvio = async (metodo) => {
 
 
 
-// ✅ TOTAL FINAL CON ENVÍO
-const totalConEnvio = total + costoEnvio;
+
 
 // 🎯 VALORES POR DEFECTO PARA ENVÍO
 if (subtotal >= 15000) {
@@ -2159,10 +2238,16 @@ if (subtotal >= 15000) {
   <PromoCodeInput
     carrito={carrito}
     onDescuentoAplicado={setDescuentoAplicado}
-    onCanjeAplicado={setCanjeAplicado} // NUEVO
+    onCanjeAplicado={(canje) => {
+      setCanjeAplicado(canje);
+      if (canje && canje.puntos_usados) {
+        setPuntosUsuario(prev => prev - canje.puntos_usados);
+        console.log(`💎 PromoCode: Descontando ${canje.puntos_usados} puntos`);
+      }
+    }}
     codigoActual={descuentoAplicado}
-    canjeActual={canjeAplicado} // NUEVO
-    puntosUsuario={puntosUsuario} // NUEVO
+    canjeActual={canjeAplicado}
+    puntosUsuario={puntosUsuario}
     darkMode={darkMode}
   />
 </div>
@@ -2170,8 +2255,31 @@ if (subtotal >= 15000) {
 {/* 🎯 AGREGAR AQUÍ EL COMPONENTE DE CANJE DE PUNTOS */}
 <CanjesPuntos 
   total={subtotal}
-  onCanjeAplicado={setCanjeAplicado}
+  onCanjeAplicado={(canje) => {
+    console.log('🎯 Evento de canje:', canje);
+    setCanjeAplicado(canje);
+    
+    if (canje && canje.puntos_usados) {
+      // APLICAR CANJE - Descontar puntos
+      const puntosADescontar = canje.puntos_usados;
+      setPuntosUsuario(prevPuntos => {
+        const nuevosPuntos = Math.max(0, prevPuntos - puntosADescontar);
+        console.log(`💎 APLICANDO CANJE: ${prevPuntos} - ${puntosADescontar} = ${nuevosPuntos}`);
+        return nuevosPuntos;
+      });
+      
+    } else if (canje === null && canjeAplicado) {
+      // CANCELAR CANJE - Restaurar puntos en Store
+      const puntosARestaurar = canjeAplicado.puntos_usados;
+      setPuntosUsuario(prevPuntos => {
+        const nuevosPuntos = prevPuntos + puntosARestaurar;
+        console.log(`💚 CANCELANDO CANJE: ${prevPuntos} + ${puntosARestaurar} = ${nuevosPuntos}`);
+        return nuevosPuntos;
+      });
+    }
+  }}
   darkMode={darkMode}
+  puntosUsuario={puntosUsuario}
 />
 {/* 💎 PUNTOS A GANAR - VERSIÓN SIMPLE */}
 {subtotal >= 15000 ? (
@@ -2193,7 +2301,7 @@ if (subtotal >= 15000) {
   darkMode ? 'text-purple-300' : 'text-purple-600'
 }`}>
   <span className={puntosGanadosCompra > 100 ? 'animate-bounce' : ''}>💎</span>
-  +{puntosGanadosCompra} pts
+  +{calcularPuntosCompra()} pts
 </span>
     </div>
   </div>
@@ -2553,7 +2661,7 @@ if (subtotal >= 15000) {
                   <span className={`transition-colors duration-300 ${
                     darkMode ? 'text-white' : 'text-gray-800'
                   }`}>Total Supercasa:</span>
-                  <span className="text-amber-500">${total.toLocaleString()}</span>
+                  <span className="text-amber-500">${totalConEnvio.toLocaleString()}</span>
                 </div>
 
                 <button
@@ -2606,12 +2714,17 @@ if (subtotal >= 15000) {
 
             <div className="p-6">
   <PaymentComponent
-  total={totalConEnvio}
-  carrito={carrito}
+    total={totalConEnvio}
+    subtotal={subtotal}
+    descuentoMonto={descuentoMonto}
+    costoEnvio={costoEnvio}
+    carrito={carrito}
     deliveryData={deliveryData}
     onPaymentSuccess={handlePaymentSuccess}
     onPaymentError={handlePaymentError}
     onCancel={cancelarPago}
+    descuentoAplicado={descuentoAplicado}
+    canjeAplicado={canjeAplicado}
   />
 </div>
           </div>

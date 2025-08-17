@@ -1,23 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import API_URL from '../config/api'; // 👈 AGREGAR ESTA LÍNEA
+import API_URL from '../config/api';
 
-const PuntosWidget = () => {
-  const [puntos, setPuntos] = useState(0);
-  const [nivel, setNivel] = useState('BRONCE');
+const PuntosWidget = ({ puntos = 0, nivel = 'BRONCE', onClickCanjes, darkMode = false }) => {
+  // USAR LOS PROPS en lugar de estado local
   const [puntosTotales, setPuntosTotales] = useState(0);
   const [mostrarPanel, setMostrarPanel] = useState(false);
-  const [cargando, setCargando] = useState(true);
+  const [cargando, setCargando] = useState(false);
 
+  // Solo cargar puntos totales, no los disponibles
   useEffect(() => {
-    const cargarPuntos = async () => {
+    const cargarPuntosTotales = async () => {
       try {
         const token = localStorage.getItem('token');
-        if (!token) {
-          setCargando(false);
-          return;
-        }
+        if (!token) return;
 
-        // 🔧 CORREGIDO: Usando API_URL en lugar de localhost:3000
         const response = await fetch(`${API_URL}/api/puntos/mi-saldo`, {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -26,31 +22,22 @@ const PuntosWidget = () => {
 
         if (response.ok) {
           const data = await response.json();
-          setPuntos(data.puntos_disponibles || 0);
-          setNivel(data.nivel || 'BRONCE');
           setPuntosTotales(data.puntos_totales || 0);
+          // NO actualizar puntos disponibles - usar el prop
         }
       } catch (error) {
-        console.error('Error cargando puntos:', error);
-      } finally {
-        setCargando(false);
+        console.error('Error cargando puntos totales:', error);
       }
     };
 
-    cargarPuntos();
-    
-    // Actualizar cada 10 segundos
-    const interval = setInterval(cargarPuntos, 10000);
-    
-    // Escuchar evento de pedido completado
-    window.addEventListener('pedidoCompletado', cargarPuntos);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('pedidoCompletado', cargarPuntos);
-    };
-  }, []);
+    cargarPuntosTotales();
+    // NO actualizar automáticamente - dejar que Store.jsx maneje los puntos
+  }, []); // Solo al montar
 
+  // Resto del componente...
+
+
+  
   const getNivelColor = () => {
     switch(nivel) {
       case 'ORO': return 'from-yellow-400 to-yellow-600';
@@ -84,7 +71,9 @@ const PuntosWidget = () => {
         className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r ${getNivelColor()} text-white font-semibold text-sm hover:scale-105 transition-all duration-300 shadow-lg`}
       >
         <span className="text-lg">🏆</span>
-        <span>Mis Puntos: {puntos} pts</span>
+        {/* Usar el prop puntos, no el estado local */}
+      <span>Mis Puntos: {puntos} pts</span>
+      <span>Nivel: {nivel}</span>
         <span className={`px-2 py-0.5 rounded-full text-xs ${
           nivel === 'ORO' ? 'bg-yellow-300 text-yellow-900' :
           nivel === 'PLATA' ? 'bg-gray-200 text-gray-800' :

@@ -2,43 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast'; 
 import API_URL from '../config/api';
 
-const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
-  const [puntosReales, setPuntosReales] = useState(0); // Puntos REALES en BD
-  const [puntosMostrados, setPuntosMostrados] = useState(0); // Puntos mostrados (simulación)
+const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false, puntosUsuario = 0 }) => {
+  // CAMBIO: Usa puntosUsuario del prop en lugar de cargarlos independientemente
+  const [puntosReales, setPuntosReales] = useState(puntosUsuario);
+  const [puntosMostrados, setPuntosMostrados] = useState(puntosUsuario);
   const [mostrarOpciones, setMostrarOpciones] = useState(false);
   const [cargando, setCargando] = useState(false);
   const [canjeActual, setCanjeActual] = useState(null);
 
+  // CAMBIO: Actualiza cuando cambien los puntos del usuario
   useEffect(() => {
-    cargarPuntos();
-  }, []);
+    setPuntosReales(puntosUsuario);  // CORREGIDO
+    setPuntosMostrados(puntosUsuario);
+    console.log('💎 Puntos actualizados desde Store:', puntosUsuario);
+  }, [puntosUsuario]);
 
-  const cargarPuntos = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch(`${API_URL}/api/puntos/mi-saldo`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const puntosDisponibles = data.puntos_disponibles || 0;
-        setPuntosReales(puntosDisponibles);
-        setPuntosMostrados(puntosDisponibles);
-        console.log('✅ Puntos reales cargados:', puntosDisponibles);
-      }
-    } catch (error) {
-      console.error('Error cargando puntos:', error);
-    }
-  };
+  // ELIMINADO: Ya no necesitamos cargarPuntos() porque los recibimos como prop
 
   const realizarCanje = async (puntosACanjear) => {
     setCargando(true);
     try {
       const token = localStorage.getItem('token');
-      // 🔧 CORREGIDO: Usando API_URL en lugar de localhost:3000
       const response = await fetch(`${API_URL}/api/puntos/canjear`, {
         method: 'POST',
         headers: {
@@ -62,7 +46,14 @@ const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
         setPuntosMostrados(puntosReales - puntosACanjear);
         
         // Notificar al Store.jsx
+        // Notificar al Store.jsx
         onCanjeAplicado(canje);
+        
+        // FORZAR DESCUENTO DE PUNTOS
+        console.log(`🔴 DESCONTANDO ${puntosACanjear} puntos forzadamente`);
+        
+        // Actualizar puntos reales también
+        setPuntosReales(prevPuntos => prevPuntos - puntosACanjear);
         
         setMostrarOpciones(false);
         
@@ -108,42 +99,46 @@ const CanjesPuntos = ({ total, onCanjeAplicado, darkMode = false }) => {
   };
 
   const quitarCanje = async () => {
-    console.log('🔄 Cancelando canje...');
+  console.log('🔄 Cancelando canje...');
+
+  if (canjeActual) {
+    const puntosARestaurar = canjeActual.puntos_usados;
+    console.log(`💚 Restaurando ${puntosARestaurar} puntos`);
     
-    if (canjeActual) {
-      // Cancelar en el backend
-      try {
-        const token = localStorage.getItem('token');
-        // 🔧 CORREGIDO: Usando API_URL en lugar de localhost:3000
-        await fetch(`${API_URL}/api/puntos/cancelar-canje`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ codigo_canje: canjeActual.codigo })
-        });
-        
-        console.log('✅ Canje cancelado en backend');
-      } catch (error) {
-        console.error('Error cancelando en backend:', error);
-      }
-      
-      // Restaurar puntos visualmente
-      setPuntosMostrados(puntosReales);
-      console.log(`✅ Puntos restaurados: ${puntosReales}`);
+    // Cancelar en el backend
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/api/puntos/cancelar-canje`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ codigo_canje: canjeActual.codigo })
+      });
+
+      console.log('✅ Canje cancelado en backend');
+    } catch (error) {
+      console.error('Error cancelando en backend:', error);
     }
+
+    // IMPORTANTE: Restaurar puntos localmente
+    setPuntosReales(prevPuntos => prevPuntos + puntosARestaurar);
+    setPuntosMostrados(puntosReales + puntosARestaurar);
     
-    setCanjeActual(null);
-    onCanjeAplicado(null);
-  };
+    toast.success(`✅ ${puntosARestaurar} puntos restaurados`);
+  }
+
+  setCanjeActual(null);
+  onCanjeAplicado(null); // Notificar a Store.jsx que se canceló
+};
 
   const opcionesCanje = [
-  { puntos: 50, valor: 500 },    // 🎯 CAMBIO: $500 en lugar de $5,000
-  { puntos: 100, valor: 1000 },  // 🎯 CAMBIO: $1,000 en lugar de $10,000
-  { puntos: 200, valor: 2200 },  // 🎯 CAMBIO: $2,200 en lugar de $22,000
-  { puntos: 500, valor: 6000 }   // 🎯 CAMBIO: $6,000 en lugar de $60,000
-];
+    { puntos: 50, valor: 500 },
+    { puntos: 100, valor: 1000 },
+    { puntos: 200, valor: 2200 },
+    { puntos: 500, valor: 6000 }
+  ];
 
   // Si no hay puntos
   if (puntosReales === 0 && !canjeActual) {
