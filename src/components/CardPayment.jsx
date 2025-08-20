@@ -20,6 +20,8 @@ const CardPayment = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
   const [focused, setFocused] = useState('');
+  const [waitingConfirmation, setWaitingConfirmation] = useState(false);
+  const [transactionId, setTransactionId] = useState('');
 
   // Detectar tipo de tarjeta
   const detectCardType = (number) => {
@@ -224,10 +226,16 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
 
     const paymentData = await paymentResponse.json();
     
-    if (paymentData.success) {
-      onPaymentSuccess(paymentData);
+    if (paymentData.success && paymentData.transactionId) {
+      console.log('💳 Transacción creada, esperando confirmación...');
+      setTransactionId(paymentData.transactionId);
+      
+      // NO llamar onPaymentSuccess inmediatamente
+      // En su lugar, esperar confirmación
+      await esperarConfirmacionTarjeta(paymentData.transactionId);
+      
     } else {
-      throw new Error('Error procesando el pago');
+      throw new Error(paymentData.error || 'Error procesando el pago');
     }
     
   } catch (error) {
@@ -237,6 +245,127 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
     setIsProcessing(false);
   }
 };
+
+// ===================================
+  // 🔄 FUNCIÓN LONG POLLING PARA TARJETAS
+  // ===================================
+  const esperarConfirmacionTarjeta = async (txId) => {
+    console.log(`⏳ [TARJETA] Esperando confirmación para: ${txId}`);
+    setWaitingConfirmation(true);
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
+      
+      const response = await fetch(
+        `https://supercasa-backend-vvu1.onrender.com/api/esperar-confirmacion/${txId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          signal: controller.signal
+        }
+      );
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const resultado = await response.json();
+      
+      console.log('📊 [TARJETA] Respuesta long polling:', resultado);
+      
+      if (resultado.success && resultado.status === 'APPROVED') {
+        console.log('🎉 ¡Pago con tarjeta confirmado!');
+        setWaitingConfirmation(false);
+        setIsProcessing(false);
+        
+        setTimeout(() => {
+          onPaymentSuccess({
+            ...resultado,
+            pedidoId: resultado.pedidoId,
+            status: 'APPROVED',
+            found: true
+          });
+        }, 1500);
+        
+      } else if (resultado.status === 'TIMEOUT') {
+        console.log('⏰ Timeout, verificando manualmente...');
+        setWaitingConfirmation(false);
+        // Intentar verificación manual
+        verificarPagoManual(txId);
+        
+      } else if (resultado.status === 'DECLINED' || resultado.status === 'ERROR') {
+        console.log('❌ Pago con tarjeta rechazado');
+        setWaitingConfirmation(false);
+        setIsProcessing(false);
+        onPaymentError(resultado.message || 'El pago fue rechazado');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error en long polling tarjeta:', error);
+      setWaitingConfirmation(false);
+      verificarPagoManual(txId);
+    }
+  };
+
+  // Función de backup para verificación manual
+  const verificarPagoManual = async (txId) => {
+    console.log('🔄 Verificación manual de tarjeta...');
+    let intentos = 0;
+    const maxIntentos = 10;
+    
+    const verificar = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(
+          `https://supercasa-backend-vvu1.onrender.com/api/consultar-pago/${txId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+        
+        const resultado = await response.json();
+        
+        if (resultado.status === 'APPROVED' && resultado.found) {
+          console.log('✅ Pago confirmado en verificación manual');
+          setIsProcessing(false);
+          onPaymentSuccess(resultado);
+          return;
+        }
+        
+        if (resultado.status === 'DECLINED') {
+          console.log('❌ Pago rechazado en verificación manual');
+          setIsProcessing(false);
+          onPaymentError('Pago rechazado por el banco');
+          return;
+        }
+        
+        intentos++;
+        if (intentos < maxIntentos) {
+          setTimeout(verificar, 3000);
+        } else {
+          setIsProcessing(false);
+          alert('El pago está tomando más tiempo. Por favor verifica en tu historial.');
+        }
+        
+      } catch (error) {
+        console.error('Error verificando:', error);
+        intentos++;
+        if (intentos < maxIntentos) {
+          setTimeout(verificar, 3000);
+        }
+      }
+    };
+    
+    verificar();
+  };
 
   // Icono de tarjeta
   const getCardIcon = () => {
@@ -249,7 +378,41 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
     return icons[cardType] || '💳';
   };
 
+  // Si está esperando confirmación, mostrar pantalla de espera
+  if (waitingConfirmation) {
+    return (
+      <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          
+          <h3 className="text-xl font-bold text-blue-600 mb-3">💳 Procesando Pago</h3>
+          
+          <div className="bg-blue-50 p-4 rounded-lg mb-4">
+            <p className="text-blue-800 mb-2">
+              Estamos verificando tu pago con el banco...
+            </p>
+            <p className="text-sm text-blue-600">
+              Esto puede tomar unos segundos
+            </p>
+          </div>
+          
+          <div className="bg-gray-50 p-3 rounded mb-4">
+            <p className="text-sm text-gray-600">
+              <strong>Monto:</strong> ${total.toLocaleString()} COP<br/>
+              <strong>ID:</strong> {transactionId || 'Procesando...'}
+            </p>
+          </div>
+          
+          <p className="text-xs text-gray-500">
+            No cierres esta ventana
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
+    
     <div className="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
       {/* Header con botón de regreso */}
       <div className="flex items-center mb-6">

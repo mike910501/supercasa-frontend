@@ -104,27 +104,52 @@ paquetes: carrito.filter(item => item.tipo === 'paquete').map(item => ({
 
       console.log('✅ Pago creado:', resultado);
 
+      // ===================================
+      // 🔄 MANEJO DE RESPUESTA SEGÚN MÉTODO DE PAGO
+      // ===================================
+      
       setTransactionId(resultado.transactionId);
       setEstadoPago('esperando');
 
-     // Para DaviPlata, redirigir a URL específica
-      if (metodoPago === 'DAVIPLATA' && resultado.daviplataUrl) {
-        console.log('🔗 Redirigiendo a DaviPlata:', resultado.daviplataUrl);
-        setEstadoPago('redirigiendo');
-        setTimeout(() => {
-          window.location.href = resultado.daviplataUrl;
-        }, 2000);
-      } else if (metodoPago === 'PSE' && resultado.pseUrl) {
-        console.log('🔗 Redirigiendo a PSE:', resultado.pseUrl);
-        setEstadoPago('redirigiendo');
-        setTimeout(() => {
-          window.location.href = resultado.pseUrl;
-        }, 2000);
-      } else if (metodoPago === 'NEQUI') {
-        // Usar long polling mejorado con fallback automático
+      // DAVIPLATA - Redirigir o esperar
+      if (metodoPago === 'DAVIPLATA') {
+        if (resultado.daviplataUrl) {
+          console.log('🔗 Redirigiendo a DaviPlata:', resultado.daviplataUrl);
+          setEstadoPago('redirigiendo');
+          setTimeout(() => {
+            window.location.href = resultado.daviplataUrl;
+          }, 2000);
+        } else {
+          console.log('📱 DaviPlata sin URL, usando long polling');
+          esperarConfirmacionMejorada(resultado.transactionId);
+        }
+      } 
+      // PSE - Redirigir o esperar
+      else if (metodoPago === 'PSE') {
+        if (resultado.pseUrl) {
+          console.log('🔗 Redirigiendo a PSE:', resultado.pseUrl);
+          setEstadoPago('redirigiendo');
+          setTimeout(() => {
+            window.location.href = resultado.pseUrl;
+          }, 2000);
+        } else {
+          console.log('🏦 PSE sin URL, usando long polling');
+          esperarConfirmacionMejorada(resultado.transactionId);
+        }
+      } 
+      // NEQUI - Siempre long polling (no tiene redirección)
+      else if (metodoPago === 'NEQUI') {
+        console.log('💜 Nequi - Esperando confirmación con long polling');
         esperarConfirmacionMejorada(resultado.transactionId);
-      } else if (metodoPago === 'PSE' && !resultado.pseUrl) {
-        console.log('⚠️ PSE sin URL de redirección, usando long polling');
+      }
+      // CARD (Tarjetas) - También necesita esperar confirmación
+      else if (metodoPago === 'CARD') {
+        console.log('💳 Tarjeta - Esperando confirmación con long polling');
+        esperarConfirmacionMejorada(resultado.transactionId);
+      }
+      // Cualquier otro método futuro
+      else {
+        console.log(`⏳ ${metodoPago} - Usando long polling por defecto`);
         esperarConfirmacionMejorada(resultado.transactionId);
       }
 
